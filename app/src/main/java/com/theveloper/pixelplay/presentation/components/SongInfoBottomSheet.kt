@@ -215,77 +215,7 @@ fun SongInfoBottomSheet(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Fila de botones de acción con altura intrínseca (Always visible)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        MediumExtendedFloatingActionButton(
-                            modifier = Modifier
-                                .weight(0.5f)
-                                .fillMaxHeight(),
-                            onClick = onPlaySong,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp),
-                            shape = playButtonShape,
-                            icon = {
-                                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play song")
-                            },
-                            text = {
-                                Text(
-                                    modifier = Modifier.padding(end = 10.dp),
-                                    text = "Play"
-                                )
-                            }
-                        )
-
-                        FilledIconButton(
-                            modifier = Modifier
-                                .weight(0.25f)
-                                .fillMaxHeight(),
-                            onClick = onToggleFavorite,
-                            shape = favoriteButtonShape,
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = favoriteButtonContainerColor,
-                                contentColor = favoriteButtonContentColor
-                            )
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
-                                imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
-                            )
-                        }
-
-                        FilledTonalIconButton(
-                            modifier = Modifier
-                                .weight(0.25f)
-                                .fillMaxHeight(),
-                            onClick = {
-                                try {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "audio/*"
-                                        putExtra(Intent.EXTRA_STREAM, song.contentUriString.toUri())
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Song File Via"))
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Could not share song: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                }
-                            },
-                            shape = CircleShape
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
-                                imageVector = Icons.Rounded.Share,
-                                contentDescription = "Share song file"
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -305,6 +235,76 @@ fun SongInfoBottomSheet(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(IntrinsicSize.Min),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        MediumExtendedFloatingActionButton(
+                                            modifier = Modifier
+                                                .weight(0.5f)
+                                                .fillMaxHeight(),
+                                            onClick = onPlaySong,
+                                            elevation = FloatingActionButtonDefaults.elevation(0.dp),
+                                            shape = playButtonShape,
+                                            icon = {
+                                                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play song")
+                                            },
+                                            text = {
+                                                Text(
+                                                    modifier = Modifier.padding(end = 10.dp),
+                                                    text = "Play"
+                                                )
+                                            }
+                                        )
+
+                                        FilledIconButton(
+                                            modifier = Modifier
+                                                .weight(0.25f)
+                                                .fillMaxHeight(),
+                                            onClick = onToggleFavorite,
+                                            shape = favoriteButtonShape,
+                                            colors = IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = favoriteButtonContainerColor,
+                                                contentColor = favoriteButtonContentColor
+                                            )
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
+                                                imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
+                                            )
+                                        }
+
+                                        FilledTonalIconButton(
+                                            modifier = Modifier
+                                                .weight(0.25f)
+                                                .fillMaxHeight(),
+                                            onClick = {
+                                                try {
+                                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "audio/*"
+                                                        putExtra(Intent.EXTRA_STREAM, song.contentUriString.toUri())
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    context.startActivity(Intent.createChooser(shareIntent, "Share Song File Via"))
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "Could not share song: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            },
+                                            shape = CircleShape
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
+                                                imageVector = Icons.Rounded.Share,
+                                                contentDescription = "Share song file"
+                                            )
+                                        }
+                                    }
+                                }
                                 item {
                                     Row(
                                         modifier = Modifier
