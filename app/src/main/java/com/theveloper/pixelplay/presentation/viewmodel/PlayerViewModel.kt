@@ -710,6 +710,12 @@ class PlayerViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            userPreferencesRepository.isAlbumsListViewFlow.collect { isList ->
+                _playerUiState.update { it.copy(isAlbumsListView = isList) }
+            }
+        }
+
+        viewModelScope.launch {
             userPreferencesRepository.blockedDirectoriesFlow
                 .distinctUntilChanged()
                 .collect { blocked ->
@@ -2136,6 +2142,12 @@ class PlayerViewModel @Inject constructor(
                 currentFolderPath = null,
                 currentFolder = null
             )
+        }
+    }
+
+    fun setAlbumsListView(isList: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setAlbumsListView(isList)
         }
     }
 

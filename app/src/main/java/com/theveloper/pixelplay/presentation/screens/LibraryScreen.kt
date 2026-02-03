@@ -46,6 +46,9 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.rounded.ViewList
+import androidx.compose.material.icons.rounded.ViewModule
+import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -123,7 +126,7 @@ import com.theveloper.pixelplay.data.model.LibraryTabId
 import com.theveloper.pixelplay.data.model.toLibraryTabIdOrNull
 import com.theveloper.pixelplay.data.preferences.LibraryNavigationMode
 import com.theveloper.pixelplay.data.worker.SyncProgress
-import com.theveloper.pixelplay.presentation.components.LibrarySortBottomSheet
+import com.theveloper.pixelplay.presentation.screens.search.components.GenreTypography
 import com.theveloper.pixelplay.presentation.components.SyncProgressBar
 import android.content.Intent
 import android.net.Uri
@@ -184,6 +187,7 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import androidx.paging.LoadState
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
+import com.theveloper.pixelplay.presentation.components.LibrarySortBottomSheet
 
 val ListExtraBottomGap = 30.dp
 val PlayerSheetCollapsedCornerRadius = 32.dp
@@ -567,6 +571,10 @@ fun LibraryScreen(
                                 }
                                 ?: sanitizedSortOptions.first()
 
+                            
+                            val isAlbumTab = currentTabId == LibraryTabId.ALBUMS
+                            val isFoldersTab = currentTabId == LibraryTabId.FOLDERS
+
                             LibrarySortBottomSheet(
                                 title = "Sort by",
                                 options = sanitizedSortOptions,
@@ -576,11 +584,53 @@ fun LibraryScreen(
                                     onSortOptionChanged(option)
                                     playerViewModel.hideSortingSheet()
                                 },
-                                showViewToggle = currentTabId == LibraryTabId.FOLDERS,
+                                showViewToggle = isFoldersTab,
                                 viewToggleChecked = playerUiState.isFoldersPlaylistView,
                                 onViewToggleChange = { isChecked ->
                                     playerViewModel.setFoldersPlaylistView(isChecked)
-                                }
+                                },
+                                viewToggleContent = if (isAlbumTab) {
+                                    {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            val isList = playerUiState.isAlbumsListView
+                                            val primaryColor = MaterialTheme.colorScheme.tertiaryContainer
+                                            val onPrimaryColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                            val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+                                            val onSurfaceColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            
+                                            // Grid Item
+                                            ToggleSegmentButton(
+                                                modifier = Modifier.weight(1f),
+                                                active = !isList,
+                                                activeColor = MaterialTheme.colorScheme.primary,
+                                                inactiveColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                activeCornerRadius = 32.dp,
+                                                onClick = { playerViewModel.setAlbumsListView(false) },
+                                                text = "Grid",
+                                                imageVector = Icons.Rounded.ViewModule
+                                            )
+                                            
+                                            // List Item
+                                            ToggleSegmentButton(
+                                                modifier = Modifier.weight(1f),
+                                                active = isList,
+                                                activeColor = MaterialTheme.colorScheme.primary,
+                                                inactiveColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                activeCornerRadius = 32.dp,
+                                                onClick = { playerViewModel.setAlbumsListView(true) },
+                                                text = "List",
+                                                imageVector = Icons.Rounded.ViewList
+                                            )
+                                        }
+                                    }
+                                } else null
                             )
                         }
 
@@ -1640,7 +1690,7 @@ fun LibraryFavoritesTab(
                     else 
                         bottomBarHeight + 16.dp
 
-                    com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
+                    ExpressiveScrollBar(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
@@ -2051,7 +2101,7 @@ fun LibrarySongsTabPaginated(
                         else 
                            bottomBarHeight + 16.dp
 
-                        com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
+                        ExpressiveScrollBar(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
@@ -2307,70 +2357,132 @@ fun LibraryAlbumsTab(
     onRefresh: () -> Unit
 ) {
     val gridState = rememberLazyGridState()
+    val listState = rememberLazyListState() // New state for list view
     val context = LocalContext.current
     val imageLoader = context.imageLoader
+    
+    // Collect view mode preference
+    val playerUiState by playerViewModel.playerUiState.collectAsState()
+    val isListView = playerUiState.isAlbumsListView
 
     // Prefetching logic for LibraryAlbumsTab
-    LaunchedEffect(albums, gridState) {
-        snapshotFlow { gridState.layoutInfo }
-            .distinctUntilChanged()
-            .collect { layoutInfo ->
-                val visibleItemsInfo = layoutInfo.visibleItemsInfo
-                if (visibleItemsInfo.isNotEmpty() && albums.isNotEmpty()) {
-                    val lastVisibleItemIndex = visibleItemsInfo.last().index
-                    val totalItemsCount = albums.size
-                    val prefetchThreshold = 5 // Start prefetching when 5 items are left to be displayed from current visible ones
-                    val prefetchCount = 10 // Prefetch next 10 items
+    LaunchedEffect(albums, gridState, listState, isListView) {
+        if (isListView) {
+             // Prefetch logic for List View
+             snapshotFlow { listState.layoutInfo }
+                .distinctUntilChanged()
+                .collect { layoutInfo ->
+                    val visibleItemsInfo = layoutInfo.visibleItemsInfo
+                    if (visibleItemsInfo.isNotEmpty() && albums.isNotEmpty()) {
+                        val lastVisibleItemIndex = visibleItemsInfo.last().index
+                        val totalItemsCount = albums.size
+                        val prefetchThreshold = 5
+                        val prefetchCount = 10 
 
-                    if (totalItemsCount > lastVisibleItemIndex + 1 && lastVisibleItemIndex + prefetchThreshold >= totalItemsCount - prefetchCount) {
-                        val startIndexToPrefetch = lastVisibleItemIndex + 1
-                        val endIndexToPrefetch = (startIndexToPrefetch + prefetchCount).coerceAtMost(totalItemsCount)
+                        if (totalItemsCount > lastVisibleItemIndex + 1 && lastVisibleItemIndex + prefetchThreshold >= totalItemsCount - prefetchCount) {
+                            val startIndexToPrefetch = lastVisibleItemIndex + 1
+                            val endIndexToPrefetch = (startIndexToPrefetch + prefetchCount).coerceAtMost(totalItemsCount)
 
-                        (startIndexToPrefetch until endIndexToPrefetch).forEach { indexToPrefetch ->
-                            val album = albums.getOrNull(indexToPrefetch)
-                            album?.albumArtUriString?.let { uri ->
-                                val request = ImageRequest.Builder(context)
-                                    .data(uri)
-                                    .size(Size(256, 256)) // Same size as in AlbumGridItemRedesigned
-                                    .build()
-                                imageLoader.enqueue(request)
+                            (startIndexToPrefetch until endIndexToPrefetch).forEach { indexToPrefetch ->
+                                val album = albums.getOrNull(indexToPrefetch)
+                                album?.albumArtUriString?.let { uri ->
+                                    val request = ImageRequest.Builder(context)
+                                        .data(uri)
+                                        .size(Size(256, 256)) 
+                                        .build()
+                                    imageLoader.enqueue(request)
+                                }
                             }
                         }
                     }
                 }
-            }
+        } else {
+            // Prefetch logic for Grid View
+            snapshotFlow { gridState.layoutInfo }
+                .distinctUntilChanged()
+                .collect { layoutInfo ->
+                    val visibleItemsInfo = layoutInfo.visibleItemsInfo
+                    if (visibleItemsInfo.isNotEmpty() && albums.isNotEmpty()) {
+                        val lastVisibleItemIndex = visibleItemsInfo.last().index
+                        val totalItemsCount = albums.size
+                        val prefetchThreshold = 5 
+                        val prefetchCount = 10 
+
+                        if (totalItemsCount > lastVisibleItemIndex + 1 && lastVisibleItemIndex + prefetchThreshold >= totalItemsCount - prefetchCount) {
+                            val startIndexToPrefetch = lastVisibleItemIndex + 1
+                            val endIndexToPrefetch = (startIndexToPrefetch + prefetchCount).coerceAtMost(totalItemsCount)
+
+                            (startIndexToPrefetch until endIndexToPrefetch).forEach { indexToPrefetch ->
+                                val album = albums.getOrNull(indexToPrefetch)
+                                album?.albumArtUriString?.let { uri ->
+                                    val request = ImageRequest.Builder(context)
+                                        .data(uri)
+                                        .size(Size(256, 256)) 
+                                        .build()
+                                    imageLoader.enqueue(request)
+                                }
+                            }
+                        }
+                    }
+                }
+        }
     }
 
     if (isLoading && albums.isEmpty()) {
         // Show skeleton grid during loading
-        LazyVerticalGrid(
-            modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, bottom = 6.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 26.dp,
-                        topEnd = 26.dp,
-                        bottomStart = PlayerSheetCollapsedCornerRadius,
-                        bottomEnd = PlayerSheetCollapsedCornerRadius
+        if (isListView) {
+             LazyColumn(
+                modifier = Modifier
+                    .padding(start = 14.dp, end = 14.dp, bottom = 6.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 26.dp,
+                            topEnd = 26.dp,
+                            bottomStart = PlayerSheetCollapsedCornerRadius,
+                            bottomEnd = PlayerSheetCollapsedCornerRadius
+                        )
                     )
-                )
-                .fillMaxSize(),
-            state = gridState,
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item(key = "skeleton_top_spacer", span = { GridItemSpan(maxLineSpan) }) {
-                Spacer(Modifier.height(4.dp))
+                    .fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                 items(8) { 
+                    AlbumListItem(
+                        album = Album.empty(),
+                        albumColorSchemePairFlow = MutableStateFlow(null),
+                        onClick = {},
+                        isLoading = true
+                    )
+                }
             }
-            items(8) { // Show 8 skeleton items (4 rows x 2 columns)
-                AlbumGridItemRedesigned(
-                    album = Album.empty(),
-                    albumColorSchemePairFlow = MutableStateFlow(null),
-                    onClick = {},
-                    isLoading = true
-                )
+        } else {
+            LazyVerticalGrid(
+                modifier = Modifier
+                    .padding(start = 14.dp, end = 14.dp, bottom = 6.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 26.dp,
+                            topEnd = 26.dp,
+                            bottomStart = PlayerSheetCollapsedCornerRadius,
+                            bottomEnd = PlayerSheetCollapsedCornerRadius
+                        )
+                    )
+                    .fillMaxSize(),
+                state = gridState,
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                items(8) { // Show 8 skeleton items (4 rows x 2 columns)
+                    AlbumGridItemRedesigned(
+                        album = Album.empty(),
+                        albumColorSchemePairFlow = MutableStateFlow(null),
+                        onClick = {},
+                        isLoading = true
+                    )
+                }
             }
         }
     } else if (albums.isEmpty() && !isLoading) { // canLoadMore removed
@@ -2383,7 +2495,7 @@ fun LibraryAlbumsTab(
             }
         }
     } else {
-        // Songs loaded - show paginated list
+        // Songs loaded
         Box(modifier = Modifier.fillMaxSize()) {
             val albumsPullToRefreshState = rememberPullToRefreshState()
             PullToRefreshBox(
@@ -2400,65 +2512,96 @@ fun LibraryAlbumsTab(
                 }
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    LazyVerticalGrid(
-                        modifier = Modifier
-                            .padding(start = 14.dp, end = if (gridState.canScrollForward || gridState.canScrollBackward) 24.dp else 14.dp, bottom = 6.dp)
-                            .clip(
-                                RoundedCornerShape(
-                                    topStart = 26.dp,
-                                    topEnd = 26.dp,
-                                    bottomStart = PlayerSheetCollapsedCornerRadius,
-                                    bottomEnd = PlayerSheetCollapsedCornerRadius
+                    if (isListView) {
+                            
+                        LazyColumn(
+                             modifier = Modifier
+                                .padding(start = 14.dp, end = if (listState.canScrollForward || listState.canScrollBackward) 24.dp else 14.dp, bottom = 6.dp)
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 26.dp,
+                                        topEnd = 26.dp,
+                                        bottomStart = PlayerSheetCollapsedCornerRadius,
+                                        bottomEnd = PlayerSheetCollapsedCornerRadius
+                                    )
+                                ),
+                            state = listState,
+                            contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                             items(albums, key = { "album_${it.id}" }) { album ->
+                                val albumSpecificColorSchemeFlow =
+                                    playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(album.albumArtUriString ?: "")
+                                val rememberedOnClick = remember(album.id) { { onAlbumClick(album.id) } }
+                                AlbumListItem(
+                                    album = album,
+                                    albumColorSchemePairFlow = albumSpecificColorSchemeFlow,
+                                    onClick = rememberedOnClick,
+                                    isLoading = isLoading && albums.isEmpty()
                                 )
-                            ),
-                        state = gridState,
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        item(key = "albums_top_spacer", span = { GridItemSpan(maxLineSpan) }) {
-                            Spacer(Modifier.height(4.dp))
+                            }
                         }
-                        items(albums, key = { "album_${it.id}" }) { album ->
-                            val albumSpecificColorSchemeFlow =
-                                playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(album.albumArtUriString ?: "")
-                            val rememberedOnClick = remember(album.id) { { onAlbumClick(album.id) } }
-                            AlbumGridItemRedesigned(
-                                album = album,
-                                albumColorSchemePairFlow = albumSpecificColorSchemeFlow,
-                                onClick = rememberedOnClick,
-                                isLoading = isLoading && albums.isEmpty() // Shimmer solo si está cargando Y la lista está vacía
-                            )
+                         // ScrollBar Overlay for List
+                        val stablePlayerState by playerViewModel.stablePlayerState.collectAsState()
+                        val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong()) 
+                            bottomBarHeight + MiniPlayerHeight + 16.dp 
+                        else 
+                            bottomBarHeight + 16.dp
+                        
+                        ExpressiveScrollBar(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
+                            listState = listState
+                        )
+                    } else {
+                        LazyVerticalGrid(
+                            modifier = Modifier
+                                .padding(start = 14.dp, end = if (gridState.canScrollForward || gridState.canScrollBackward) 24.dp else 14.dp, bottom = 6.dp)
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 26.dp,
+                                        topEnd = 26.dp,
+                                        bottomStart = PlayerSheetCollapsedCornerRadius,
+                                        bottomEnd = PlayerSheetCollapsedCornerRadius
+                                    )
+                                ),
+                            state = gridState,
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+    
+                            items(albums, key = { "album_${it.id}" }) { album ->
+                                val albumSpecificColorSchemeFlow =
+                                    playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(album.albumArtUriString ?: "")
+                                val rememberedOnClick = remember(album.id) { { onAlbumClick(album.id) } }
+                                AlbumGridItemRedesigned(
+                                    album = album,
+                                    albumColorSchemePairFlow = albumSpecificColorSchemeFlow,
+                                    onClick = rememberedOnClick,
+                                    isLoading = isLoading && albums.isEmpty() // Shimmer solo si está cargando Y la lista está vacía
+                                )
+                            }
                         }
+                        
+                        // ScrollBar Overlay for Grid
+                        val stablePlayerState by playerViewModel.stablePlayerState.collectAsState()
+                        val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong()) 
+                            bottomBarHeight + MiniPlayerHeight + 16.dp 
+                        else 
+                            bottomBarHeight + 16.dp
+                        
+                        ExpressiveScrollBar(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
+                            gridState = gridState
+                        )
                     }
-                    
-                    // ScrollBar Overlay
-                    val stablePlayerState by playerViewModel.stablePlayerState.collectAsState()
-                    val bottomPadding = if (stablePlayerState.currentSong != null && stablePlayerState.currentSong != Song.emptySong()) 
-                        bottomBarHeight + MiniPlayerHeight + 16.dp 
-                    else 
-                        bottomBarHeight + 16.dp
-                    
-                    com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                        gridState = gridState
-                    )
                 }
             }
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(14.dp)
-//                    .background(
-//                        brush = Brush.verticalGradient(
-//                            colors = listOf(MaterialTheme.colorScheme.surface, Color.Transparent)
-//                        )
-//                    )
-//                    .align(Alignment.TopCenter)
-//            )
         }
     }
 }
@@ -2702,7 +2845,7 @@ fun LibraryArtistsTab(
                     else 
                         bottomBarHeight + 16.dp
 
-                    com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
+                    ExpressiveScrollBar(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
@@ -2814,4 +2957,155 @@ fun LibraryPlaylistsTab(
         navController = navController,
         playerViewModel = playerViewModel,
     )
+}
+
+@Composable
+fun AlbumListItem(
+    album: Album,
+    albumColorSchemePairFlow: StateFlow<ColorSchemePair?>,
+    onClick: () -> Unit,
+    isLoading: Boolean = false
+) {
+    val albumColorSchemePair by albumColorSchemePairFlow.collectAsState()
+    val systemIsDark = LocalPixelPlayDarkTheme.current
+    val currentMaterialColorScheme = MaterialTheme.colorScheme
+
+    val itemDesignColorScheme = remember(albumColorSchemePair, systemIsDark, currentMaterialColorScheme) {
+        albumColorSchemePair?.let { pair ->
+            if (systemIsDark) pair.dark else pair.light
+        } ?: currentMaterialColorScheme 
+    }
+
+    val gradientBaseColor = itemDesignColorScheme.primaryContainer
+    val onGradientColor = itemDesignColorScheme.onPrimaryContainer
+    val cardCornerRadius = 16.dp
+
+    if (isLoading) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            shape = RoundedCornerShape(cardCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+             Row(modifier = Modifier.fillMaxSize()) {
+                  ShimmerBox(
+                    modifier = Modifier
+                        .aspectRatio(1f) 
+                        .fillMaxHeight()
+                )
+                 Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth(0.6f)
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                     Spacer(modifier = Modifier.height(8.dp))
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                 }
+             }
+        }
+    } else {
+        Card(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(88.dp),
+            shape = RoundedCornerShape(cardCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = itemDesignColorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // LEFT: Album Art
+                Box(
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .fillMaxHeight()
+                ) {
+                    var isLoadingImage by remember { mutableStateOf(true) }
+                    SmartImage(
+                        model = album.albumArtUriString,
+                        contentDescription = "Carátula de ${album.title}",
+                        contentScale = ContentScale.Crop,
+                        targetSize = Size(256, 256),
+                        modifier = Modifier.fillMaxSize(),
+                        onState = { state ->
+                            isLoadingImage = state is AsyncImagePainter.State.Loading
+                        }
+                    )
+                    if (isLoadingImage) {
+                        ShimmerBox(modifier = Modifier.fillMaxSize())
+                    }
+                    
+                    // Gradient Overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        gradientBaseColor
+                                    )
+                                )
+                            )
+                    )
+                }
+
+                // MIDDLE: Solid Background
+                 Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(gradientBaseColor)
+                ) {
+                     // Text on top of the gradient/solid background
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        val variableTextStyle = remember(album.id, album.title) {
+                            GenreTypography.getGenreStyle(album.id.toString(), album.title)
+                        }
+                        
+                        Text(
+                            album.title,
+                            style = variableTextStyle.copy(fontSize = 18.sp),
+                            color = onGradientColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            album.artist,
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = onGradientColor.copy(alpha = 0.85f), 
+                            maxLines = 1, 
+                            overflow = TextOverflow.Ellipsis
+                        )
+                         Text(
+                            "${album.songCount} Songs",
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = onGradientColor.copy(alpha = 0.7f), 
+                            maxLines = 1, 
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

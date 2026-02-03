@@ -177,6 +177,9 @@ constructor(
         
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
+        
+        // Album View Preference
+        val IS_ALBUMS_LIST_VIEW = booleanPreferencesKey("is_albums_list_view")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -616,6 +619,17 @@ constructor(
     suspend fun setGenreGridView(isGrid: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IS_GENRE_GRID_VIEW] = isGrid
+        }
+    }
+
+    val isAlbumsListViewFlow: Flow<Boolean> =
+        dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.IS_ALBUMS_LIST_VIEW] ?: false // Default to Grid (false)
+        }
+
+    suspend fun setAlbumsListView(isList: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_ALBUMS_LIST_VIEW] = isList
         }
     }
 

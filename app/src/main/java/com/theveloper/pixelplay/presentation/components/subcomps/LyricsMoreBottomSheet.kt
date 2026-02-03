@@ -285,15 +285,7 @@ fun LyricsMoreBottomSheet(
                     isFavoriteProvider = isFavoriteProvider,
                     onShuffleToggle = onShuffleToggle,
                     onRepeatToggle = onRepeatToggle,
-                    onFavoriteToggle = onFavoriteToggle,
-//                    activeColorMain = accentColor,
-//                    activeColorSecondary = accentColor, // Reusing accent as secondary
-//                    activeColorTertiary = tertiaryColor,
-//                    onActiveColorMain = onAccentColor,
-//                    onActiveColorSecondary = onAccentColor,
-//                    onActiveColorTertiary = onTertiaryColor,
-//                    inactiveColor = contentColor.copy(alpha = 0.1f),
-                    //containerColor = Color.Transparent
+                    onFavoriteToggle = onFavoriteToggle
                 )
             }
         }

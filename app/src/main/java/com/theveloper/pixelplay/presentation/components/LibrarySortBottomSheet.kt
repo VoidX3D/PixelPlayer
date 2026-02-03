@@ -55,7 +55,8 @@ fun LibrarySortBottomSheet(
     onOptionSelected: (SortOption) -> Unit,
     showViewToggle: Boolean = false,
     viewToggleChecked: Boolean = false,
-    onViewToggleChange: (Boolean) -> Unit = {}
+    onViewToggleChange: (Boolean) -> Unit = {},
+    viewToggleContent: (@Composable () -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -141,81 +142,94 @@ fun LibrarySortBottomSheet(
                 }
             }
 
-            if (showViewToggle) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "View",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 8.dp)
-                )
+            if (showViewToggle || viewToggleContent != null) {
+                if (viewToggleContent != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "View",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 8.dp)
+                    )
+                    
+                    viewToggleContent()
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "View",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 8.dp)
+                    )
 
-                val viewContainerColor = remember(viewToggleChecked) {
-                    if (viewToggleChecked) selectedColor else unselectedColor
-                }
+                    val viewContainerColor = remember(viewToggleChecked) {
+                        if (viewToggleChecked) selectedColor else unselectedColor
+                    }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 0.dp)
-                        .clip(
-                            AbsoluteSmoothCornerShape(
-                                cornerRadiusBL = boxCornerRadius,
-                                smoothnessAsPercentBR = 60,
-                                cornerRadiusTR = boxCornerRadius,
-                                smoothnessAsPercentTL = 60,
-                                cornerRadiusTL = boxCornerRadius,
-                                smoothnessAsPercentBL = 60,
-                                cornerRadiusBR = boxCornerRadius,
-                                smoothnessAsPercentTR = 60
-                            )
-                        ) // Apply animated corner radius for clipping
-                        .background(color = boxBackgroundColor)   // Apply animated background color
-                        .clickable(
-                            onClick = {
-                                onViewToggleChange(!viewToggleChecked)
-                            }
-                        )
-                ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Playlist View",
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 6.dp, end = 8.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (viewToggleChecked) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface // Adjust text color for contrast
-                        )
-                        Switch(
-                            checked = viewToggleChecked,
-                            onCheckedChange = {
-                                onViewToggleChange(it)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
-                                checkedTrackColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            thumbContent = if (viewToggleChecked) {
-                                {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Check,
-                                        contentDescription = "Switch is on",
-                                        tint = MaterialTheme.colorScheme.tertiaryContainer,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                                    )
+                            .padding(horizontal = 0.dp)
+                            .clip(
+                                AbsoluteSmoothCornerShape(
+                                    cornerRadiusBL = boxCornerRadius,
+                                    smoothnessAsPercentBR = 60,
+                                    cornerRadiusTR = boxCornerRadius,
+                                    smoothnessAsPercentTL = 60,
+                                    cornerRadiusTL = boxCornerRadius,
+                                    smoothnessAsPercentBL = 60,
+                                    cornerRadiusBR = boxCornerRadius,
+                                    smoothnessAsPercentTR = 60
+                                )
+                            ) // Apply animated corner radius for clipping
+                            .background(color = boxBackgroundColor)   // Apply animated background color
+                            .clickable(
+                                onClick = {
+                                    onViewToggleChange(!viewToggleChecked)
                                 }
-                            } else {
-                                null
-                            }
-                        )
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp, horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Playlist View",
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 6.dp, end = 8.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (viewToggleChecked) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface // Adjust text color for contrast
+                            )
+                            Switch(
+                                checked = viewToggleChecked,
+                                onCheckedChange = {
+                                    onViewToggleChange(it)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                thumbContent = if (viewToggleChecked) {
+                                    {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Check,
+                                            contentDescription = "Switch is on",
+                                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                }
+                            )
+                        }
                     }
                 }
             }
