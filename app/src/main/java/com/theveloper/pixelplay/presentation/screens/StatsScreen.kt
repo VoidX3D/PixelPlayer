@@ -5,6 +5,7 @@ package com.theveloper.pixelplay.presentation.screens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -114,6 +115,7 @@ import com.theveloper.pixelplay.utils.formatListeningDurationCompact
 import com.theveloper.pixelplay.utils.formatListeningDurationLong
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.math.PI
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.unit.sp
@@ -257,6 +259,12 @@ fun StatsScreen(
                 }
                 item {
                     TopAlbumsCard(
+                        summary = summary,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                }
+                item {
+                    TrackConcentrationCard(
                         summary = summary,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
@@ -655,7 +663,7 @@ private fun ListeningHabitsCard(
         ) {
             Text(
                 text = "Listening habits",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLargeEmphasized,
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (summary == null) {
@@ -899,6 +907,12 @@ private data class CategoryChartPalette(
     val accentOnColor: Color
 )
 
+private data class TrackShareSlice(
+    val label: String,
+    val durationMs: Long,
+    val color: Color
+)
+
 @OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberStatsSectionTitleStyle(): TextStyle {
@@ -1003,7 +1017,7 @@ private fun ListeningTimelineSection(
 
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             TimelineMetric.entries.forEach { metric ->
                 val isSelected = metric == selectedMetric
@@ -1057,7 +1071,8 @@ private fun ListeningTimelineSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1151,7 +1166,7 @@ private fun CategoryMetricsSection(
 
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             CategoryDimension.entries.reversed().forEach { dimension ->
                 val isSelected = dimension == selectedDimension
@@ -1243,7 +1258,7 @@ private fun CategoryMetricsSection(
                 ) {
                     Text(
                         text = selectedDimension.cardTitle,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLargeEmphasized,
                         color = palette.contentColor
                     )
                     CategoryHorizontalBarChart(entries = entries, palette = palette)
@@ -1761,7 +1776,7 @@ private fun TopArtistsCard(
         ) {
             Text(
                 text = "Top artists",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLargeEmphasized,
                 color = contentColor
             )
             val artists = summary?.topArtists.orEmpty()
@@ -1869,7 +1884,7 @@ private fun TopAlbumsCard(
         ) {
             Text(
                 text = "Top albums",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLargeEmphasized,
                 color = contentColor
             )
             val albums = summary?.topAlbums.orEmpty()
@@ -1942,12 +1957,12 @@ private fun SongStatsCard(
     val supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp), // Consistent with Hero
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val songs = summary?.songs.orEmpty()
             var showAll by rememberSaveable(songs) { mutableStateOf(songs.size <= 8) }
@@ -1957,26 +1972,20 @@ private fun SongStatsCard(
             val maxDuration = songs.maxOfOrNull { it.totalDurationMs }?.coerceAtLeast(1L) ?: 1L
             val positions = remember(songs) { songs.mapIndexed { index, song -> song.songId to index }.toMap() }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = "Tracks in this range",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLargeEmphasized,
+                    fontWeight = FontWeight.SemiBold,
                     color = contentColor
                 )
-                if (songs.size > 8) {
-                    TextButton(onClick = { showAll = !showAll }) {
-                        Text(
-                            text = if (showAll || songs.size <= 8) "Show top" else "Show all",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+                Text(
+                    text = "Most played tracks for the selected time range.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = supportingColor
+                )
             }
 
             if (songs.isEmpty()) {
@@ -1986,56 +1995,477 @@ private fun SongStatsCard(
                     subtitle = "Listen to your favorites to see them highlighted here."
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(
+                    modifier = Modifier.animateContentSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     displayedSongs.forEach { songSummary ->
                         val position = positions[songSummary.songId] ?: songs.indexOf(songSummary)
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        val accentColor = when {
+                            position == 0 -> MaterialTheme.colorScheme.primary
+                            position < 3 -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.tertiary
+                        }
+                        val accentOnColor = when {
+                            position == 0 -> MaterialTheme.colorScheme.onPrimary
+                            position < 3 -> MaterialTheme.colorScheme.onSecondary
+                            else -> MaterialTheme.colorScheme.onTertiary
+                        }
+                        val rowContainerColor = when {
+                            position == 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                            position < 3 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.36f)
+                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = rowContainerColor
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                SmartImage(
-                                    model = songSummary.albumArtUri,
-                                    contentDescription = songSummary.title,
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(RoundedCornerShape(16.dp)),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${position + 1}. ${songSummary.title}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = contentColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    CategoryRankBadge(
+                                        rank = position + 1,
+                                        accentColor = accentColor,
+                                        accentOnColor = accentOnColor,
+                                        highlighted = position == 0
                                     )
-                                    Text(
-                                        text = songSummary.artist,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = supportingColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                    SmartImage(
+                                        model = songSummary.albumArtUri,
+                                        contentDescription = songSummary.title,
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(RoundedCornerShape(14.dp)),
+                                        shape = RoundedCornerShape(14.dp)
                                     )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = songSummary.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = contentColor
+                                        )
+                                        Text(
+                                            text = songSummary.artist,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = supportingColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${songSummary.playCount} plays",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = supportingColor
+                                        )
+                                    }
                                     Text(
-                                        text = "${songSummary.playCount} plays • ${formatListeningDurationCompact(songSummary.totalDurationMs)}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = supportingColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        text = formatListeningDurationCompact(songSummary.totalDurationMs),
+                                        style = rememberStatsMetricValueStyle(compact = true),
+                                        color = contentColor
                                     )
                                 }
+
+                                LinearProgressIndicator(
+                                    progress = (songSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(7.dp)
+                                        .clip(CircleShape),
+                                    color = accentColor,
+                                    trackColor = supportingColor.copy(alpha = 0.20f)
+                                )
                             }
-                            LinearProgressIndicator(
-                                progress = (songSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f),
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = supportingColor.copy(alpha = 0.24f)
+                        }
+                    }
+                }
+
+                if (songs.size > 8) {
+                    TextButton(
+                        onClick = { showAll = !showAll },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerLow
+                            )
+                            .clip(RoundedCornerShape(16.dp))
+                    ) {
+                        Text(
+                            text = if (showAll) "Collapse tracks" else "Show all tracks",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackConcentrationCard(
+    summary: PlaybackStatsRepository.PlaybackStatsSummary?,
+    modifier: Modifier = Modifier
+) {
+    val songs = summary?.songs.orEmpty()
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    modifier = Modifier.padding(start = 6.dp),
+                    text = "Track concentration",
+                    style = MaterialTheme.typography.titleLargeEmphasized,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    modifier = Modifier.padding(start = 6.dp),
+                    text = "How your listening time is distributed across your top tracks.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                )
+            }
+
+            if (songs.isEmpty()) {
+                StatsEmptyState(
+                    icon = Icons.Outlined.AutoGraph,
+                    title = "No concentration data yet",
+                    subtitle = "Play more tracks to see how focused your listening is."
+                )
+            } else {
+                val totalDuration = songs.sumOf { it.totalDurationMs }.coerceAtLeast(1L)
+                val topOneDuration = songs.firstOrNull()?.totalDurationMs ?: 0L
+                val topThreeDuration = songs.take(3).sumOf { it.totalDurationMs }
+                val topThreeShare = (topThreeDuration.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+                val averagePlaysPerTrack = (
+                    (summary?.totalPlayCount ?: songs.sumOf { it.playCount }).toFloat() /
+                        songs.size.coerceAtLeast(1).toFloat()
+                    )
+                val topOneColor = MaterialTheme.colorScheme.primary
+                val topTwoThreeColor = MaterialTheme.colorScheme.secondary
+                val othersColor = MaterialTheme.colorScheme.tertiary
+                val slices = buildList {
+                    if (topOneDuration > 0L) {
+                        add(
+                            TrackShareSlice(
+                                label = "Top 1",
+                                durationMs = topOneDuration,
+                                color = topOneColor
+                            )
+                        )
+                    }
+                    val topTwoToThree = (topThreeDuration - topOneDuration).coerceAtLeast(0L)
+                    if (topTwoToThree > 0L) {
+                        add(
+                            TrackShareSlice(
+                                label = "Top 2-3",
+                                durationMs = topTwoToThree,
+                                color = topTwoThreeColor
+                            )
+                        )
+                    }
+                    val remaining = (totalDuration - topThreeDuration).coerceAtLeast(0L)
+                    if (remaining > 0L) {
+                        add(
+                            TrackShareSlice(
+                                label = "Others",
+                                durationMs = remaining,
+                                color = othersColor
+                            )
+                        )
+                    }
+                }
+
+                TrackDistributionOverview(
+                    slices = slices,
+                    totalDurationMs = totalDuration,
+                    topThreeShare = topThreeShare,
+                    averagePlaysPerTrack = averagePlaysPerTrack,
+                    uniqueTracks = songs.size
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackDistributionOverview(
+    slices: List<TrackShareSlice>,
+    totalDurationMs: Long,
+    topThreeShare: Float,
+    averagePlaysPerTrack: Float,
+    uniqueTracks: Int,
+    modifier: Modifier = Modifier
+) {
+    val metricStyle = rememberStatsMetricValueStyle(compact = false)
+    val onColor = MaterialTheme.colorScheme.onSurface
+    val supporting = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            BoxWithConstraints(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp)
+            ) {
+                val compact = maxWidth < 420.dp
+                if (compact) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TrackDistributionDonut(
+                            slices = slices,
+                            totalDurationMs = totalDurationMs,
+                            topThreeShare = topThreeShare,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        TrackDistributionStats(
+                            metricStyle = metricStyle,
+                            topThreeShare = topThreeShare,
+                            averagePlaysPerTrack = averagePlaysPerTrack,
+                            uniqueTracks = uniqueTracks
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TrackDistributionDonut(
+                            slices = slices,
+                            totalDurationMs = totalDurationMs,
+                            topThreeShare = topThreeShare
+                        )
+                        TrackDistributionStats(
+                            modifier = Modifier.weight(1f),
+                            metricStyle = metricStyle,
+                            topThreeShare = topThreeShare,
+                            averagePlaysPerTrack = averagePlaysPerTrack,
+                            uniqueTracks = uniqueTracks
+                        )
+                    }
+                }
+            }
+        }
+
+        if (slices.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                slices.forEach { slice ->
+                    val share = (slice.durationMs.toFloat() / totalDurationMs.coerceAtLeast(1L).toFloat()).coerceIn(0f, 1f)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(slice.color)
+                            )
+                            Text(
+                                text = slice.label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = supporting,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${(share * 100f).roundToInt()}%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = onColor
+                            )
+                            Text(
+                                text = formatListeningDurationCompact(slice.durationMs),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = supporting
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TrackDistributionStats(
+    metricStyle: TextStyle,
+    topThreeShare: Float,
+    averagePlaysPerTrack: Float,
+    uniqueTracks: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = "Listening concentration",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "Top 3 tracks account for ${(topThreeShare * 100f).roundToInt()}% of your listening time.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = String.format(Locale.US, "%.1f", averagePlaysPerTrack),
+                        style = metricStyle,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Avg plays/track",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f)
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.52f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = uniqueTracks.toString(),
+                        style = metricStyle,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = "Unique tracks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.76f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackDistributionDonut(
+    slices: List<TrackShareSlice>,
+    totalDurationMs: Long,
+    topThreeShare: Float,
+    modifier: Modifier = Modifier
+) {
+    val strokePx = with(LocalDensity.current) { 18.dp.toPx() }
+    val visualGapPx = with(LocalDensity.current) { 4.dp.toPx() }
+    val trackColor = Color.Transparent
+    Box(
+        modifier = modifier.size(158.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            val safeTotal = totalDurationMs.coerceAtLeast(1L).toFloat()
+            val arcInset = (strokePx / 2f) + 1f
+            val diameter = (size.minDimension - (arcInset * 2f)).coerceAtLeast(0f)
+            val radius = (diameter - strokePx).coerceAtLeast(0f) / 2f
+            val gapAngle = if (slices.size > 1 && radius > 0f) {
+                // Round caps extend ~stroke/2 at both ends, so centerline gap must include that.
+                val centerlineGapPx = visualGapPx + strokePx
+                ((centerlineGapPx / radius) * (180f / PI.toFloat())).coerceIn(1f, 24f)
+            } else {
+                0f
+            }
+            val arcTopLeft = Offset(
+                x = (size.width - diameter) / 2f,
+                y = (size.height - diameter) / 2f
+            )
+            val arcSize = Size(diameter, diameter)
+            var startAngle = -90f
+
+            drawArc(
+                color = trackColor,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = arcTopLeft,
+                size = arcSize,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = strokePx,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            )
+
+            slices.forEach { slice ->
+                val rawSweep = (slice.durationMs.toFloat() / safeTotal) * 360f
+                val sweep = (rawSweep - gapAngle).coerceAtLeast(0f)
+                if (sweep > 0.2f) {
+                    drawArc(
+                        color = slice.color,
+                        startAngle = startAngle + (gapAngle / 2f),
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = arcTopLeft,
+                        size = arcSize,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = strokePx,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    )
+                }
+                startAngle += rawSweep
+            }
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = "${(topThreeShare * 100f).roundToInt()}%",
+                style = rememberStatsMetricValueStyle(compact = false).copy(
+                    fontSize = 24.sp,
+                    lineHeight = 26.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Top 3 share",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

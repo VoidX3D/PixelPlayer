@@ -69,15 +69,14 @@ fun StatsOverviewCard(
         Box(
             modifier = Modifier
                 .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                            //MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.surface
-                        )
-                    )
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
+//                    Brush.linearGradient(
+//                        listOf(
+//                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+//                            MaterialTheme.colorScheme.surface
+//                        )
+//                    )
                 )
-                //.padding(24.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(
@@ -239,12 +238,13 @@ private fun MiniListeningTimeline(summary: PlaybackStatsRepository.PlaybackStats
                         .height((70.dp * heightFraction).coerceAtLeast(10.dp))
                         .clip(CircleShape)
                         .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                            )
+                            color = MaterialTheme.colorScheme.primary
+//                            Brush.verticalGradient(
+//                                listOf(
+//                                    MaterialTheme.colorScheme.primary,
+//                                    MaterialTheme.colorScheme.tertiary
+//                                )
+//                            )
                         )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
