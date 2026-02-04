@@ -42,8 +42,25 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
+import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import kotlinx.collections.immutable.ImmutableList
 
+/**
+ * Songs tab for the library screen with multi-selection support.
+ *
+ * @param songs The list of songs to display
+ * @param isLoading Whether the songs are currently loading
+ * @param stablePlayerState Current player state for highlighting playing song
+ * @param playerViewModel ViewModel for playback actions
+ * @param bottomBarHeight Height of the bottom bar for padding
+ * @param onMoreOptionsClick Callback when more options is clicked on a song
+ * @param isRefreshing Whether pull-to-refresh is active
+ * @param onRefresh Callback for pull-to-refresh
+ * @param isSelectionMode Whether multi-selection mode is active
+ * @param selectedSongIds Set of currently selected song IDs
+ * @param onSongLongPress Callback when a song is long-pressed (activates selection)
+ * @param onSongSelectionToggle Callback to toggle selection of a song
+ */
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -55,7 +72,12 @@ fun LibrarySongsTab(
     bottomBarHeight: Dp,
     onMoreOptionsClick: (Song) -> Unit,
     isRefreshing: Boolean,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    // Multi-selection parameters
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<String> = emptySet(),
+    onSongLongPress: (Song) -> Unit = {},
+    onSongSelectionToggle: (Song) -> Unit = {}
 ) {
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -156,14 +178,23 @@ fun LibrarySongsTab(
                                 contentType = { "song" }
                             ) { song ->
                                 val isPlayingThisSong = song.id == stablePlayerState.currentSong?.id && stablePlayerState.isPlaying
+                                val isSelected = selectedSongIds.contains(song.id)
                                 
                                 val rememberedOnMoreOptionsClick: (Song) -> Unit = remember(onMoreOptionsClick) {
                                     { songFromListItem -> onMoreOptionsClick(songFromListItem) }
                                 }
-                                val rememberedOnClick: () -> Unit = remember(song) {
-                                    { 
-                                      playerViewModel.showAndPlaySong(song, songs, "Library") 
+                                
+                                // In selection mode, click toggles selection instead of playing
+                                val rememberedOnClick: () -> Unit = remember(song, isSelectionMode) {
+                                    if (isSelectionMode) {
+                                        { onSongSelectionToggle(song) }
+                                    } else {
+                                        { playerViewModel.showAndPlaySong(song, songs, "Library") }
                                     }
+                                }
+                                
+                                val rememberedOnLongPress: () -> Unit = remember(song) {
+                                    { onSongLongPress(song) }
                                 }
 
                                 EnhancedSongListItem(
@@ -171,6 +202,9 @@ fun LibrarySongsTab(
                                     isPlaying = isPlayingThisSong,
                                     isCurrentSong = stablePlayerState.currentSong?.id == song.id,
                                     isLoading = false,
+                                    isSelected = isSelected,
+                                    isSelectionMode = isSelectionMode,
+                                    onLongPress = rememberedOnLongPress,
                                     onMoreOptionsClick = rememberedOnMoreOptionsClick,
                                     onClick = rememberedOnClick
                                 )

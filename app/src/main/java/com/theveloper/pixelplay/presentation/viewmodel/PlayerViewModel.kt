@@ -68,6 +68,7 @@ import com.theveloper.pixelplay.data.worker.SyncManager
 import com.theveloper.pixelplay.utils.AppShortcutManager
 import com.theveloper.pixelplay.utils.QueueUtils
 import com.theveloper.pixelplay.utils.MediaItemBuilder
+import com.theveloper.pixelplay.utils.ZipShareHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.collections.immutable.ImmutableList
@@ -133,7 +134,8 @@ class PlayerViewModel @Inject constructor(
     private val castTransferStateHolder: CastTransferStateHolder,
     private val metadataEditStateHolder: MetadataEditStateHolder,
     private val externalMediaStateHolder: ExternalMediaStateHolder,
-    val themeStateHolder: ThemeStateHolder
+    val themeStateHolder: ThemeStateHolder,
+    val multiSelectionStateHolder: MultiSelectionStateHolder
 ) : ViewModel() {
 
     private val _playerUiState = MutableStateFlow(PlayerUiState())
@@ -1865,6 +1867,193 @@ class PlayerViewModel @Inject constructor(
             // Queue UI is synced via onTimelineChanged listener
         }
     }
+
+    // =====================================================
+    // Multi-Selection Batch Operations
+    // =====================================================
+
+    /**
+     * Plays all selected songs, preserving their selection order.
+     * Clears selection after starting playback.
+     */
+    fun playSelectedSongs(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        playSongs(songs, songs.first(), "Selected Songs")
+        multiSelectionStateHolder.clearSelection()
+    }
+
+    /**
+     * Adds all selected songs to the end of the queue.
+     * Clears selection after adding.
+     */
+    fun addSelectedToQueue(songs: List<Song>) {
+        songs.forEach { addSongToQueue(it) }
+        viewModelScope.launch {
+            _toastEvents.emit("${songs.size} songs added to queue")
+        }
+        multiSelectionStateHolder.clearSelection()
+    }
+
+    /**
+     * Adds all selected songs to play next, preserving selection order.
+     * Songs are inserted in reverse order so they play in the correct sequence.
+     * Clears selection after adding.
+     */
+    fun addSelectedAsNext(songs: List<Song>) {
+        songs.reversed().forEach { addSongNextToQueue(it) }
+        viewModelScope.launch {
+            _toastEvents.emit("${songs.size} songs will play next")
+        }
+        multiSelectionStateHolder.clearSelection()
+    }
+
+    /**
+     * Adds all selected songs to favorites.
+     * Clears selection after liking.
+     */
+    fun likeSelectedSongs(songs: List<Song>) {
+        viewModelScope.launch {
+            val favIds = favoriteSongIds.value
+            var likedCount = 0
+            songs.forEach { song ->
+                if (!favIds.contains(song.id)) {
+                    userPreferencesRepository.toggleFavoriteSong(song.id)
+                    likedCount++
+                }
+            }
+            if (likedCount > 0) {
+                _toastEvents.emit("$likedCount songs added to favorites")
+            } else {
+                _toastEvents.emit("All songs already in favorites")
+            }
+            multiSelectionStateHolder.clearSelection()
+        }
+    }
+
+    /**
+     * Removes all selected songs from favorites.
+     * Clears selection after unliking.
+     */
+    fun unlikeSelectedSongs(songs: List<Song>) {
+        viewModelScope.launch {
+            val favIds = favoriteSongIds.value
+            var unlikedCount = 0
+            songs.forEach { song ->
+                if (favIds.contains(song.id)) {
+                    userPreferencesRepository.toggleFavoriteSong(song.id)
+                    unlikedCount++
+                }
+            }
+            if (unlikedCount > 0) {
+                _toastEvents.emit("$unlikedCount songs removed from favorites")
+            } else {
+                _toastEvents.emit("No songs were in favorites")
+            }
+            multiSelectionStateHolder.clearSelection()
+        }
+    }
+
+    /**
+     * Shares all selected songs as a ZIP file.
+     * Clears selection after initiating share.
+     */
+    fun shareSelectedAsZip(songs: List<Song>) {
+        viewModelScope.launch {
+            _toastEvents.emit("Creating ZIP file...")
+            
+            val result = ZipShareHelper.createAndShareZip(context, songs)
+            
+            result.onSuccess {
+                multiSelectionStateHolder.clearSelection()
+            }.onFailure { error ->
+                _toastEvents.emit("Failed to share: ${error.localizedMessage}")
+                println(
+                    "Failed to share: ${error.localizedMessage}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Deletes all selected songs from device with confirmation.
+     * Shows a single confirmation dialog for all songs.
+     */
+    fun deleteSelectedFromDevice(activity: Activity, songs: List<Song>, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            // Filter out currently playing song
+            val currentSongId = playbackStateHolder.stablePlayerState.value.currentSong?.id
+            val deletableSongs = songs.filter { it.id != currentSongId }
+            
+            if (deletableSongs.isEmpty()) {
+                _toastEvents.emit("Cannot delete currently playing song")
+                return@launch
+            }
+
+            val skippedCount = songs.size - deletableSongs.size
+            
+            val confirmed = showMultiDeleteConfirmation(activity, deletableSongs.size)
+            if (!confirmed) {
+                onComplete()
+                return@launch
+            }
+
+            var successCount = 0
+            deletableSongs.forEach { song ->
+                val success = metadataEditStateHolder.deleteSong(song)
+                if (success) {
+                    removeFromMediaControllerQueue(song.id)
+                    successCount++
+                }
+            }
+
+            when {
+                successCount == deletableSongs.size && skippedCount == 0 ->
+                    _toastEvents.emit("$successCount files deleted")
+                successCount == deletableSongs.size && skippedCount > 0 ->
+                    _toastEvents.emit("$successCount files deleted ($skippedCount skipped - playing)")
+                successCount > 0 ->
+                    _toastEvents.emit("$successCount of ${deletableSongs.size} files deleted")
+                else ->
+                    _toastEvents.emit("Failed to delete files")
+            }
+
+            multiSelectionStateHolder.clearSelection()
+            onComplete()
+        }
+    }
+
+    private suspend fun showMultiDeleteConfirmation(activity: Activity, count: Int): Boolean {
+        return withContext(Dispatchers.Main) {
+            try {
+                if (activity.isFinishing || activity.isDestroyed) {
+                    return@withContext false
+                }
+
+                val userChoice = CompletableDeferred<Boolean>()
+
+                val dialog = MaterialAlertDialogBuilder(activity)
+                    .setTitle("Delete $count songs?")
+                    .setMessage("These songs will be permanently deleted from your device and cannot be recovered.")
+                    .setPositiveButton("Delete") { _, _ ->
+                        userChoice.complete(true)
+                    }
+                    .setNegativeButton("Cancel") { _, _ ->
+                        userChoice.complete(false)
+                    }
+                    .setOnCancelListener {
+                        userChoice.complete(false)
+                    }
+                    .setCancelable(true)
+                    .create()
+
+                dialog.show()
+                userChoice.await()
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
     private suspend fun showMaterialDeleteConfirmation(activity: Activity, song: Song): Boolean {
         return withContext(Dispatchers.Main) {
             try {

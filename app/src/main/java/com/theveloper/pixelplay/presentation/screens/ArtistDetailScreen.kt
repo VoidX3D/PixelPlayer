@@ -59,6 +59,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import kotlinx.coroutines.launch
+import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import kotlin.math.roundToInt
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext

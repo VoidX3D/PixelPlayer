@@ -1,8 +1,13 @@
 package com.theveloper.pixelplay.presentation.components.subcomps
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -33,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +52,21 @@ import com.theveloper.pixelplay.presentation.components.ShimmerBox
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
+/**
+ * Enhanced song list item with multi-selection support.
+ * 
+ * @param song The song to display
+ * @param isPlaying Whether this song is currently playing
+ * @param isCurrentSong Whether this is the current song in the queue (may be paused)
+ * @param isLoading Whether to show loading shimmer state
+ * @param showAlbumArt Whether to show the album art
+ * @param customShape Optional custom shape for the surface
+ * @param isSelected Whether this item is selected in multi-selection mode
+ * @param isSelectionMode Whether multi-selection mode is active
+ * @param onLongPress Callback for long press gesture (activates selection)
+ * @param onMoreOptionsClick Callback for more options button
+ * @param onClick Callback for tap gesture
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedSongListItem(
@@ -54,10 +77,13 @@ fun EnhancedSongListItem(
     isLoading: Boolean = false,
     showAlbumArt: Boolean = true,
     customShape: androidx.compose.ui.graphics.Shape? = null,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongPress: () -> Unit = {},
     onMoreOptionsClick: (Song) -> Unit,
     onClick: () -> Unit
 ) {
-    // Animamos el radio de las esquinas basándonos en si la canción es la actual.
+    // Animate corner radius based on current song state
     val animatedCornerRadius by animateDpAsState(
         targetValue = if (isCurrentSong && !isLoading) 50.dp else 22.dp,
         animationSpec = tween(durationMillis = 400),
@@ -67,7 +93,24 @@ fun EnhancedSongListItem(
     val animatedAlbumCornerRadius by animateDpAsState(
         targetValue = if (isCurrentSong && !isLoading) 50.dp else 12.dp,
         animationSpec = tween(durationMillis = 400),
-        label = "cornerRadiusAnimation"
+        label = "albumCornerRadiusAnimation"
+    )
+
+    // Selection animation - subtle scale effect
+    val selectionScale by animateFloatAsState(
+        targetValue = if (isSelected) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "selectionScaleAnimation"
+    )
+
+    // Selection border width animation
+    val selectionBorderWidth by animateDpAsState(
+        targetValue = if (isSelected) 2.5.dp else 0.dp,
+        animationSpec = tween(durationMillis = 250),
+        label = "selectionBorderAnimation"
     )
 
     val surfaceShape = remember(animatedCornerRadius, customShape, isCurrentSong, isLoading) {
@@ -87,7 +130,7 @@ fun EnhancedSongListItem(
         }
     }
 
-    val albumShape = remember(animatedCornerRadius) {
+    val albumShape = remember(animatedAlbumCornerRadius) {
         AbsoluteSmoothCornerShape(
             cornerRadiusTL = animatedAlbumCornerRadius,
             smoothnessAsPercentTR = 60,
@@ -101,8 +144,34 @@ fun EnhancedSongListItem(
     }
 
     val colors = MaterialTheme.colorScheme
-    val containerColor = if ((isCurrentSong) && !isLoading) colors.primaryContainer else colors.surfaceContainerLow
-    val contentColor = if ((isCurrentSong) && !isLoading) colors.onPrimaryContainer else colors.onSurface
+    
+    // Container colors - selection takes precedence over current song
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            isSelected -> colors.secondaryContainer
+            isCurrentSong && !isLoading -> colors.primaryContainer
+            else -> colors.surfaceContainerLow
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "containerColorAnimation"
+    )
+    
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            isSelected -> colors.onSecondaryContainer
+            isCurrentSong && !isLoading -> colors.onPrimaryContainer
+            else -> colors.onSurface
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "contentColorAnimation"
+    )
+
+    // Selection border color
+    val selectionBorderColor by animateColorAsState(
+        targetValue = if (isSelected) colors.primary else colors.primary.copy(alpha = 0f),
+        animationSpec = tween(durationMillis = 250),
+        label = "borderColorAnimation"
+    )
 
     val mvContainerColor = if ((isCurrentSong) && !isLoading) colors.primaryContainer else colors.onSurface
     val mvContentColor = if ((isCurrentSong) && !isLoading) colors.onPrimaryContainer else colors.surfaceContainerHigh
@@ -172,18 +241,43 @@ fun EnhancedSongListItem(
         Surface(
             modifier = modifier
                 .fillMaxWidth()
+                .scale(selectionScale)
                 .clip(surfaceShape)
-                .pointerInput(Unit) {
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = selectionBorderWidth,
+                            color = selectionBorderColor,
+                            shape = surfaceShape
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+                .pointerInput(isSelectionMode) {
                     detectTapGestures(
-                        onTap = { onClick() },
-                        onLongPress = { applyTextMarquee = !applyTextMarquee },
-                        onPress = {
-                            try {
-                                awaitRelease()
-                            } finally {
-                                applyTextMarquee = false
+                        onTap = { 
+                            if (isSelectionMode) {
+                                // In selection mode, tap toggles selection
+                                onLongPress()
+                            } else {
+                                onClick() 
                             }
-                        })
+                        },
+                        onLongPress = { 
+                            // Long press always activates/toggles selection
+                            onLongPress()
+                        },
+                        onPress = {
+                            if (!isSelectionMode) {
+                                try {
+                                    awaitRelease()
+                                } finally {
+                                    applyTextMarquee = false
+                                }
+                            }
+                        }
+                    )
                 },
             shape = surfaceShape,
             color = containerColor,
@@ -200,14 +294,33 @@ fun EnhancedSongListItem(
                             .size(56.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                     ) {
-                        // Usando tu composable SmartImage
                         SmartImage(
                             model = song.albumArtUriString,
                             contentDescription = song.title,
                             shape = albumShape,
-                            targetSize = Size(168, 168), // 56dp * 3 (para densidad xxhdpi)
+                            targetSize = Size(168, 168),
                             modifier = Modifier.fillMaxSize()
                         )
+                        
+                        // Selection check overlay on album art
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        color = colors.primary.copy(alpha = 0.7f),
+                                        shape = albumShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = "Selected",
+                                    tint = colors.onPrimary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.width(14.dp))
                 } else {
@@ -218,7 +331,7 @@ fun EnhancedSongListItem(
                     modifier = Modifier
                         .weight(1f)
                 ) {
-                    if (applyTextMarquee) {
+                    if (applyTextMarquee && !isSelectionMode) {
                         AutoScrollingTextOnDemand(
                             text = song.title,
                             style = MaterialTheme.typography.bodyLarge,
@@ -245,7 +358,8 @@ fun EnhancedSongListItem(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (isCurrentSong) {
+                
+                if (isCurrentSong && !isSelectionMode) {
                      PlayingEqIcon(
                          modifier = Modifier
                              .padding(start = 8.dp)
@@ -254,22 +368,27 @@ fun EnhancedSongListItem(
                          isPlaying = isPlaying
                      )
                 }
+                
                 Spacer(modifier = Modifier.width(12.dp))
-                FilledIconButton(
-                    onClick = { onMoreOptionsClick(song) },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = mvContentColor,
-                        contentColor = mvContainerColor
-                    ),
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(end = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = "More options for ${song.title}",
-                        modifier = Modifier.size(24.dp)
-                    )
+                
+                // Hide more options button in selection mode
+                if (!isSelectionMode) {
+                    FilledIconButton(
+                        onClick = { onMoreOptionsClick(song) },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = mvContentColor,
+                            contentColor = mvContainerColor
+                        ),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "More options for ${song.title}",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
