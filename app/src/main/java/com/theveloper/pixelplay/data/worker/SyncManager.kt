@@ -13,7 +13,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
@@ -127,13 +126,25 @@ class SyncManager @Inject constructor(
             )
 
     fun sync() {
-        Log.i(TAG, "Sync requested - Scheduling Incremental Sync")
-        workManager.enqueueUniqueWork(
-            SyncWorker.WORK_NAME,
-            ExistingWorkPolicy.KEEP,
-            SyncWorker.incrementalSyncWork()
-        )
-        mediaStoreObserver.forceRescan() // Keep this for reactive updates
+        sharingScope.launch {
+            val now = System.currentTimeMillis()
+            val lastSyncTimestamp = userPreferencesRepository.getLastSyncTimestamp()
+            val shouldRunSync =
+                lastSyncTimestamp <= 0L || (now - lastSyncTimestamp) >= MIN_SYNC_INTERVAL_MS
+
+            if (!shouldRunSync) {
+                val ageSeconds = (now - lastSyncTimestamp) / 1000
+                Log.d(TAG, "Skipping startup sync (last sync ${ageSeconds}s ago)")
+                return@launch
+            }
+
+            Log.i(TAG, "Startup sync requested - Scheduling Incremental Sync")
+            workManager.enqueueUniqueWork(
+                SyncWorker.WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                SyncWorker.incrementalSyncWork()
+            )
+        }
     }
 
     /**
@@ -176,6 +187,6 @@ class SyncManager @Inject constructor(
 
     companion object {
         private const val TAG = "SyncManager"
-        private const val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
+        private const val MIN_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000L // 6 hours
     }
 }

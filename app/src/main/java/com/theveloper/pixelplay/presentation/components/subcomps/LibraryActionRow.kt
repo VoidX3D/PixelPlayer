@@ -1,6 +1,5 @@
 package com.theveloper.pixelplay.presentation.components.subcomps
 
-import android.os.Environment
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -11,7 +10,9 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.ButtonDefaults
@@ -62,7 +64,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.MusicFolder
-import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import java.io.File
 
@@ -74,7 +75,9 @@ fun LibraryActionRow(
     onMainActionClick: () -> Unit,
     iconRotation: Float,
     onSortClick: () -> Unit,
+    onLocateClick: () -> Unit = {},
     showSortButton: Boolean,
+    showLocateButton: Boolean = false,
     showGenerateButton: Boolean = true,
     isPlaylistTab: Boolean,
     onGenerateWithAiClick: () -> Unit,
@@ -83,6 +86,8 @@ fun LibraryActionRow(
     modifier: Modifier = Modifier,
     // Breadcrumb parameters
     currentFolder: MusicFolder?,
+    folderRootPath: String,
+    folderRootLabel: String,
     onFolderClick: (String) -> Unit,
     onNavigateBack: () -> Unit,
     isShuffleEnabled: Boolean = false
@@ -111,6 +116,8 @@ fun LibraryActionRow(
             if (isFolders) {
                 Breadcrumbs(
                     currentFolder = currentFolder,
+                    rootPath = folderRootPath,
+                    rootLabel = folderRootLabel,
                     onFolderClick = onFolderClick,
                     onNavigateBack = onNavigateBack
                 )
@@ -246,11 +253,56 @@ fun LibraryActionRow(
         Spacer(modifier = Modifier.width(8.dp))
 
         if (showSortButton) {
-            FilledTonalIconButton(onClick = onSortClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.Sort,
-                    contentDescription = "Sort Options",
-                )
+            val outerCorner = 26.dp
+            val innerCorner by animateDpAsState(
+                targetValue = if (showLocateButton) 8.dp else outerCorner,
+                label = "SortButtonsInnerCorner"
+            )
+            val actionButtonsGap by animateDpAsState(
+                targetValue = if (showLocateButton) 4.dp else 0.dp,
+                label = "SortButtonsGap"
+            )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AnimatedVisibility(
+                    visible = showLocateButton,
+                    enter = slideInHorizontally(initialOffsetX = { it / 2 }) + fadeIn(),
+                    exit = slideOutHorizontally(targetOffsetX = { it / 2 }) + fadeOut()
+                ) {
+                    FilledTonalIconButton(
+                        onClick = onLocateClick,
+                        shape = RoundedCornerShape(
+                            topStart = outerCorner,
+                            bottomStart = outerCorner,
+                            topEnd = innerCorner,
+                            bottomEnd = innerCorner
+                        ),
+                        modifier = Modifier.size(genHeight)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MyLocation,
+                            contentDescription = "Locate Current Song"
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(actionButtonsGap))
+
+                FilledTonalIconButton(
+                    onClick = onSortClick,
+                    shape = RoundedCornerShape(
+                        topStart = innerCorner,
+                        bottomStart = innerCorner,
+                        topEnd = outerCorner,
+                        bottomEnd = outerCorner
+                    ),
+                    modifier = Modifier.size(genHeight)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.Sort,
+                        contentDescription = "Sort Options",
+                    )
+                }
             }
         }
     }
@@ -259,21 +311,27 @@ fun LibraryActionRow(
 @Composable
 fun Breadcrumbs(
     currentFolder: MusicFolder?,
+    rootPath: String,
+    rootLabel: String,
     onFolderClick: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val rowState = rememberLazyListState()
-    val storageRootPath = Environment.getExternalStorageDirectory().path
-    val pathSegments = remember(currentFolder?.path) {
-        val path = currentFolder?.path ?: storageRootPath
-        val relativePath = path.removePrefix(storageRootPath).removePrefix("/")
-        if (relativePath.isEmpty() || path == storageRootPath) {
-            listOf("Internal Storage" to storageRootPath)
+    val pathSegments = remember(currentFolder?.path, rootPath, rootLabel) {
+        val path = currentFolder?.path ?: rootPath
+        val normalizedRoot = rootPath.removeSuffix("/")
+        val normalizedPath = path.removeSuffix("/")
+        val relativePath = normalizedPath
+            .removePrefix(normalizedRoot)
+            .removePrefix("/")
+
+        if (!normalizedPath.startsWith(normalizedRoot) || relativePath.isEmpty() || normalizedPath == normalizedRoot) {
+            listOf(rootLabel to rootPath)
         } else {
-            listOf("Internal Storage" to storageRootPath) + relativePath.split("/").scan("") { acc, segment ->
+            listOf(rootLabel to rootPath) + relativePath.split("/").scan("") { acc, segment ->
                 "$acc/$segment"
             }.drop(1).map {
-                val file = File(storageRootPath, it)
+                val file = File(rootPath, it)
                 file.name to file.path
             }
         }
@@ -348,7 +406,6 @@ fun Breadcrumbs(
             items(pathSegments.size) { index ->
                 val (name, path) = pathSegments[index]
                 val isLast = index == pathSegments.lastIndex
-                val isFirst = index == 0
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleSmall,

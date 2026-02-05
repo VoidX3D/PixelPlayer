@@ -471,6 +471,7 @@ private fun PresetTabsRow(
     onPresetSelected: (EqualizerPreset) -> Unit,
     onEditClick: () -> Unit
 ) {
+    val showTabIndicator = false
     val selectedIndex = remember(presets, selectedPreset) {
         if (selectedPreset.isCustom || selectedPreset.name == "custom") {
              presets.indexOfLast { it.name == "Custom" || it.name == "custom" } // Match the placeholder
@@ -489,7 +490,7 @@ private fun PresetTabsRow(
         containerColor = Color.Transparent,
         divider = {},
         indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
+            if (showTabIndicator && selectedIndex < tabPositions.size) {
                  TabRowDefaults.PrimaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
                     height = 3.dp,
@@ -1598,6 +1599,7 @@ private fun HybridBandSliders(
         
         // Use pagerState.currentPage as the source of truth to avoid feedback loops
         val selectedTabIndex = pagerState.currentPage
+        val showBandPageTabIndicator = false
 
         Column(modifier = Modifier.padding(horizontal = 0.dp)) {
             // Tabs Row (Matching PresetTabsRow style)
@@ -1609,7 +1611,7 @@ private fun HybridBandSliders(
                 edgePadding = 12.dp,
                 divider = {},
                 indicator = { tabPositions ->
-                    if (selectedTabIndex < tabPositions.size) {
+                    if (showBandPageTabIndicator && selectedTabIndex < tabPositions.size) {
                          TabRowDefaults.PrimaryIndicator(
                             modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
                             height = 3.dp,

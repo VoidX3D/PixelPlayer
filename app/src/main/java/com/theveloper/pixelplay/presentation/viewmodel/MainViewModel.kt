@@ -29,6 +29,14 @@ class MainViewModel @Inject constructor(
             initialValue = false
         )
 
+    val hasCompletedInitialSync: StateFlow<Boolean> = userPreferencesRepository.lastSyncTimestampFlow
+        .map { it > 0L }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     /**
      * Un Flow que emite `true` si el SyncWorker está encolado o en ejecución.
      * Ideal para mostrar un indicador de carga.
@@ -37,7 +45,7 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true // Asumimos que podría estar sincronizando al inicio
+            initialValue = false
         )
 
     /**
@@ -60,7 +68,7 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
+            initialValue = false
         )
 
     /**
