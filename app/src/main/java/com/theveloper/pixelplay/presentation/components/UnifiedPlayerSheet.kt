@@ -10,7 +10,6 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDp
@@ -108,6 +107,7 @@ import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
+import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.presentation.components.player.FullPlayerContent
 import com.theveloper.pixelplay.presentation.components.scoped.rememberExpansionTransition
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -210,6 +210,7 @@ fun UnifiedPlayerSheet(
     val fullPlayerLoadingTweaks by playerViewModel.fullPlayerLoadingTweaks.collectAsState()
     val tapBackgroundClosesPlayer by playerViewModel.tapBackgroundClosesPlayer.collectAsState()
     val useSmoothCorners by playerViewModel.useSmoothCorners.collectAsState()
+    val playerThemePreference by playerViewModel.playerThemePreference.collectAsState()
 
     LaunchedEffect(infrequentPlayerState.currentSong?.id) {
         if (infrequentPlayerState.currentSong != null) {
@@ -349,8 +350,15 @@ fun UnifiedPlayerSheet(
         }
     }
 
+    var previousSheetState by remember { mutableStateOf(currentSheetContentState) }
     LaunchedEffect(showPlayerContentArea, currentSheetContentState) {
         val targetExpanded = showPlayerContentArea && currentSheetContentState == PlayerSheetState.EXPANDED
+        val shouldBounceCollapse =
+            showPlayerContentArea &&
+                previousSheetState == PlayerSheetState.EXPANDED &&
+                currentSheetContentState == PlayerSheetState.COLLAPSED
+
+        previousSheetState = currentSheetContentState
 
         animatePlayerSheet(targetExpanded = targetExpanded)
 
@@ -367,17 +375,17 @@ fun UnifiedPlayerSheet(
                             1.0f at 250
                         }
                     )
-                } else {
-                    launch {
-                        visualOvershootScaleY.snapTo(0.96f)
-                        visualOvershootScaleY.animateTo(
-                            targetValue = 1f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
+                } else if (shouldBounceCollapse) {
+                    visualOvershootScaleY.snapTo(0.96f)
+                    visualOvershootScaleY.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
                         )
-                    }
+                    )
+                } else {
+                    visualOvershootScaleY.snapTo(1f)
                 }
             }
         } else {
@@ -832,18 +840,52 @@ fun UnifiedPlayerSheet(
     val activePlayerSchemePair by playerViewModel.activePlayerColorSchemePair.collectAsState()
     val isDarkTheme = LocalPixelPlayDarkTheme.current
     val systemColorScheme = MaterialTheme.colorScheme // This is the standard M3 theme
+    val isAlbumArtTheme = playerThemePreference == ThemePreference.ALBUM_ART
+    val currentSong = infrequentPlayerState.currentSong
+    val hasAlbumArt = currentSong?.albumArtUriString != null
+    val needsAlbumScheme = isAlbumArtTheme && hasAlbumArt
 
-    val targetColorScheme = remember(activePlayerSchemePair, isDarkTheme, systemColorScheme) {
-        val schemeFromPair = activePlayerSchemePair?.let { if (isDarkTheme) it.dark else it.light }
-        schemeFromPair
-            ?: systemColorScheme // If activePlayerSchemePair is null (i.e. System Dynamic selected) OR the selected scheme from pair is somehow null, use systemColorScheme
+    val activePlayerScheme = remember(activePlayerSchemePair, isDarkTheme) {
+        activePlayerSchemePair?.let { if (isDarkTheme) it.dark else it.light }
     }
 
-    val albumColorScheme = targetColorScheme
+    var lastAlbumScheme by remember { mutableStateOf<ColorScheme?>(null) }
+    LaunchedEffect(activePlayerScheme) {
+        if (activePlayerScheme != null) {
+            lastAlbumScheme = activePlayerScheme
+        }
+    }
+
+    val albumColorScheme = activePlayerScheme ?: lastAlbumScheme ?: systemColorScheme
+
+    val miniPlayerScheme = when {
+        !needsAlbumScheme -> systemColorScheme
+        activePlayerScheme != null -> activePlayerScheme
+        else -> lastAlbumScheme
+    }
+    val miniAppearProgress = remember { Animatable(0f) }
+    LaunchedEffect(currentSong?.id, needsAlbumScheme, lastAlbumScheme, activePlayerScheme) {
+        val canShow = !needsAlbumScheme || activePlayerScheme != null || lastAlbumScheme != null
+        miniAppearProgress.snapTo(if (canShow) 1f else 0f)
+    }
+    LaunchedEffect(activePlayerScheme, needsAlbumScheme, currentSong?.id) {
+        if (needsAlbumScheme && activePlayerScheme != null && miniAppearProgress.value < 1f) {
+            miniAppearProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
+    val miniReadyAlpha = miniAppearProgress.value
+    val miniAppearScale = lerp(0.985f, 1f, miniAppearProgress.value)
+
+    val playerAreaBackground = miniPlayerScheme?.primaryContainer ?: Color.Transparent
 
     val t = rememberExpansionTransition(playerContentExpansionFraction.value)
 
     val playerAreaElevation by t.animateDp(label = "elev") { f -> lerp(2.dp, 12.dp, f) }
+    val effectivePlayerAreaElevation = lerp(0.dp, playerAreaElevation, miniReadyAlpha)
 
     val miniAlpha by t.animateFloat(label = "miniAlpha") { f -> (1f - f * 2f).coerceIn(0f, 1f) }
 
@@ -1025,11 +1067,13 @@ fun UnifiedPlayerSheet(
                                 .height(playerContentAreaHeightDp)
                                 .graphicsLayer {
                                     translationX = offsetAnimatable.value
-                                    scaleY = visualOvershootScaleY.value
+                                    scaleX = miniAppearScale
+                                    scaleY = visualOvershootScaleY.value * miniAppearScale
+                                    alpha = miniReadyAlpha
                                     transformOrigin = TransformOrigin(0.5f, 1f)
                                 }
                                 .shadow(
-                                    elevation = playerAreaElevation,
+                                    elevation = effectivePlayerAreaElevation,
                                     shape = RoundedCornerShape(
                                         topStart = overallSheetTopCornerRadius,
                                         topEnd = overallSheetTopCornerRadius,
@@ -1039,7 +1083,7 @@ fun UnifiedPlayerSheet(
                                     clip = false
                                 )
                                 .background(
-                                    color = albumColorScheme.primaryContainer,
+                                    color = playerAreaBackground,
                                     shape = playerShadowShape
                                 )
                                 .clipToBounds()
@@ -1168,13 +1212,9 @@ fun UnifiedPlayerSheet(
                                     // Use infrequentPlayerState
                                     infrequentPlayerState.currentSong?.let { currentSongNonNull ->
                                     // MiniPlayer
-                                    Crossfade(
-                                        targetState = albumColorScheme,
-                                        animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
-                                        label = "miniPlayerColorScheme"
-                                    ) { scheme ->
+                                    miniPlayerScheme?.let { readyScheme ->
                                         CompositionLocalProvider(
-                                            LocalMaterialTheme provides (scheme ?: MaterialTheme.colorScheme)
+                                            LocalMaterialTheme provides readyScheme
                                         ) {
                                             val miniPlayerZIndex by remember { derivedStateOf { if (playerContentExpansionFraction.value < 0.5f) 1f else 0f } }
                                             Box(
