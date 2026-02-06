@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import com.theveloper.pixelplay.utils.getContrastColor
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -99,6 +98,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.utils.resolvePlaylistCoverContentColor
 import kotlin.collections.set
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -396,7 +396,10 @@ fun PlaylistItem(
                        Icon(
                             imageVector = getIconByName(playlist.coverIconName) ?: Icons.Filled.MusicNote,
                             contentDescription = null,
-                            tint = getContrastColor(Color(playlist.coverColorArgb)),
+                            tint = resolvePlaylistCoverContentColor(
+                                playlist.coverColorArgb,
+                                MaterialTheme.colorScheme
+                            ),
                             modifier = Modifier.size(24.dp).then(iconMod)
                        )
                    }

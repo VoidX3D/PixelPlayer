@@ -117,13 +117,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.ui.res.stringResource
-import com.theveloper.pixelplay.presentation.components.AiPlaylistSheet
 import com.theveloper.pixelplay.presentation.components.PlaylistArtCollage
 import com.theveloper.pixelplay.presentation.components.ReorderTabsSheet
 import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.LibraryActionRow
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.components.MultiSelectionBottomSheet
+import com.theveloper.pixelplay.presentation.components.PlaylistCreationTypeDialog
+import com.theveloper.pixelplay.presentation.components.CreateAiPlaylistDialog
 import com.theveloper.pixelplay.presentation.components.subcomps.SelectionActionRow
 import com.theveloper.pixelplay.presentation.components.subcomps.SelectionCountPill
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
@@ -251,7 +252,13 @@ fun LibraryScreen(
     }
     val isSortSheetVisible by playerViewModel.isSortingSheetVisible.collectAsState()
     val libraryUiState by playerViewModel.playerUiState.collectAsState()
+    val hasGeminiApiKey by playerViewModel.hasGeminiApiKey.collectAsState()
+    val isGeneratingAiPlaylist by playerViewModel.isGeneratingAiPlaylist.collectAsState()
+    val aiError by playerViewModel.aiError.collectAsState()
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showPlaylistCreationTypeDialog by remember { mutableStateOf(false) }
+    var showCreateAiPlaylistDialog by remember { mutableStateOf(false) }
+    var aiGenerationRequestedFromDialog by remember { mutableStateOf(false) }
 
     val m3uImportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -341,6 +348,31 @@ fun LibraryScreen(
                 showCreatePlaylistDialog = false
                 Toast.makeText(context, "Playlist created successfully", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    LaunchedEffect(
+        showCreateAiPlaylistDialog,
+        aiGenerationRequestedFromDialog,
+        isGeneratingAiPlaylist,
+        aiError
+    ) {
+        if (!showCreateAiPlaylistDialog || !aiGenerationRequestedFromDialog || isGeneratingAiPlaylist) {
+            return@LaunchedEffect
+        }
+
+        if (aiError == null) {
+            showCreateAiPlaylistDialog = false
+            playerViewModel.clearAiPlaylistError()
+        }
+        aiGenerationRequestedFromDialog = false
+    }
+
+    LaunchedEffect(hasGeminiApiKey, showCreateAiPlaylistDialog) {
+        if (!hasGeminiApiKey && showCreateAiPlaylistDialog) {
+            showCreateAiPlaylistDialog = false
+            aiGenerationRequestedFromDialog = false
+            playerViewModel.clearAiPlaylistError()
         }
     }
     // La lógica de carga diferida (lazy loading) se mantiene.
@@ -666,7 +698,7 @@ fun LibraryScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     onMainActionClick = {
                                         when (tabTitles.getOrNull(currentTabIndex)?.toLibraryTabIdOrNull()) {
-                                            LibraryTabId.PLAYLISTS -> showCreatePlaylistDialog = true
+                                            LibraryTabId.PLAYLISTS -> showPlaylistCreationTypeDialog = true
                                             LibraryTabId.LIKED -> playerViewModel.shuffleFavoriteSongs()
                                             LibraryTabId.ALBUMS -> playerViewModel.shuffleRandomAlbum()
                                             LibraryTabId.ARTISTS -> playerViewModel.shuffleRandomArtist()
@@ -680,7 +712,6 @@ fun LibraryScreen(
                                     onLocateClick = { locateAction?.invoke() },
                                     isPlaylistTab = currentTabId == LibraryTabId.PLAYLISTS,
                                     isFoldersTab = currentTabId == LibraryTabId.FOLDERS && (!playerUiState.isFoldersPlaylistView || playerUiState.currentFolder != null),
-                                    onGenerateWithAiClick = { playerViewModel.showAiPlaylistSheet() },
                                     onImportM3uClick = { m3uImportLauncher.launch("audio/x-mpegurl") },
                                     currentFolder = playerUiState.currentFolder,
                                     folderRootPath = playerUiState.folderSourceRootPath.ifBlank {
@@ -921,7 +952,6 @@ fun LibraryScreen(
                                         navController = navController,
                                         playerViewModel = playerViewModel,
                                         bottomBarHeight = bottomBarHeightDp,
-                                        onGenerateWithAiClick = { playerViewModel.showAiPlaylistSheet() },
                                         isRefreshing = isRefreshing,
                                         onRefresh = onRefresh
                                     )
@@ -1102,6 +1132,27 @@ fun LibraryScreen(
 
     val allSongs by playerViewModel.allSongsFlow.collectAsState(initial = emptyList())
 
+    PlaylistCreationTypeDialog(
+        visible = showPlaylistCreationTypeDialog,
+        onDismiss = { showPlaylistCreationTypeDialog = false },
+        onManualSelected = {
+            showPlaylistCreationTypeDialog = false
+            showCreatePlaylistDialog = true
+        },
+        onAiSelected = {
+            if (hasGeminiApiKey) {
+                showPlaylistCreationTypeDialog = false
+                playerViewModel.clearAiPlaylistError()
+                showCreateAiPlaylistDialog = true
+            } else {
+                Toast.makeText(context, "Set your Gemini API key first", Toast.LENGTH_SHORT).show()
+            }
+        },
+        isAiEnabled = hasGeminiApiKey,
+        onSetupAiClick = {
+            navController.navigate(Screen.SettingsCategory.createRoute("ai"))
+        }
+    )
 
     CreatePlaylistDialog(
         visible = showCreatePlaylistDialog,
@@ -1128,26 +1179,26 @@ fun LibraryScreen(
         }
     )
 
-
-    val showAiSheet by playerViewModel.showAiPlaylistSheet.collectAsState()
-    val isGeneratingAiPlaylist by playerViewModel.isGeneratingAiPlaylist.collectAsState()
-    val aiError by playerViewModel.aiError.collectAsState()
-
-    if (showAiSheet) {
-        AiPlaylistSheet(
-            onDismiss = { playerViewModel.dismissAiPlaylistSheet() },
-            onGenerateClick = { prompt, minLength, maxLength ->
-                playerViewModel.generateAiPlaylist(
-                    prompt = prompt,
-                    minLength = minLength,
-                    maxLength = maxLength,
-                    saveAsPlaylist = true
-                )
-            },
-            isGenerating = isGeneratingAiPlaylist,
-            error = aiError
-        )
-    }
+    CreateAiPlaylistDialog(
+        visible = showCreateAiPlaylistDialog && hasGeminiApiKey,
+        isGenerating = isGeneratingAiPlaylist,
+        error = aiError,
+        onDismiss = {
+            showCreateAiPlaylistDialog = false
+            aiGenerationRequestedFromDialog = false
+            playerViewModel.clearAiPlaylistError()
+        },
+        onGenerate = { playlistName, prompt, minLength, maxLength ->
+            aiGenerationRequestedFromDialog = true
+            playerViewModel.generateAiPlaylist(
+                prompt = prompt,
+                minLength = minLength,
+                maxLength = maxLength,
+                saveAsPlaylist = true,
+                playlistName = playlistName
+            )
+        }
+    )
 
     if (showSongInfoBottomSheet && selectedSongForInfo != null) {
         val currentSong = selectedSongForInfo
@@ -3168,7 +3219,6 @@ fun LibraryPlaylistsTab(
     navController: NavController,
     playerViewModel: PlayerViewModel,
     bottomBarHeight: Dp,
-    onGenerateWithAiClick: () -> Unit,
     isRefreshing: Boolean,
     onRefresh: () -> Unit
 ) {

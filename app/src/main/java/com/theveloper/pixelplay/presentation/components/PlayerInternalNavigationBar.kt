@@ -19,6 +19,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,8 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.presentation.components.scoped.CustomNavigationBarItem
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal val NavBarContentHeight = 90.dp // Altura del contenido de la barra de navegación
 internal val NavBarContentHeightFullWidth = NavBarContentHeight // Altura del contenido de la barra de navegación en modo completo
@@ -64,6 +67,7 @@ private fun PlayerInternalNavigationItemsRow(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val scope = rememberCoroutineScope()
         var lastSearchTapTimestamp by remember { mutableStateOf(0L) }
         navItems.forEach { item ->
             val isSelected = currentRoute == item.screen.route
@@ -99,20 +103,39 @@ private fun PlayerInternalNavigationItemsRow(
                 val isSearchTab = item.screen.route == Screen.Search.route
                 val isAlreadySelected = currentRoute == item.screen.route
 
-                if (isSearchTab && isAlreadySelected) {
+                if (isSearchTab) {
                     val now = SystemClock.elapsedRealtime()
-                    if (now - lastSearchTapTimestamp <= 350L) {
-                        onSearchIconDoubleTap()
+                    val isDoubleTap = now - lastSearchTapTimestamp <= 350L
+                    lastSearchTapTimestamp = now
+
+                    if (!isAlreadySelected) {
+                        navController.navigate(item.screen.route) {
+                            popUpTo(navController.graph.id) { inclusive = true; saveState = false }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    }
+
+                    if (isDoubleTap) {
                         lastSearchTapTimestamp = 0L
-                    } else {
-                        lastSearchTapTimestamp = now
+                        if (isAlreadySelected) {
+                            onSearchIconDoubleTap()
+                        } else {
+                            scope.launch {
+                                delay(160L)
+                                onSearchIconDoubleTap()
+                            }
+                        }
                     }
                 } else if (!isAlreadySelected) {
+                    lastSearchTapTimestamp = 0L
                     navController.navigate(item.screen.route) {
                         popUpTo(navController.graph.id) { inclusive = true; saveState = false }
                         launchSingleTop = true
                         restoreState = false
                     }
+                } else {
+                    lastSearchTapTimestamp = 0L
                 }
             }
             CustomNavigationBarItem(

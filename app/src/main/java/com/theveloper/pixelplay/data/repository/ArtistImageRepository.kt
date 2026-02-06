@@ -23,6 +23,7 @@ class ArtistImageRepository @Inject constructor(
     companion object {
         private const val TAG = "ArtistImageRepository"
         private const val CACHE_SIZE = 100 // Number of artist images to cache in memory
+        private val deezerSizeRegex = Regex("/\\d{2,4}x\\d{2,4}([\\-.])")
     }
 
     // In-memory LRU cache for quick access
@@ -61,8 +62,14 @@ class ArtistImageRepository @Inject constructor(
             musicDao.getArtistImageUrl(artistId)
         }
         if (!dbCachedUrl.isNullOrEmpty()) {
-            memoryCache.put(normalizedName, dbCachedUrl)
-            return dbCachedUrl
+            val upgradedDbUrl = upgradeToHighResDeezerUrl(dbCachedUrl)
+            memoryCache.put(normalizedName, upgradedDbUrl)
+            if (upgradedDbUrl != dbCachedUrl) {
+                withContext(Dispatchers.IO) {
+                    musicDao.updateArtistImageUrl(artistId, upgradedDbUrl)
+                }
+            }
+            return upgradedDbUrl
         }
 
         // Fetch from Deezer API
@@ -110,11 +117,12 @@ class ArtistImageRepository @Inject constructor(
                 val deezerArtist = response.data.firstOrNull()
 
                 if (deezerArtist != null) {
-                    // Use picture_medium for list views, picture_big for detail views
-                    // We store the medium size as default, UI can request bigger sizes if needed
-                    val imageUrl = deezerArtist.pictureMedium 
-                        ?: deezerArtist.pictureBig 
-                        ?: deezerArtist.picture
+                    val imageUrl = (
+                        deezerArtist.pictureXl
+                            ?: deezerArtist.pictureBig
+                            ?: deezerArtist.pictureMedium
+                            ?: deezerArtist.picture
+                        )?.let(::upgradeToHighResDeezerUrl)
 
                     if (!imageUrl.isNullOrEmpty()) {
                         // Cache in memory
@@ -154,5 +162,10 @@ class ArtistImageRepository @Inject constructor(
     fun clearCache() {
         memoryCache.evictAll()
         failedFetches.clear()
+    }
+
+    private fun upgradeToHighResDeezerUrl(url: String): String {
+        if (!url.contains("dzcdn.net/images/artist")) return url
+        return deezerSizeRegex.replace(url, "/1000x1000$1")
     }
 }
