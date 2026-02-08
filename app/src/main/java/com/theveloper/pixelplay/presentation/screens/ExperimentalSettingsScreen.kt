@@ -316,8 +316,8 @@ fun ExperimentalSettingsScreen(
                                     Slider(
                                         value = appearThresholdPercent.toFloat(),
                                         onValueChange = { settingsViewModel.setFullPlayerAppearThreshold(it.roundToInt()) },
-                                        valueRange = 50f..100f,
-                                        steps = 50,
+                                        valueRange = 0f..100f,
+                                        steps = 99,
                                         enabled = isAnyDelayEnabled
                                     )
 

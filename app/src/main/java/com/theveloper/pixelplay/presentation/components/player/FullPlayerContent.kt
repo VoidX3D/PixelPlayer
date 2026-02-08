@@ -182,6 +182,10 @@ fun FullPlayerContent(
     val immersiveLyricsEnabled by playerViewModel.immersiveLyricsEnabled.collectAsState()
     val immersiveLyricsTimeout by playerViewModel.immersiveLyricsTimeout.collectAsState()
     val isImmersiveTemporarilyDisabled by playerViewModel.isImmersiveTemporarilyDisabled.collectAsState()
+    val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsState()
+    val selectedRouteName by playerViewModel.selectedRoute.map { it?.name }.collectAsState(initial = null)
+    val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsState()
+    val bluetoothName by playerViewModel.bluetoothName.collectAsState()
 
     var showFetchLyricsDialog by remember { mutableStateOf(false) }
     var totalDrag by remember { mutableStateOf(0f) }
@@ -296,9 +300,6 @@ fun FullPlayerContent(
             else -> Unit
         }
     }
-
-    val gestureScope = rememberCoroutineScope()
-    val isCastConnecting by playerViewModel.isCastConnecting.collectAsState()
 
     // Sub sections , to be reused in different layout modes
 
@@ -658,7 +659,6 @@ fun FullPlayerContent(
                         titleContentColor = LocalMaterialTheme.current.onPrimaryContainer,
                     ),
                     title = {
-                        val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsState()
                         if (!isCastConnecting) {
                             AnimatedVisibility(visible = (!isRemotePlaybackActive)) {
                                 Text(
@@ -705,10 +705,6 @@ fun FullPlayerContent(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsState()
-                            val selectedRouteName by playerViewModel.selectedRoute.map { it?.name }.collectAsState(initial = null)
-                            val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsState()
-                            val bluetoothName by playerViewModel.bluetoothName.collectAsState()
                             val showCastLabel = isCastConnecting || (isRemotePlaybackActive && selectedRouteName != null)
                             val isBluetoothActive =
                                 isBluetoothEnabled && !bluetoothName.isNullOrEmpty() && !isRemotePlaybackActive && !isCastConnecting
@@ -1229,7 +1225,7 @@ private fun PlayerProgressBarSection(
         expansionFractionProvider = expansionFractionProvider,
         isExpandedOverride = currentSheetState == PlayerSheetState.EXPANDED,
         normalStartThreshold = 0.08f,
-        delayAppearThreshold = (loadingTweaks?.contentAppearThresholdPercent ?: 100) / 100f,
+        delayAppearThreshold = (loadingTweaks?.contentAppearThresholdPercent ?: 0) / 100f,
         delayCloseThreshold = 1f - ((loadingTweaks?.contentCloseThresholdPercent ?: 0) / 100f),
         placeholder = {
              if (loadingTweaks?.transparentPlaceholders == true) {
@@ -1431,8 +1427,15 @@ private fun DelayedContent(
             return@LaunchedEffect
         }
 
-        if (effectiveExpansionFraction <= 0.001f) {
+        if (effectiveExpansionFraction <= 0.001f && !isExpandedOverride) {
             isDelayGateOpen = false
+            return@LaunchedEffect
+        }
+
+        // Keep delayed content gate open whenever sheet is in expanded state.
+        // This avoids "dead" touch windows when opening via single tap on mini player.
+        if (isExpandedOverride) {
+            isDelayGateOpen = true
             return@LaunchedEffect
         }
 
@@ -1476,7 +1479,11 @@ private fun DelayedContent(
     if (shouldDelay) {
         Box(modifier = sharedBoundsModifier) {
             val effectiveContentAlpha = (contentBlendAlpha * baseAlpha).coerceIn(0f, 1f)
-            if (effectiveContentAlpha > 0.001f) {
+            val shouldComposeContent =
+                isDelayGateOpen || isExpandedOverride || isExpanding || effectiveExpansionFraction > 0.02f
+
+            // Compose content slightly ahead of visibility so first interaction is ready immediately.
+            if (shouldComposeContent) {
                 Box(
                     modifier = Modifier.graphicsLayer { alpha = effectiveContentAlpha }
                 ) {

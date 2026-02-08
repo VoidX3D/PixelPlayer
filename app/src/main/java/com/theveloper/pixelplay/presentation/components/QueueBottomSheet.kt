@@ -144,6 +144,7 @@ import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
+import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.performAppCompatHapticFeedback
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -175,6 +176,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import coil.size.Size
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class,
@@ -224,7 +227,11 @@ fun QueueBottomSheet(
     var showClearQueueDialog by remember { mutableStateOf(false) }
     var isFabExpanded by rememberSaveable { mutableStateOf(false) }
 
-    val stablePlayerState by viewModel.stablePlayerState.collectAsState()
+    val infrequentPlayerState by remember {
+        viewModel.stablePlayerState
+            .map { it.copy(currentPosition = 0L) }
+            .distinctUntilChanged()
+    }.collectAsState(initial = StablePlayerState())
 
     val albumColorSchemePair by viewModel.currentAlbumArtColorSchemePair.collectAsState()
     val isDark = isSystemInDarkTheme()
@@ -232,7 +239,7 @@ fun QueueBottomSheet(
         albumColorSchemePair?.let { pair -> if (isDark) pair.dark else pair.light }
     }
 
-    val isPlaying = stablePlayerState.isPlaying
+    val isPlaying = infrequentPlayerState.isPlaying
 
     val currentSongIndex = remember(queue, currentSongId) {
         queue.indexOfFirst { it.id == currentSongId }
@@ -500,7 +507,7 @@ fun QueueBottomSheet(
                     .asPaddingValues()
                     .calculateTopPadding() + 10.dp
 
-                stablePlayerState.currentSong?.let { nowPlaying ->
+                infrequentPlayerState.currentSong?.let { nowPlaying ->
                     QueueMiniPlayer(
                         song = nowPlaying,
                         isPlaying = isPlaying,
@@ -541,10 +548,10 @@ fun QueueBottomSheet(
                 QueueHeader(
                     queueSourceName = currentQueueSourceName,
                     modifier = Modifier
-                        .padding(
+                            .padding(
                             start = 12.dp,
                             end = 12.dp,
-                            top = if (stablePlayerState.currentSong == null) headerTopPadding else 2.dp,
+                            top = if (infrequentPlayerState.currentSong == null) headerTopPadding else 2.dp,
                             bottom = 12.dp,
                         )
                         .then(directSheetDragModifier)

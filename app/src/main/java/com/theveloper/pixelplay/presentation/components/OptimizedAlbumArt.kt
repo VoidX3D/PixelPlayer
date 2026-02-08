@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -46,10 +47,8 @@ fun OptimizedAlbumArt(
         return
     }
 
-    // Use SubcomposeAsyncImage with Coil's native crossfade instead of Crossfade wrapper
-    // This avoids recompositions on painter.state changes during scroll
-    SubcomposeAsyncImage(
-        model = when (uri) {
+    val requestModel = remember(context, uri, targetSize) {
+        when (uri) {
             is ImageRequest -> uri
             else -> ImageRequest.Builder(context)
                 .data(uri)
@@ -60,7 +59,13 @@ fun OptimizedAlbumArt(
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .build()
-        },
+        }
+    }
+
+    // Use SubcomposeAsyncImage with Coil's native crossfade instead of Crossfade wrapper
+    // This avoids recompositions on painter.state changes during scroll.
+    SubcomposeAsyncImage(
+        model = requestModel,
         contentDescription = "Album art of $title",
         modifier = modifier,
         contentScale = ContentScale.Crop,

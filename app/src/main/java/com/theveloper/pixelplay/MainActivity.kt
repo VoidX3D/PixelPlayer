@@ -113,6 +113,8 @@ import com.theveloper.pixelplay.presentation.utils.AppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.NoOpHapticFeedback
 import com.theveloper.pixelplay.utils.CrashLogData
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -562,7 +564,12 @@ class MainActivity : ComponentActivity() {
                 bottomBar = {
                     if (!shouldHideNavigationBar) {
                         val playerContentExpansionFraction = playerViewModel.playerContentExpansionFraction.value
-                        val showPlayerContentArea = playerViewModel.stablePlayerState.collectAsState().value.currentSong != null
+                        val currentSongId by remember {
+                            playerViewModel.stablePlayerState
+                                .map { it.currentSong?.id }
+                                .distinctUntilChanged()
+                        }.collectAsState(initial = null)
+                        val showPlayerContentArea = currentSongId != null
                         val currentSheetContentState by playerViewModel.sheetState.collectAsState()
                         val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsState()
                         val navBarElevation = 3.dp

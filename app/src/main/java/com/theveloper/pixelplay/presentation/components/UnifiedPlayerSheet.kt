@@ -1,8 +1,7 @@
-@file:kotlin.OptIn(ExperimentalMaterial3Api::class)
+@file:kotlin.OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.components
 
-import android.os.Trace
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -12,7 +11,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDp
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
@@ -24,7 +22,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,11 +41,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -123,7 +121,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.roundToInt
 import kotlin.math.sign
 
 internal val LocalMaterialTheme = staticCompositionLocalOf<ColorScheme> { error("No ColorScheme provided") }
@@ -152,7 +149,6 @@ fun UnifiedPlayerSheet(
     hideMiniPlayer: Boolean = false,
     isNavBarHidden: Boolean = false
 ) {
-    Trace.beginSection("UnifiedPlayerSheet.Composition")
     val context = LocalContext.current
     LaunchedEffect(key1 = Unit) {
         playerViewModel.toastEvents.collect { message ->
@@ -193,6 +189,10 @@ fun UnifiedPlayerSheet(
         playerViewModel.playerUiState.map { it.currentQueueSourceName }.distinctUntilChanged()
     }.collectAsState(initial = "")
 
+    val preparingSongId by remember {
+        playerViewModel.playerUiState.map { it.preparingSongId }.distinctUntilChanged()
+    }.collectAsState(initial = null as String?)
+
     val showDismissUndoBar by remember {
         playerViewModel.playerUiState.map { it.showDismissUndoBar }.distinctUntilChanged()
     }.collectAsState(initial = false)
@@ -231,7 +231,7 @@ fun UnifiedPlayerSheet(
         remember(configuration, density) { with(density) { configuration.screenWidthDp.dp.toPx() } }
     val dismissThresholdPx = remember(screenWidthPx) { screenWidthPx * 0.4f }
 
-    val swipeDismissProgress = remember(offsetAnimatable.value, dismissThresholdPx) {
+    val swipeDismissProgress by remember(dismissThresholdPx) {
         derivedStateOf {
             if (dismissThresholdPx == 0f) 0f
             else (abs(offsetAnimatable.value) / dismissThresholdPx).coerceIn(0f, 1f)
@@ -243,20 +243,11 @@ fun UnifiedPlayerSheet(
         density
     ) { with(density) { configuration.screenHeightDp.dp.toPx() } }
     val miniPlayerContentHeightPx = remember { with(density) { MiniPlayerHeight.toPx() } }
-    val miniPlayerAndSpacerHeightPx =
-        remember(density, MiniPlayerHeight) { with(density) { MiniPlayerHeight.toPx() } }
 
     val isCastConnecting by playerViewModel.isCastConnecting.collectAsState()
 
     val showPlayerContentArea by remember(infrequentPlayerState.currentSong, isCastConnecting) {
         derivedStateOf { infrequentPlayerState.currentSong != null || isCastConnecting }
-    }
-
-    // Use the granular showDismissUndoBar here
-    val isPlayerSlotOccupied by remember(showPlayerContentArea, showDismissUndoBar) {
-        derivedStateOf {
-            showPlayerContentArea || showDismissUndoBar
-        }
     }
 
     val playerContentExpansionFraction = playerViewModel.playerContentExpansionFraction
@@ -405,25 +396,6 @@ fun UnifiedPlayerSheet(
         }
     }
 
-    val playerContentAreaActualHeightPx by remember(
-        showPlayerContentArea,
-        playerContentExpansionFraction,
-        containerHeight,
-        miniPlayerContentHeightPx
-    ) {
-        derivedStateOf {
-            if (showPlayerContentArea) {
-                val containerHeightPx = with(density) { containerHeight.toPx() }
-                lerp(
-                    miniPlayerContentHeightPx,
-                    containerHeightPx,
-                    playerContentExpansionFraction.value
-                )
-            } else {
-                0f
-            }
-        }
-    }
     val playerContentAreaHeightDp by remember(
         showPlayerContentArea,
         playerContentExpansionFraction,
@@ -438,52 +410,6 @@ fun UnifiedPlayerSheet(
             else 0.dp
         }
     }
-    val playerContentAreaActualHeightDp = with(density) { playerContentAreaActualHeightPx.toDp() }
-
-    val totalSheetHeightWhenContentCollapsedPx = remember(
-        isPlayerSlotOccupied,
-        hideMiniPlayer,
-        miniPlayerAndSpacerHeightPx
-    ) {
-        if (isPlayerSlotOccupied && !hideMiniPlayer) miniPlayerAndSpacerHeightPx else 0f
-    }
-
-    val animatedTotalSheetHeightPx by remember(
-        isPlayerSlotOccupied,
-        playerContentExpansionFraction,
-        screenHeightPx,
-        totalSheetHeightWhenContentCollapsedPx
-    ) {
-        derivedStateOf {
-            if (isPlayerSlotOccupied) {
-                lerp(
-                    totalSheetHeightWhenContentCollapsedPx,
-                    screenHeightPx,
-                    playerContentExpansionFraction.value
-                )
-            } else {
-                0f
-            }
-        }
-    }
-
-    val navBarElevation = 3.dp
-    val shadowSpacePx = remember(density, navBarElevation) {
-        with(density) { (navBarElevation * 8).toPx() }
-    }
-
-    val animatedTotalSheetHeightWithShadowPx by remember(
-        animatedTotalSheetHeightPx,
-        shadowSpacePx
-    ) {
-        derivedStateOf {
-            animatedTotalSheetHeightPx + shadowSpacePx
-        }
-    }
-    val animatedTotalSheetHeightWithShadowDp =
-        with(density) { animatedTotalSheetHeightWithShadowPx.toDp() }
-
-    //with(density) { animatedTotalSheetHeightPx.toDp() }
 
     val visualSheetTranslationY by remember {
         derivedStateOf {
@@ -541,7 +467,7 @@ fun UnifiedPlayerSheet(
         infrequentPlayerState.currentSong,
         predictiveBackCollapseProgress,
         currentSheetContentState,
-        swipeDismissProgress.value,
+        swipeDismissProgress,
         isNavBarHidden,
         navBarCornerRadius
     ) {
@@ -575,12 +501,12 @@ fun UnifiedPlayerSheet(
                 }
 
             if (currentSheetContentState == PlayerSheetState.COLLAPSED &&
-                swipeDismissProgress.value > 0f &&
+                swipeDismissProgress > 0f &&
                 showPlayerContentArea &&
                 playerContentExpansionFraction.value < 0.01f
             ) {
                 val baseCollapsedRadius = if (isNavBarHidden) 32.dp else 12.dp
-                lerp(baseCollapsedRadius, navBarCornerRadius.dp, swipeDismissProgress.value)
+                lerp(baseCollapsedRadius, navBarCornerRadius.dp, swipeDismissProgress)
             } else {
                 calculatedNormally
             }
@@ -610,21 +536,6 @@ fun UnifiedPlayerSheet(
                 )
             } else {
                 actualCollapsedStateHorizontalPadding
-            }
-        }
-    }
-
-    val currentDimLayerAlpha by remember(
-        playerContentExpansionFraction,
-        predictiveBackCollapseProgress,
-        currentSheetContentState
-    ) {
-        derivedStateOf {
-            val baseAlpha = playerContentExpansionFraction.value
-            if (predictiveBackCollapseProgress > 0f && currentSheetContentState == PlayerSheetState.EXPANDED) {
-                lerp(baseAlpha, 0f, predictiveBackCollapseProgress)
-            } else {
-                baseAlpha
             }
         }
     }
@@ -846,6 +757,7 @@ fun UnifiedPlayerSheet(
 
     // val currentAlbumColorSchemePair by playerViewModel.currentAlbumArtColorSchemePair.collectAsState() // Replaced by activePlayerColorSchemePair
     val activePlayerSchemePair by playerViewModel.activePlayerColorSchemePair.collectAsState()
+    val themedAlbumArtUri by playerViewModel.currentThemedAlbumArtUri.collectAsState()
     val isDarkTheme = LocalPixelPlayDarkTheme.current
     val systemColorScheme = MaterialTheme.colorScheme // This is the standard M3 theme
     val isAlbumArtTheme = playerThemePreference == ThemePreference.ALBUM_ART
@@ -856,28 +768,62 @@ fun UnifiedPlayerSheet(
     val activePlayerScheme = remember(activePlayerSchemePair, isDarkTheme) {
         activePlayerSchemePair?.let { if (isDarkTheme) it.dark else it.light }
     }
-
-    var lastAlbumScheme by remember { mutableStateOf<ColorScheme?>(null) }
-    LaunchedEffect(activePlayerScheme) {
-        if (activePlayerScheme != null) {
-            lastAlbumScheme = activePlayerScheme
+    val currentSongActiveScheme = remember(activePlayerScheme, currentSong?.albumArtUriString, themedAlbumArtUri) {
+        if (
+            activePlayerScheme != null &&
+            !currentSong?.albumArtUriString.isNullOrBlank() &&
+            currentSong?.albumArtUriString == themedAlbumArtUri
+        ) {
+            activePlayerScheme
+        } else {
+            null
         }
     }
 
-    val albumColorScheme = activePlayerScheme ?: lastAlbumScheme ?: systemColorScheme
+    var lastAlbumScheme by remember { mutableStateOf<ColorScheme?>(null) }
+    var lastAlbumSchemeSongId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(currentSong?.id) {
+        if (currentSong?.id != lastAlbumSchemeSongId) {
+            lastAlbumScheme = null
+            lastAlbumSchemeSongId = null
+        }
+    }
+    LaunchedEffect(currentSongActiveScheme, currentSong?.id) {
+        val currentSongId = currentSong?.id
+        if (currentSongId != null && currentSongActiveScheme != null) {
+            lastAlbumScheme = currentSongActiveScheme
+            lastAlbumSchemeSongId = currentSongId
+        }
+    }
+
+    val sameSongLastAlbumScheme = remember(currentSong?.id, lastAlbumSchemeSongId, lastAlbumScheme) {
+        if (currentSong?.id != null && currentSong?.id == lastAlbumSchemeSongId) {
+            lastAlbumScheme
+        } else {
+            null
+        }
+    }
+    val isPreparingPlayback = remember(preparingSongId, currentSong?.id) {
+        preparingSongId != null && preparingSongId == currentSong?.id
+    }
+
+    val albumColorScheme = if (isAlbumArtTheme) {
+        currentSongActiveScheme ?: sameSongLastAlbumScheme ?: systemColorScheme
+    } else {
+        systemColorScheme
+    }
 
     val miniPlayerScheme = when {
         !needsAlbumScheme -> systemColorScheme
-        activePlayerScheme != null -> activePlayerScheme
-        else -> lastAlbumScheme
+        currentSongActiveScheme != null -> currentSongActiveScheme
+        sameSongLastAlbumScheme != null -> sameSongLastAlbumScheme
+        else -> systemColorScheme
     }
     val miniAppearProgress = remember { Animatable(0f) }
-    LaunchedEffect(currentSong?.id, needsAlbumScheme, lastAlbumScheme, activePlayerScheme) {
-        val canShow = !needsAlbumScheme || activePlayerScheme != null || lastAlbumScheme != null
-        miniAppearProgress.snapTo(if (canShow) 1f else 0f)
-    }
-    LaunchedEffect(activePlayerScheme, needsAlbumScheme, currentSong?.id) {
-        if (needsAlbumScheme && activePlayerScheme != null && miniAppearProgress.value < 1f) {
+    LaunchedEffect(currentSong?.id) {
+        if (currentSong == null) {
+            miniAppearProgress.snapTo(0f)
+        } else if (miniAppearProgress.value < 1f) {
             miniAppearProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
@@ -1242,6 +1188,7 @@ fun UnifiedPlayerSheet(
                                                     cornerRadiusAlb = (overallSheetTopCornerRadius.value * 0.5).dp,
                                                     isPlaying = infrequentPlayerState.isPlaying, // from top-level stablePlayerState
                                                     isCastConnecting = isCastConnecting,
+                                                    isPreparingPlayback = isPreparingPlayback,
                                                     onPlayPause = { playerViewModel.playPause() },
                                                     onPrevious = { playerViewModel.previousSong() },
                                                     onNext = { playerViewModel.nextSong() },
@@ -1298,6 +1245,7 @@ fun UnifiedPlayerSheet(
                                                 isShuffleEnabledProvider = { infrequentPlayerState.isShuffleEnabled },
                                                 totalDurationProvider = { infrequentPlayerState.totalDuration },
                                                 lyricsProvider = { infrequentPlayerState.lyrics },
+                                                isCastConnecting = isCastConnecting,
                                                 isFavoriteProvider = { isFavorite },
                                                 // Event Handlers
                                                 onPlayPause = playerViewModel::playPause,
@@ -1355,6 +1303,7 @@ fun UnifiedPlayerSheet(
                                     isShuffleEnabledProvider = { infrequentPlayerState.isShuffleEnabled },
                                     totalDurationProvider = { infrequentPlayerState.totalDuration },
                                     lyricsProvider = { infrequentPlayerState.lyrics },
+                                    isCastConnecting = isCastConnecting,
                                     isFavoriteProvider = { isFavorite },
                                     onShowQueueClicked = { animateQueueSheet(true) },
                                     onQueueDragStart = { beginQueueDrag() },
@@ -1433,10 +1382,12 @@ fun UnifiedPlayerSheet(
                                 val onQueueDrag = remember { { drag: Float -> dragQueueBy(drag) } }
                                 val onQueueRelease = remember { { drag: Float, vel: Float -> endQueueDrag(drag, vel) } }
 
-                                val shouldRenderQueueSheet by remember(showQueueSheet, queueSheetOffset.value, queueHiddenOffsetPx, queueSheetHeightPx) {
-                                  derivedStateOf {
-                                    showQueueSheet || queueSheetHeightPx == 0f || queueSheetOffset.value < queueHiddenOffsetPx
-                                  }
+                                val shouldRenderQueueSheet by remember(showQueueSheet, queueHiddenOffsetPx, queueSheetHeightPx) {
+                                    derivedStateOf {
+                                        showQueueSheet ||
+                                            queueSheetHeightPx == 0f ||
+                                            queueSheetOffset.value < queueHiddenOffsetPx
+                                    }
                                 }
                                 
                                 // Force re-measure on configuration change
@@ -1464,7 +1415,10 @@ fun UnifiedPlayerSheet(
                                                         if (queueHiddenOffsetPx == 0f || !showQueueSheet) 0f else 1f
                                                 }
                                                 .onGloballyPositioned { coordinates ->
-                                                    queueSheetHeightPx = coordinates.size.height.toFloat()
+                                                    val measuredHeight = coordinates.size.height.toFloat()
+                                                    if (queueSheetHeightPx != measuredHeight) {
+                                                        queueSheetHeightPx = measuredHeight
+                                                    }
                                                 },
                                             queue = currentPlaybackQueue,
                                             currentQueueSourceName = currentQueueSourceName,
@@ -1628,7 +1582,6 @@ fun UnifiedPlayerSheet(
                 }
             )
         }
-        Trace.endSection() // End UnifiedPlayerSheet.Composition
     }
 }
 
@@ -1682,6 +1635,7 @@ private fun MiniPlayerContentInternal(
     song: Song,
     isPlaying: Boolean,
     isCastConnecting: Boolean,
+    isPreparingPlayback: Boolean,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
     cornerRadiusAlb: Dp,
@@ -1689,6 +1643,7 @@ private fun MiniPlayerContentInternal(
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val controlsEnabled = !isCastConnecting && !isPreparingPlayback
 
     val interaction = remember { MutableInteractionSource() }
     val indication: Indication = ripple(bounded = false)
@@ -1713,6 +1668,8 @@ private fun MiniPlayerContentInternal(
                     strokeWidth = 2.dp,
                     color = LocalMaterialTheme.current.onPrimaryContainer
                 )
+            } else if (isPreparingPlayback) {
+                CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -1735,12 +1692,16 @@ private fun MiniPlayerContentInternal(
             )
 
             AutoScrollingText(
-                text = if (isCastConnecting) "Connecting to device…" else song.title,
+                text = when {
+                    isCastConnecting -> "Connecting to device…"
+                    isPreparingPlayback -> "Preparing playback…"
+                    else -> song.title
+                },
                 style = titleStyle,
                 gradientEdgeColor = LocalMaterialTheme.current.primaryContainer
             )
             AutoScrollingText(
-                text = song.displayArtist,
+                text = if (isPreparingPlayback) "Loading audio…" else song.displayArtist,
                 style = artistStyle,
                 gradientEdgeColor = LocalMaterialTheme.current.primaryContainer
             )
@@ -1755,7 +1716,7 @@ private fun MiniPlayerContentInternal(
                 .clickable(
                     interactionSource = interaction,
                     indication = indication,
-                    enabled = !isCastConnecting
+                    enabled = controlsEnabled
                 ) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPrevious()
@@ -1780,7 +1741,7 @@ private fun MiniPlayerContentInternal(
                 .clickable(
                     interactionSource = interaction,
                     indication = indication,
-                    enabled = !isCastConnecting
+                    enabled = controlsEnabled
                 ) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPlayPause()
@@ -1805,7 +1766,7 @@ private fun MiniPlayerContentInternal(
                 .clickable(
                     interactionSource = interaction,
                     indication = indication,
-                    enabled = !isCastConnecting
+                    enabled = controlsEnabled
                 ) { onNext() },
             contentAlignment = Alignment.Center
         ) {

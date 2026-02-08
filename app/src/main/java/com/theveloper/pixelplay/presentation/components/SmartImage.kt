@@ -84,18 +84,28 @@ fun SmartImage(
         return
     }
 
-    val request = when (model) {
-        is ImageRequest -> model
-        else -> ImageRequest.Builder(context)
-            .data(model)
-            .crossfade(crossfadeDurationMillis)
-            .diskCachePolicy(if (useDiskCache) CachePolicy.ENABLED else CachePolicy.DISABLED)
-            .memoryCachePolicy(if (useMemoryCache) CachePolicy.ENABLED else CachePolicy.DISABLED)
-            .allowHardware(allowHardware)
-            .apply {
-                size(targetSize)
-            }
-            .build()
+    val request = remember(
+        context,
+        model,
+        crossfadeDurationMillis,
+        useDiskCache,
+        useMemoryCache,
+        allowHardware,
+        targetSize
+    ) {
+        when (model) {
+            is ImageRequest -> model
+            else -> ImageRequest.Builder(context)
+                .data(model)
+                .crossfade(crossfadeDurationMillis)
+                .diskCachePolicy(if (useDiskCache) CachePolicy.ENABLED else CachePolicy.DISABLED)
+                .memoryCachePolicy(if (useMemoryCache) CachePolicy.ENABLED else CachePolicy.DISABLED)
+                .allowHardware(allowHardware)
+                .apply {
+                    size(targetSize)
+                }
+                .build()
+        }
     }
 
     SubcomposeAsyncImage(
