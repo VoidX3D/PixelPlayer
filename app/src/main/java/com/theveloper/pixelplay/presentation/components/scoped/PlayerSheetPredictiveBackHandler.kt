@@ -1,17 +1,20 @@
 package com.theveloper.pixelplay.presentation.components.scoped
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.annotation.OptIn
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.util.lerp
+import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
+@OptIn(UnstableApi::class)
 @Composable
 internal fun PlayerSheetPredictiveBackHandler(
     enabled: Boolean,
@@ -19,12 +22,14 @@ internal fun PlayerSheetPredictiveBackHandler(
     sheetCollapsedTargetY: Float,
     sheetExpandedTargetY: Float,
     sheetMotionController: SheetMotionController,
-    animationDurationMs: Int
+    animationDurationMs: Int,
+    onSwipeEdgeChanged: (Int?) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     PredictiveBackHandler(enabled = enabled) { progressFlow ->
         try {
             progressFlow.collect { backEvent ->
+                onSwipeEdgeChanged(backEvent.swipeEdge)
                 playerViewModel.updatePredictiveBackCollapseFraction(backEvent.progress)
             }
             scope.launch {
@@ -38,6 +43,7 @@ internal fun PlayerSheetPredictiveBackHandler(
                 playerViewModel.updatePredictiveBackCollapseFraction(1f)
                 playerViewModel.collapsePlayerSheet()
                 playerViewModel.updatePredictiveBackCollapseFraction(0f)
+                onSwipeEdgeChanged(null)
             }
         } catch (_: CancellationException) {
             scope.launch {
@@ -53,6 +59,8 @@ internal fun PlayerSheetPredictiveBackHandler(
                 } else {
                     playerViewModel.collapsePlayerSheet()
                 }
+
+                onSwipeEdgeChanged(null)
             }
         }
     }

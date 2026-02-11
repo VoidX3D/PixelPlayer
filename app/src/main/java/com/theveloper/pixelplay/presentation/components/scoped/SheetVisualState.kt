@@ -12,13 +12,17 @@ import androidx.compose.ui.unit.lerp
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 
+private const val PREDICTIVE_BACK_SWIPE_EDGE_LEFT = 0
+private const val PREDICTIVE_BACK_SWIPE_EDGE_RIGHT = 1
+
 internal data class SheetVisualState(
     val currentBottomPadding: Dp,
     val playerContentAreaHeightDp: Dp,
     val visualSheetTranslationY: Float,
     val overallSheetTopCornerRadius: Dp,
     val playerContentActualBottomRadius: Dp,
-    val currentHorizontalPadding: Dp
+    val currentHorizontalPaddingStart: Dp,
+    val currentHorizontalPaddingEnd: Dp
 )
 
 @Composable
@@ -26,6 +30,7 @@ internal fun rememberSheetVisualState(
     showPlayerContentArea: Boolean,
     collapsedStateHorizontalPadding: Dp,
     predictiveBackCollapseProgress: Float,
+    predictiveBackSwipeEdge: Int?,
     currentSheetContentState: PlayerSheetState,
     playerContentExpansionFraction: Animatable<Float, AnimationVector1D>,
     containerHeight: Dp,
@@ -185,16 +190,10 @@ internal fun rememberSheetVisualState(
     val currentHorizontalPadding by remember(
         showPlayerContentArea,
         playerContentExpansionFraction,
-        actualCollapsedStateHorizontalPadding,
-        predictiveBackCollapseProgress
+        actualCollapsedStateHorizontalPadding
     ) {
         derivedStateOf {
-            if (predictiveBackCollapseProgress > 0f &&
-                showPlayerContentArea &&
-                currentSheetContentState == PlayerSheetState.EXPANDED
-            ) {
-                lerp(0.dp, actualCollapsedStateHorizontalPadding, predictiveBackCollapseProgress)
-            } else if (showPlayerContentArea) {
+            if (showPlayerContentArea) {
                 lerp(
                     actualCollapsedStateHorizontalPadding,
                     0.dp,
@@ -206,12 +205,73 @@ internal fun rememberSheetVisualState(
         }
     }
 
+    val currentHorizontalPaddingStart by remember(
+        showPlayerContentArea,
+        currentSheetContentState,
+        predictiveBackCollapseProgress,
+        predictiveBackSwipeEdge,
+        actualCollapsedStateHorizontalPadding,
+        currentHorizontalPadding
+    ) {
+        derivedStateOf {
+            if (predictiveBackCollapseProgress > 0f &&
+                showPlayerContentArea &&
+                currentSheetContentState == PlayerSheetState.EXPANDED
+            ) {
+                val gestureSidePadding = lerp(
+                    start = 0.dp,
+                    stop = actualCollapsedStateHorizontalPadding,
+                    fraction = predictiveBackCollapseProgress
+                )
+
+                when (predictiveBackSwipeEdge) {
+                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> gestureSidePadding
+                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> 0.dp
+                    else -> currentHorizontalPadding
+                }
+            } else {
+                currentHorizontalPadding
+            }
+        }
+    }
+
+    val currentHorizontalPaddingEnd by remember(
+        showPlayerContentArea,
+        currentSheetContentState,
+        predictiveBackCollapseProgress,
+        predictiveBackSwipeEdge,
+        actualCollapsedStateHorizontalPadding,
+        currentHorizontalPadding
+    ) {
+        derivedStateOf {
+            if (predictiveBackCollapseProgress > 0f &&
+                showPlayerContentArea &&
+                currentSheetContentState == PlayerSheetState.EXPANDED
+            ) {
+                val gestureSidePadding = lerp(
+                    start = 0.dp,
+                    stop = actualCollapsedStateHorizontalPadding,
+                    fraction = predictiveBackCollapseProgress
+                )
+
+                when (predictiveBackSwipeEdge) {
+                    PREDICTIVE_BACK_SWIPE_EDGE_LEFT -> 0.dp
+                    PREDICTIVE_BACK_SWIPE_EDGE_RIGHT -> gestureSidePadding
+                    else -> currentHorizontalPadding
+                }
+            } else {
+                currentHorizontalPadding
+            }
+        }
+    }
+
     return SheetVisualState(
         currentBottomPadding = currentBottomPadding,
         playerContentAreaHeightDp = playerContentAreaHeightDp,
         visualSheetTranslationY = visualSheetTranslationY,
         overallSheetTopCornerRadius = overallSheetTopCornerRadius,
         playerContentActualBottomRadius = playerContentActualBottomRadius,
-        currentHorizontalPadding = currentHorizontalPadding
+        currentHorizontalPaddingStart = currentHorizontalPaddingStart,
+        currentHorizontalPaddingEnd = currentHorizontalPaddingEnd
     )
 }

@@ -146,6 +146,7 @@ fun UnifiedPlayerSheetV2(
 
     val currentSheetContentState by playerViewModel.sheetState.collectAsState()
     val predictiveBackCollapseProgress by playerViewModel.predictiveBackCollapseFraction.collectAsState()
+    var predictiveBackSwipeEdge by remember { mutableStateOf<Int?>(null) }
     val prewarmFullPlayer = rememberPrewarmFullPlayer(infrequentPlayerState.currentSong?.id)
 
     val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsState()
@@ -293,6 +294,7 @@ fun UnifiedPlayerSheetV2(
         showPlayerContentArea = showPlayerContentArea,
         collapsedStateHorizontalPadding = collapsedStateHorizontalPadding,
         predictiveBackCollapseProgress = predictiveBackCollapseProgress,
+        predictiveBackSwipeEdge = predictiveBackSwipeEdge,
         currentSheetContentState = currentSheetContentState,
         playerContentExpansionFraction = playerContentExpansionFraction,
         containerHeight = containerHeight,
@@ -310,7 +312,8 @@ fun UnifiedPlayerSheetV2(
     val visualSheetTranslationY = sheetVisualState.visualSheetTranslationY
     val overallSheetTopCornerRadius = sheetVisualState.overallSheetTopCornerRadius
     val playerContentActualBottomRadius = sheetVisualState.playerContentActualBottomRadius
-    val currentHorizontalPadding = sheetVisualState.currentHorizontalPadding
+    val currentHorizontalPaddingStart = sheetVisualState.currentHorizontalPaddingStart
+    val currentHorizontalPaddingEnd = sheetVisualState.currentHorizontalPaddingEnd
 
     val queueSheetState = rememberQueueSheetState(
         scope = scope,
@@ -379,7 +382,8 @@ fun UnifiedPlayerSheetV2(
         sheetCollapsedTargetY = sheetCollapsedTargetY,
         sheetExpandedTargetY = sheetExpandedTargetY,
         sheetMotionController = sheetMotionController,
-        animationDurationMs = ANIMATION_DURATION_MS
+        animationDurationMs = ANIMATION_DURATION_MS,
+        onSwipeEdgeChanged = { predictiveBackSwipeEdge = it }
     )
 
     val sheetOverlayState = rememberSheetOverlayState(
@@ -497,7 +501,10 @@ fun UnifiedPlayerSheetV2(
                                 enabled = currentSheetContentState == PlayerSheetState.COLLAPSED,
                                 handler = miniDismissGestureHandler
                             )
-                            .padding(horizontal = currentHorizontalPadding)
+                            .padding(
+                                start = currentHorizontalPaddingStart,
+                                end = currentHorizontalPaddingEnd
+                            )
                             .height(playerContentAreaHeightDp)
                             .graphicsLayer {
                                 translationX = offsetAnimatable.value
