@@ -29,6 +29,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -167,6 +168,8 @@ class SettingsViewModel @Inject constructor(
     val isLoadingDirectories = fileExplorerStateHolder.isLoading
     val isExplorerPriming = fileExplorerStateHolder.isPrimingExplorer
     val isExplorerReady = fileExplorerStateHolder.isExplorerReady
+    private var hasPendingDirectoryRuleChanges = false
+    private var latestDirectoryRuleUpdateJob: Job? = null
 
     val isSyncing: StateFlow<Boolean> = syncManager.isSyncing
         .stateIn(
@@ -346,10 +349,18 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun toggleDirectoryAllowed(file: File) {
-        viewModelScope.launch {
+        hasPendingDirectoryRuleChanges = true
+        latestDirectoryRuleUpdateJob = viewModelScope.launch {
             fileExplorerStateHolder.toggleDirectoryAllowed(file)
-            // Now that preferences are securely saved, we can sync/refresh
-            syncManager.sync()
+        }
+    }
+
+    fun applyPendingDirectoryRuleChanges() {
+        if (!hasPendingDirectoryRuleChanges) return
+        hasPendingDirectoryRuleChanges = false
+        viewModelScope.launch {
+            latestDirectoryRuleUpdateJob?.join()
+            syncManager.forceRefresh()
         }
     }
 

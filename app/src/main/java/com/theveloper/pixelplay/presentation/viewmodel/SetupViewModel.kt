@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import java.io.File
@@ -70,6 +71,8 @@ class SetupViewModel @Inject constructor(
     val availableStorages = fileExplorerStateHolder.availableStorages
     val selectedStorageIndex = fileExplorerStateHolder.selectedStorageIndex
     val isLoadingDirectories = fileExplorerStateHolder.isLoading
+    private var hasPendingDirectoryRuleChanges = false
+    private var latestDirectoryRuleUpdateJob: Job? = null
 
     init {
         // Consolidated collectors using combine() to reduce coroutine overhead
@@ -159,8 +162,17 @@ class SetupViewModel @Inject constructor(
     }
 
     fun toggleDirectoryAllowed(file: File) {
-        viewModelScope.launch {
+        hasPendingDirectoryRuleChanges = true
+        latestDirectoryRuleUpdateJob = viewModelScope.launch {
             fileExplorerStateHolder.toggleDirectoryAllowed(file)
+        }
+    }
+
+    fun applyPendingDirectoryRuleChanges() {
+        if (!hasPendingDirectoryRuleChanges) return
+        hasPendingDirectoryRuleChanges = false
+        viewModelScope.launch {
+            latestDirectoryRuleUpdateJob?.join()
             syncManager.forceRefresh()
         }
     }

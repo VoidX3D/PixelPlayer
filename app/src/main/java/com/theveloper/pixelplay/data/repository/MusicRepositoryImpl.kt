@@ -104,9 +104,25 @@ class MusicRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAudioFiles(): Flow<List<Song>> {
-        // Delegate to the reactive SongRepository which queries MediaStore directly
-        // and observes directory preference changes in real-time.
-        return songRepository.getSongs()
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
+            flow {
+                val (allowedParentDirs, applyDirectoryFilter) =
+                    computeAllowedDirs(allowedDirs, blockedDirs)
+                emit(
+                    musicDao.getAllSongs(
+                        allowedParentDirs = allowedParentDirs,
+                        applyDirectoryFilter = applyDirectoryFilter
+                    )
+                )
+            }.flatMapLatest { it }
+        }.map { entities ->
+            entities.map { it.toSong() }
+        }.flowOn(Dispatchers.IO)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -139,10 +155,13 @@ class MusicRepositoryImpl @Inject constructor(
      * Compute allowed parent directories by subtracting blocked dirs from all known dirs.
      * Returns Pair(allowedDirs, applyFilter) for use with Room DAO filtered queries.
      */
-    private suspend fun computeAllowedDirs(blockedDirs: Set<String>): Pair<List<String>, Boolean> {
+    private suspend fun computeAllowedDirs(
+        allowedDirs: Set<String>,
+        blockedDirs: Set<String>
+    ): Pair<List<String>, Boolean> {
         if (blockedDirs.isEmpty()) return Pair(emptyList(), false)
         val resolver = DirectoryRuleResolver(
-            emptySet(),
+            allowedDirs.map(::normalizePath).toSet(),
             blockedDirs.map(::normalizePath).toSet()
         )
         val allDirs = musicDao.getDistinctParentDirectories()
@@ -152,12 +171,16 @@ class MusicRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAlbums(): Flow<List<Album>> {
-        return userPreferencesRepository.blockedDirectoriesFlow
-            .flatMapLatest { blockedDirs ->
-                val (allowedDirs, applyFilter) = computeAllowedDirs(blockedDirs)
-                musicDao.getAlbums(allowedDirs, applyFilter)
-                    .map { entities -> entities.map { it.toAlbum() } }
-            }.flowOn(Dispatchers.IO)
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
+            val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
+            musicDao.getAlbums(allowedParentDirs, applyFilter)
+                .map { entities -> entities.map { it.toAlbum() } }
+        }.flowOn(Dispatchers.IO)
     }
 
     override fun getAlbumById(id: Long): Flow<Album?> {
@@ -166,24 +189,28 @@ class MusicRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getArtists(): Flow<List<Artist>> {
-        return userPreferencesRepository.blockedDirectoriesFlow
-            .flatMapLatest { blockedDirs ->
-                val (allowedDirs, applyFilter) = computeAllowedDirs(blockedDirs)
-                musicDao.getArtistsWithSongCountsFiltered(allowedDirs, applyFilter)
-                    .map { entities ->
-                        val artists = entities.map { it.toArtist() }
-                        // Trigger prefetch for missing images (fire-and-forget on existing scope)
-                        val missingImages = artists.asSequence()
-                            .filter { it.imageUrl.isNullOrEmpty() && it.name.isNotBlank() }
-                            .map { it.id to it.name }
-                            .distinctBy { (_, name) -> name.trim().lowercase() }
-                            .toList()
-                        if (missingImages.isNotEmpty()) {
-                            artistImageRepository.prefetchArtistImages(missingImages)
-                        }
-                        artists
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
+            val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirs, blockedDirs)
+            musicDao.getArtistsWithSongCountsFiltered(allowedParentDirs, applyFilter)
+                .map { entities ->
+                    val artists = entities.map { it.toArtist() }
+                    // Trigger prefetch for missing images (fire-and-forget on existing scope)
+                    val missingImages = artists.asSequence()
+                        .filter { it.imageUrl.isNullOrEmpty() && it.name.isNotBlank() }
+                        .map { it.id to it.name }
+                        .distinctBy { (_, name) -> name.trim().lowercase() }
+                        .toList()
+                    if (missingImages.isNotEmpty()) {
+                        artistImageRepository.prefetchArtistImages(missingImages)
                     }
-            }.flowOn(Dispatchers.IO)
+                    artists
+                }
+        }.flowOn(Dispatchers.IO)
     }
 
     override fun getSongsForAlbum(albumId: Long): Flow<List<Song>> {

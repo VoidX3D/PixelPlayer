@@ -171,6 +171,9 @@ constructor(
         
         // Library Sync
         val LAST_SYNC_TIMESTAMP = longPreferencesKey("last_sync_timestamp")
+        val DIRECTORY_RULES_VERSION = intPreferencesKey("directory_rules_version")
+        val LAST_APPLIED_DIRECTORY_RULES_VERSION =
+            intPreferencesKey("last_applied_directory_rules_version")
         
         // Lyrics Sync Offset per song (Map<songId, offsetMs> as JSON)
         val LYRICS_SYNC_OFFSETS = stringPreferencesKey("lyrics_sync_offsets_json")
@@ -456,13 +459,37 @@ constructor(
                 preferences[PreferencesKeys.LAST_SYNC_TIMESTAMP] ?: 0L
             }
 
+    val directoryRulesVersionFlow: Flow<Int> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.DIRECTORY_RULES_VERSION] ?: 0
+            }
+
+    val lastAppliedDirectoryRulesVersionFlow: Flow<Int> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.LAST_APPLIED_DIRECTORY_RULES_VERSION] ?: 0
+            }
+
     suspend fun getLastSyncTimestamp(): Long {
         return lastSyncTimestampFlow.first()
+    }
+
+    suspend fun getDirectoryRulesVersion(): Int {
+        return directoryRulesVersionFlow.first()
+    }
+
+    suspend fun getLastAppliedDirectoryRulesVersion(): Int {
+        return lastAppliedDirectoryRulesVersionFlow.first()
     }
 
     suspend fun setLastSyncTimestamp(timestamp: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SYNC_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun markDirectoryRulesVersionApplied(version: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_APPLIED_DIRECTORY_RULES_VERSION] = version
         }
     }
 
@@ -996,6 +1023,11 @@ constructor(
     suspend fun updateAllowedDirectories(allowedPaths: Set<String>) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ALLOWED_DIRECTORIES] = allowedPaths
+            // Directory rules changed: force next sync to fetch full library again.
+            preferences[PreferencesKeys.LAST_SYNC_TIMESTAMP] = 0L
+            val currentVersion = preferences[PreferencesKeys.DIRECTORY_RULES_VERSION] ?: 0
+            preferences[PreferencesKeys.DIRECTORY_RULES_VERSION] =
+                if (currentVersion == Int.MAX_VALUE) 0 else currentVersion + 1
         }
     }
 
@@ -1003,6 +1035,11 @@ constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ALLOWED_DIRECTORIES] = allowedPaths
             preferences[PreferencesKeys.BLOCKED_DIRECTORIES] = blockedPaths
+            // Directory rules changed: force next sync to fetch full library again.
+            preferences[PreferencesKeys.LAST_SYNC_TIMESTAMP] = 0L
+            val currentVersion = preferences[PreferencesKeys.DIRECTORY_RULES_VERSION] ?: 0
+            preferences[PreferencesKeys.DIRECTORY_RULES_VERSION] =
+                if (currentVersion == Int.MAX_VALUE) 0 else currentVersion + 1
         }
     }
 

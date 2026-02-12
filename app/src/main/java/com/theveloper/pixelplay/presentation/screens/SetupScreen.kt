@@ -268,6 +268,7 @@ fun SetupScreen(
                             }
                         },
                         onToggleAllowed = setupViewModel::toggleDirectoryAllowed,
+                        onSelectionFinished = setupViewModel::applyPendingDirectoryRuleChanges,
                         onStorageSelected = setupViewModel::selectStorage
                     )
                     SetupPage.NotificationsPermission -> NotificationsPermissionPage(uiState)
@@ -339,6 +340,7 @@ fun DirectorySelectionPage(
     onRefresh: () -> Unit,
     onSkip: () -> Unit,
     onToggleAllowed: (File) -> Unit,
+    onSelectionFinished: () -> Unit,
     onStorageSelected: (Int) -> Unit
 ) {
     var showDirectoryPicker by remember { mutableStateOf(false) }
@@ -394,8 +396,14 @@ fun DirectorySelectionPage(
         onToggleAllowed = onToggleAllowed,
         onRefresh = onRefresh,
         onStorageSelected = onStorageSelected,
-        onDone = { showDirectoryPicker = false },
-        onDismiss = { showDirectoryPicker = false }
+        onDone = {
+            onSelectionFinished()
+            showDirectoryPicker = false
+        },
+        onDismiss = {
+            onSelectionFinished()
+            showDirectoryPicker = false
+        }
     )
 }
 

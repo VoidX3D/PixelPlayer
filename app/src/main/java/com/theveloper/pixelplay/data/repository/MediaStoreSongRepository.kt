@@ -330,15 +330,18 @@ class MediaStoreSongRepository @Inject constructor(
      * Computes allowed parent directories by filtering out blocked directories.
      * Returns Pair(allowedDirs, applyFilter).
      */
-    private suspend fun computeAllowedDirs(blockedDirs: Set<String>): Pair<List<String>, Boolean> {
+    private suspend fun computeAllowedDirs(
+        allowedDirs: Set<String>,
+        blockedDirs: Set<String>
+    ): Pair<List<String>, Boolean> {
         if (blockedDirs.isEmpty()) return Pair(emptyList(), false)
+        val resolver = DirectoryRuleResolver(
+            allowedDirs.map(::normalizePath).toSet(),
+            blockedDirs.map(::normalizePath).toSet()
+        )
         val allParentDirs = musicDao.getDistinctParentDirectories()
-        val normalizedBlocked = blockedDirs.map { it.trimEnd('/') }
         val allowedParentDirs = allParentDirs.filter { parentDir ->
-            val normalizedParent = parentDir.trimEnd('/')
-            normalizedBlocked.none { blocked ->
-                normalizedParent == blocked || normalizedParent.startsWith("$blocked/")
-            }
+            !resolver.isBlocked(normalizePath(parentDir))
         }
         return Pair(allowedParentDirs, true)
     }
@@ -351,9 +354,15 @@ class MediaStoreSongRepository @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption): Flow<PagingData<Song>> {
-        return userPreferencesRepository.blockedDirectoriesFlow.flatMapLatest { blockedDirs ->
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
             kotlinx.coroutines.flow.flow {
-                val (allowedParentDirs, applyDirectoryFilter) = computeAllowedDirs(blockedDirs)
+                val (allowedParentDirs, applyDirectoryFilter) =
+                    computeAllowedDirs(allowedDirs, blockedDirs)
                 emit(
                     androidx.paging.Pager(
                         config = defaultPagingConfig,
@@ -374,9 +383,15 @@ class MediaStoreSongRepository @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedFavoriteSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption): Flow<PagingData<Song>> {
-        return userPreferencesRepository.blockedDirectoriesFlow.flatMapLatest { blockedDirs ->
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
             kotlinx.coroutines.flow.flow {
-                val (allowedParentDirs, applyDirectoryFilter) = computeAllowedDirs(blockedDirs)
+                val (allowedParentDirs, applyDirectoryFilter) =
+                    computeAllowedDirs(allowedDirs, blockedDirs)
                 emit(
                     androidx.paging.Pager(
                         config = defaultPagingConfig,
@@ -396,17 +411,25 @@ class MediaStoreSongRepository @Inject constructor(
     }
 
     override suspend fun getFavoriteSongsOnce(): List<Song> = withContext(Dispatchers.IO) {
+        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
         val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
-        val (allowedParentDirs, applyDirectoryFilter) = computeAllowedDirs(blockedDirs)
+        val (allowedParentDirs, applyDirectoryFilter) =
+            computeAllowedDirs(allowedDirs, blockedDirs)
         musicDao.getFavoriteSongsList(allowedParentDirs, applyDirectoryFilter)
             .map { entity -> entity.toSong().copy(isFavorite = true) }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getFavoriteSongCountFlow(): Flow<Int> {
-        return userPreferencesRepository.blockedDirectoriesFlow.flatMapLatest { blockedDirs ->
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
             kotlinx.coroutines.flow.flow {
-                val (allowedParentDirs, applyDirectoryFilter) = computeAllowedDirs(blockedDirs)
+                val (allowedParentDirs, applyDirectoryFilter) =
+                    computeAllowedDirs(allowedDirs, blockedDirs)
                 emit(Pair(allowedParentDirs, applyDirectoryFilter))
             }.flatMapLatest { (allowedDirs, applyFilter) ->
                 musicDao.getFavoriteSongCount(allowedDirs, applyFilter)

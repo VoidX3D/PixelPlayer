@@ -84,6 +84,12 @@ constructor(
                             userPreferencesRepository.groupByAlbumArtistFlow.first()
                     val rescanRequired =
                             userPreferencesRepository.artistSettingsRescanRequiredFlow.first()
+                    val directoryRulesVersion =
+                        userPreferencesRepository.getDirectoryRulesVersion()
+                    val lastAppliedDirectoryRulesVersion =
+                        userPreferencesRepository.getLastAppliedDirectoryRulesVersion()
+                    val directoryRulesChanged =
+                        directoryRulesVersion != lastAppliedDirectoryRulesVersion
 
                     // Feature: Directory Filtering
                     val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
@@ -93,13 +99,17 @@ constructor(
                     var lastSyncTimestamp = userPreferencesRepository.getLastSyncTimestamp()
 
                     Timber.tag(TAG)
-                        .d("Artist parsing delimiters: $artistDelimiters, groupByAlbumArtist: $groupByAlbumArtist, rescanRequired: $rescanRequired")
+                        .d(
+                            "Artist delimiters=$artistDelimiters, groupByAlbumArtist=$groupByAlbumArtist, " +
+                                "rescanRequired=$rescanRequired, directoryRulesChanged=$directoryRulesChanged " +
+                                "(current=$directoryRulesVersion, applied=$lastAppliedDirectoryRulesVersion)"
+                        )
 
                     // --- MEDIA SCAN PHASE ---
                     // For INCREMENTAL or FULL sync, trigger a media scan to detect new files
                     // that may not have been indexed by MediaStore yet (e.g., files added via USB)
                     if (syncMode != SyncMode.REBUILD) {
-                        triggerMediaScanForNewFiles()
+                        triggerMediaScanForNewFiles(directoryResolver)
                     }
 
                     // --- DELETION PHASE ---
@@ -129,6 +139,12 @@ constructor(
                     // --- FETCH PHASE ---
                     // Determine what to fetch based on mode
                     val isFreshInstall = musicDao.getSongCount().first() == 0
+                    val localSongsMap =
+                            if (syncMode != SyncMode.REBUILD) {
+                                musicDao.getAllSongsList().associateBy { it.id }
+                            } else {
+                                emptyMap()
+                            }
 
                     // If REBUILD or FULL or RescanRequired or Fresh Install -> Fetch EVERYTHING
                     // (timestamp = 0)
@@ -136,6 +152,7 @@ constructor(
                     val fetchTimestamp =
                             if (syncMode == SyncMode.INCREMENTAL &&
                                             !rescanRequired &&
+                                            !directoryRulesChanged &&
                                             !isFreshInstall
                             ) {
                                 lastSyncTimestamp /
@@ -155,6 +172,7 @@ constructor(
                                     fetchTimestamp,
                                     forceMetadata,
                                     directoryResolver,
+                                    localSongsMap,
                                     progressBatchSize
                             ) { current, total, phaseOrdinal ->
                                 setProgress(
@@ -192,15 +210,6 @@ constructor(
                         // Load all existing artist IDs to ensure stability across incremental syncs
                         val existingArtistIdMap = allExistingArtists.associate { it.name to it.id }.toMutableMap()
                         val maxArtistId = musicDao.getMaxArtistId() ?: 0L
-
-                        // Prepare list of existing songs to preserve user edits
-                        // We only need to check against existing songs if we are updating them
-                        val localSongsMap =
-                                if (syncMode != SyncMode.REBUILD) {
-                                    musicDao.getAllSongsList().associateBy { it.id }
-                                } else {
-                                    emptyMap()
-                                }
 
                         val songsToProcess = mediaStoreSongs
 
@@ -316,6 +325,9 @@ constructor(
                         Timber.tag(TAG)
                             .i("Synchronization finished successfully in ${endTime - startTime}ms.")
                         userPreferencesRepository.setLastSyncTimestamp(System.currentTimeMillis())
+                        userPreferencesRepository.markDirectoryRulesVersionApplied(
+                            directoryRulesVersion
+                        )
 
                         // Count total songs for the output
                         val totalSongs = musicDao.getSongCount().first()
@@ -392,6 +404,9 @@ constructor(
                                 "Synchronization (No Changes) finished in ${endTime - startTime}ms."
                         )
                         userPreferencesRepository.setLastSyncTimestamp(System.currentTimeMillis())
+                        userPreferencesRepository.markDirectoryRulesVersionApplied(
+                            directoryRulesVersion
+                        )
 
                         val totalSongs = musicDao.getSongCount().first()
                         
@@ -758,10 +773,30 @@ constructor(
             val dateModified: Long
     )
 
+    private fun isSongUnchanged(raw: RawSongData, existing: SongEntity?): Boolean {
+        if (existing == null) return false
+
+        val parentDir = File(raw.filePath).parent ?: ""
+        val existingDateModifiedSeconds = TimeUnit.MILLISECONDS.toSeconds(existing.dateAdded)
+
+        return existing.filePath == raw.filePath &&
+            existing.parentDirectoryPath == parentDir &&
+            existing.title == raw.title &&
+            existing.artistName == raw.artist &&
+            existing.albumName == raw.album &&
+            existing.albumId == raw.albumId &&
+            existing.artistId == raw.artistId &&
+            existing.duration == raw.duration &&
+            existing.trackNumber == raw.trackNumber &&
+            existing.year == raw.year &&
+            existingDateModifiedSeconds == raw.dateModified
+    }
+
     private suspend fun fetchMusicFromMediaStore(
             sinceTimestamp: Long, // Seconds
             forceMetadata: Boolean,
             directoryResolver: DirectoryRuleResolver,
+            existingSongsById: Map<Long, SongEntity>,
             progressBatchSize: Int,
             onProgress: suspend (current: Int, total: Int, phaseOrdinal: Int) -> Unit
     ): List<SongEntity> {
@@ -882,19 +917,34 @@ constructor(
                     }
                 }
 
-        val totalCount = rawDataList.size
+        if (rawDataList.isEmpty()) {
+            Trace.endSection()
+            return emptyList()
+        }
+
+        val songsToProcess =
+            if (!deepScan && existingSongsById.isNotEmpty()) {
+                rawDataList.filterNot { raw ->
+                    isSongUnchanged(raw, existingSongsById[raw.id])
+                }
+            } else {
+                rawDataList
+            }
+
+        val totalCount = songsToProcess.size
         if (totalCount == 0) {
             Trace.endSection()
             return emptyList()
         }
 
         // Phase 2: Parallel processing of songs
+        onProgress(0, totalCount, SyncProgress.SyncPhase.PROCESSING_FILES.ordinal)
         val processedCount = AtomicInteger(0)
         val concurrencyLimit = 8 // Limit parallel operations to prevent resource exhaustion
         val semaphore = Semaphore(concurrencyLimit)
 
         val songs = coroutineScope {
-            rawDataList
+            songsToProcess
                     .map { raw ->
                         async {
                             semaphore.withPermit {
@@ -907,7 +957,7 @@ constructor(
                                     onProgress(
                                             count,
                                             totalCount,
-                                            SyncProgress.SyncPhase.FETCHING_MEDIASTORE.ordinal
+                                            SyncProgress.SyncPhase.PROCESSING_FILES.ordinal
                                     )
                                 }
 
@@ -1028,46 +1078,49 @@ constructor(
      * This is a fast, incremental scan optimized for pull-to-refresh.
      * It compares filesystem files with MediaStore entries and only scans the difference.
      */
-    private suspend fun triggerMediaScanForNewFiles() {
+    private suspend fun triggerMediaScanForNewFiles(directoryResolver: DirectoryRuleResolver) {
         withContext(Dispatchers.IO) {
-            // "Global Augmented Scan"
-            // We always scan the External Storage Root, but we use the 'allowedDirs' list
-            // as "Explicit Includes" to bypass default filters (like skipping Android).
-            val searchRoots = listOf(Environment.getExternalStorageDirectory())
-            val allowedSet = userPreferencesRepository.allowedDirectoriesFlow.first().map { File(it) }.toSet()
-            
-            Log.i(TAG, "Starting Global Augmented Scan. Explicit includes: ${allowedSet.size}")
-            
-            val existingRoots = searchRoots.filter { it.exists() && it.isDirectory }
-
-            if (existingRoots.isEmpty()) {
-                Log.d(TAG, "No storage roots found")
-                return@withContext
-            }
+            val externalRoot = Environment.getExternalStorageDirectory()
+            val allowedSet =
+                userPreferencesRepository.allowedDirectoriesFlow.first().map { File(it) }.toSet()
+            Log.i(TAG, "Starting media scan for new files. Explicit includes: ${allowedSet.size}")
 
             // Get all file paths currently in MediaStore
             val mediaStorePaths = fetchMediaStoreFilePaths()
-            
             Log.d(TAG, "MediaStore has ${mediaStorePaths.size} known files")
+
+            val scanRoots =
+                collectPreferredScanRoots(
+                    externalRoot = externalRoot,
+                    mediaStorePaths = mediaStorePaths,
+                    explicitAllowedRoots = allowedSet,
+                    directoryResolver = directoryResolver
+                )
+
+            if (scanRoots.isEmpty()) {
+                Log.d(TAG, "No eligible roots found for media scan")
+                return@withContext
+            }
 
             // Collect audio files from filesystem that are NOT in MediaStore
             val audioExtensions =
                     setOf("mp3", "flac", "m4a", "wav", "ogg", "opus", "aac", "wma", "aiff")
-            val newFilesToScan = mutableListOf<String>()
+            val newFilesToScan = linkedSetOf<String>()
 
-            existingRoots.forEach { root ->
+            scanRoots.forEach { root ->
                 root.walkTopDown()
                     .onEnter { dir ->
                         val name = dir.name
                         if (dir.isHidden || name.startsWith(".")) return@onEnter false
-                        
+                        val path = dir.absolutePath
+                        if (directoryResolver.isBlocked(path)) return@onEnter false
+
                         // Default Skip Rules (System Folders)
                         val isSystemFolder = (name == "Android" || name == "data" || name == "obb")
                         if (isSystemFolder) {
                             // Check if this specific folder is Explicitly Allowed or is a Parent of an allowed folder
                             // e.g. if Allowed is "Android/media", we MUST enter "Android".
                             // e.g. if Allowed is "Android" (root), we MUST enter "Android".
-                            val path = dir.absolutePath
                             val isAllowed = allowedSet.any { allowed -> 
                                 allowed.absolutePath == path || allowed.absolutePath.startsWith("$path/")
                             }
@@ -1099,7 +1152,7 @@ constructor(
 
             MediaScannerConnection.scanFile(
                 applicationContext, 
-                newFilesToScan.toTypedArray(), 
+                newFilesToScan.toTypedArray(),
                 null
             ) { _, _ ->
                 scannedCount++
@@ -1116,6 +1169,75 @@ constructor(
                 Log.i(TAG, "Media scan completed for ${newFilesToScan.size} new files")
             }
         }
+    }
+
+    private fun collectPreferredScanRoots(
+        externalRoot: File,
+        mediaStorePaths: Set<String>,
+        explicitAllowedRoots: Set<File>,
+        directoryResolver: DirectoryRuleResolver
+    ): List<File> {
+        val candidates = linkedSetOf<File>()
+
+        // 1) Explicitly allowed roots always get priority.
+        explicitAllowedRoots.forEach { candidates.add(it) }
+
+        // 2) Common user-facing media directories.
+        listOf(
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_NOTIFICATIONS
+        ).forEach { dirName ->
+            candidates.add(Environment.getExternalStoragePublicDirectory(dirName))
+        }
+
+        // 3) Top-level buckets already used by current MediaStore entries.
+        mediaStorePaths.forEach { mediaPath ->
+            val parent = File(mediaPath).parentFile ?: return@forEach
+            val parentPath = parent.absolutePath
+            if (parentPath.startsWith("${externalRoot.absolutePath}/")) {
+                val relative = parentPath.removePrefix(externalRoot.absolutePath).trimStart('/')
+                if (relative.isNotEmpty()) {
+                    val topLevel = relative.substringBefore('/')
+                    if (topLevel.isNotEmpty()) {
+                        candidates.add(File(externalRoot, topLevel))
+                    }
+                }
+            } else {
+                candidates.add(parent)
+            }
+        }
+
+        val existingRoots =
+            candidates
+                .map { it.absoluteFile }
+                .distinctBy { it.absolutePath }
+                .filter { it.exists() && it.isDirectory }
+                .filterNot { directoryResolver.isBlocked(it.absolutePath) }
+
+        if (existingRoots.isEmpty()) return emptyList()
+        return pruneNestedRoots(existingRoots)
+    }
+
+    private fun pruneNestedRoots(roots: List<File>): List<File> {
+        val normalizedRoots = roots.distinctBy { it.absolutePath.trimEnd('/') }
+        val kept = mutableListOf<File>()
+        normalizedRoots
+            .sortedBy { it.absolutePath.length }
+            .forEach { candidate ->
+                val candidatePath = candidate.absolutePath.trimEnd('/')
+                val coveredByParent = kept.any { root ->
+                    val rootPath = root.absolutePath.trimEnd('/')
+                    candidatePath == rootPath || candidatePath.startsWith("$rootPath/")
+                }
+                if (!coveredByParent) {
+                    kept.add(candidate)
+                }
+            }
+        return kept
     }
 
     /**

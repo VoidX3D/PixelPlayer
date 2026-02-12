@@ -975,8 +975,14 @@ fun SettingsCategoryScreen(
         onToggleAllowed = settingsViewModel::toggleDirectoryAllowed,
         onRefresh = settingsViewModel::refreshExplorer,
         onStorageSelected = settingsViewModel::selectStorage,
-        onDone = { showExplorerSheet = false },
-        onDismiss = { showExplorerSheet = false }
+        onDone = {
+            settingsViewModel.applyPendingDirectoryRuleChanges()
+            showExplorerSheet = false
+        },
+        onDismiss = {
+            settingsViewModel.applyPendingDirectoryRuleChanges()
+            showExplorerSheet = false
+        }
     )
 
     if (showPaletteRegenerateSheet) {
