@@ -232,5 +232,11 @@ interface MusicRepository {
     fun getAllTelegramChannels(): Flow<List<TelegramChannelEntity>>
     suspend fun deleteTelegramChannel(chatId: Long)
     
+    
     val telegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository
+
+    suspend fun getSongIdsSorted(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): List<Long>
 }

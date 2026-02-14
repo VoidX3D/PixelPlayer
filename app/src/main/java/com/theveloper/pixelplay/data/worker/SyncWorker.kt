@@ -1491,10 +1491,17 @@ constructor(
                 songsToInsert.add(songEntity)
             }
             
+            // Calculate song counts for the albums we are inserting
+            val albumCounts = songsToInsert.groupingBy { it.albumId }.eachCount()
+
+            val finalAlbums = albumsToInsert.values.map { album ->
+                album.copy(songCount = albumCounts[album.id] ?: 0)
+            }
+
             // Upsert into MusicDao
             musicDao.incrementalSyncMusicData(
                 songs = songsToInsert,
-                albums = albumsToInsert.values.toList(),
+                albums = finalAlbums,
                 artists = artistsToInsert.values.toList(),
                 crossRefs = crossRefsToInsert,
                 deletedSongIds = emptyList() // Do not delete anything here

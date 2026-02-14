@@ -631,4 +631,28 @@ class MusicRepositoryImpl @Inject constructor(
         telegramDao.deleteSongsByChatId(chatId) // Cascade delete songs
         telegramDao.deleteChannel(chatId)
     }
+
+    override suspend fun getSongIdsSorted(
+        sortOption: SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): List<Long> = withContext(Dispatchers.IO) {
+        val allowedDirsFlow = userPreferencesRepository.allowedDirectoriesFlow.first()
+        val blockedDirsFlow = userPreferencesRepository.blockedDirectoriesFlow.first()
+        val (allowedParentDirs, applyFilter) = computeAllowedDirs(allowedDirsFlow, blockedDirsFlow)
+
+        // Map StorageFilter to filterMode
+        // 0: All, 1: Local only (telegram_file_id IS NULL), 2: Telegram only (telegram_file_id IS NOT NULL)
+        val filterMode = when (storageFilter) {
+            com.theveloper.pixelplay.data.model.StorageFilter.ALL -> 0
+            com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> 1
+            com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> 2
+        }
+
+        musicDao.getSongIdsSorted(
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = filterMode
+        )
+    }
 }

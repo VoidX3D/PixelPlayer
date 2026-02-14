@@ -468,7 +468,40 @@ class PlayerViewModel @Inject constructor(
     val artistNavigationRequests = _artistNavigationRequests.asSharedFlow()
     private val _searchNavDoubleTapEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val searchNavDoubleTapEvents = _searchNavDoubleTapEvents.asSharedFlow()
+    
+    // New event for scrolling to a specific index in the songs list
+    private val _scrollToIndexEvent = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    val scrollToIndexEvent = _scrollToIndexEvent.asSharedFlow()
+    
     private var artistNavigationJob: Job? = null
+
+    fun requestLocateCurrentSong() {
+        val currentSongId = stablePlayerState.value.currentSong?.id ?: return
+        val currentIdLong = currentSongId.toLongOrNull() ?: return // Telegram songs with negative IDs are also Longs
+        
+        viewModelScope.launch {
+            try {
+                // Get current sort option and filter from UI state
+                val sortOption = playerUiState.value.currentSongSortOption
+                val storageFilter = playerUiState.value.currentStorageFilter
+                
+                // Fetch sorted IDs from DB
+                val sortedIds = musicRepository.getSongIdsSorted(sortOption, storageFilter)
+                
+                // Find index
+                val index = sortedIds.indexOf(currentIdLong)
+                
+                if (index != -1) {
+                    _scrollToIndexEvent.emit(index)
+                } else {
+                    sendToast("Song not found in current list")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to locate current song")
+                sendToast("Could not locate song")
+            }
+        }
+    }
 
     val castRoutes: StateFlow<List<MediaRouter.RouteInfo>> = castStateHolder.castRoutes
     val selectedRoute: StateFlow<MediaRouter.RouteInfo?> = castStateHolder.selectedRoute

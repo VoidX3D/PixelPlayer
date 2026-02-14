@@ -234,6 +234,28 @@ interface MusicDao {
         applyDirectoryFilter: Boolean = false
     ): Flow<List<SongEntity>>
 
+    @Query("""
+        SELECT id FROM songs
+        WHERE (:applyDirectoryFilter = 0 OR parent_directory_path IN (:allowedParentDirs))
+        AND (:filterMode = 0 OR (:filterMode = 1 AND telegram_file_id IS NULL) OR (:filterMode = 2 AND telegram_file_id IS NOT NULL))
+        ORDER BY
+            CASE WHEN :sortOrder = 'song_default_order' THEN track_number END ASC,
+            CASE WHEN :sortOrder = 'song_title_az' THEN title END ASC,
+            CASE WHEN :sortOrder = 'song_title_za' THEN title END DESC,
+            CASE WHEN :sortOrder = 'song_artist' THEN artist_name END ASC,
+            CASE WHEN :sortOrder = 'song_album' THEN album_name END ASC,
+            CASE WHEN :sortOrder = 'song_date_added' THEN date_added END DESC,
+            CASE WHEN :sortOrder = 'song_duration' THEN duration END DESC,
+            
+            title ASC
+    """)
+    suspend fun getSongIdsSorted(
+        allowedParentDirs: List<String>,
+        applyDirectoryFilter: Boolean,
+        sortOrder: String,
+        filterMode: Int
+    ): List<Long>
+
     // --- Paginated Queries for Large Libraries ---
     /**
      * Returns a PagingSource for songs, enabling efficient pagination for large libraries.

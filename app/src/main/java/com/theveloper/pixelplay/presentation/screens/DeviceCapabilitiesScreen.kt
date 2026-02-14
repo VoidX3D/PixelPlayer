@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import androidx.annotation.OptIn
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -54,6 +55,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.DeviceCapabilitiesViewModel
@@ -61,6 +63,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
+@OptIn(UnstableApi::class)
 @Composable
 fun DeviceCapabilitiesScreen(
     navController: NavController,
