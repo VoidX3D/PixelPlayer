@@ -106,7 +106,11 @@ class QueueStateHolder @Inject constructor() {
      * Suspendable variant for large queues.
      * Runs the heavy shuffle computation on Default dispatcher to avoid UI stalls.
      */
-    suspend fun prepareShuffledQueueSuspending(songs: List<Song>, queueName: String): Pair<List<Song>, Song>? {
+    suspend fun prepareShuffledQueueSuspending(
+        songs: List<Song>, 
+        queueName: String, 
+        startAtZero: Boolean = false
+    ): Pair<List<Song>, Song>? {
         if (songs.isEmpty()) return null
 
         val startSong = songs.random()
@@ -114,7 +118,7 @@ class QueueStateHolder @Inject constructor() {
 
         val startIndex = songs.indexOfFirst { it.id == startSong.id }.coerceAtLeast(0)
         val shuffledQueue = withContext(Dispatchers.Default) {
-            QueueUtils.buildAnchoredShuffleQueueSuspending(songs, startIndex)
+            QueueUtils.buildAnchoredShuffleQueueSuspending(songs, startIndex, startAtZero)
         }
         return Pair(shuffledQueue, startSong)
     }

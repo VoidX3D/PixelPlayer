@@ -126,10 +126,70 @@ object QueueUtils {
     suspend fun buildAnchoredShuffleQueueSuspending(
         currentQueue: List<Song>,
         anchorIndex: Int,
+        startAtZero: Boolean = false,
         random: Random = Random.Default
     ): List<Song> {
         if (currentQueue.size <= 1) return currentQueue.toList()
-        val order = generateShuffleOrderSuspending(currentQueue.size, anchorIndex, random)
+        
+        val order = if (startAtZero) {
+             generateShuffleOrderStartAtZero(currentQueue.size, anchorIndex, random)
+        } else {
+             generateShuffleOrderSuspending(currentQueue.size, anchorIndex, random)
+        }
         return List(order.size) { idx -> currentQueue[order[idx]] }
+    }
+
+    private suspend fun generateShuffleOrderStartAtZero(
+        size: Int,
+        anchorIndex: Int,
+        random: Random = Random.Default
+    ): IntArray {
+        if (size <= 1) return IntArray(size) { it }
+        val clampedAnchor = anchorIndex.coerceIn(0, size - 1)
+        val pool = IntArray(size - 1)
+        var cursor = 0
+        var workSinceYield = 0
+        
+        // Fill pool with everything EXCEPT the anchor
+        for (i in 0 until size) {
+            if (i != clampedAnchor) {
+                pool[cursor++] = i
+            }
+            workSinceYield++
+            if (workSinceYield >= SHUFFLE_YIELD_BATCH) {
+                workSinceYield = 0
+                yield()
+            }
+        }
+        
+        // Fisher-Yates shuffle the pool
+        for (i in pool.lastIndex downTo 1) {
+            val swapIndex = random.nextInt(i + 1)
+            if (i != swapIndex) {
+                val tmp = pool[i]
+                pool[i] = pool[swapIndex]
+                pool[swapIndex] = tmp
+            }
+            workSinceYield++
+            if (workSinceYield >= SHUFFLE_YIELD_BATCH) {
+                workSinceYield = 0
+                yield()
+            }
+        }
+        
+        // Construct final order: Anchor is ALWAYS at 0, followed by shuffled pool
+        val order = IntArray(size)
+        order[0] = clampedAnchor
+        
+        for (i in 0 until pool.size) {
+            order[i + 1] = pool[i]
+             workSinceYield++
+            if (workSinceYield >= SHUFFLE_YIELD_BATCH) {
+                workSinceYield = 0
+                yield()
+            }
+        }
+        
+        return order
     }
 }

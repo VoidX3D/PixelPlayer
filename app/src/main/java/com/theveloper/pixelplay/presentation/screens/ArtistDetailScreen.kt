@@ -265,8 +265,8 @@ fun ArtistDetailScreen(
                         onBackPressed = { navController.popBackStack() },
                         onPlayClick = {
                             if (songs.isNotEmpty()) {
-                                val randomSong = songs.random()
-                                playerViewModel.showAndPlaySong(randomSong, songs) }
+                                playerViewModel.playSongsShuffled(songs, artist.name, startAtZero = true)
+                            }
                         }
                     )
                 }

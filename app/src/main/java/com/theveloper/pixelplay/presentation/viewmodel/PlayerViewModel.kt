@@ -1907,16 +1907,9 @@ class PlayerViewModel @Inject constructor(
             transitionSchedulerJob?.cancel()
 
             // Validate songs - filter out any with missing files (efficient: uses contentUri check)
-            val validSongs = songsToPlay.filter { song ->
-                try {
-                    // Use ContentResolver to check if URI is still valid (more efficient than File check)
-                    val uri = song.contentUriString.toUri()
-                    context.contentResolver.openInputStream(uri)?.use { true } ?: false
-                } catch (e: Exception) {
-                    Timber.w("Song file missing or inaccessible: ${song.title}")
-                    false
-                }
-            }
+            // Validate songs - filter out any with missing files (efficient: uses contentUri check)
+            // Strict validation removed to prevent skipping valid songs that might fail openInputStream check
+            val validSongs = songsToPlay
 
             if (validSongs.isEmpty()) {
                 _toastEvents.emit(context.getString(R.string.no_valid_songs))
@@ -1961,9 +1954,14 @@ class PlayerViewModel @Inject constructor(
     }
 
     // Start playback with shuffle enabled in one coroutine to avoid racing queue updates
-    fun playSongsShuffled(songsToPlay: List<Song>, queueName: String = "None", playlistId: String? = null) {
+    fun playSongsShuffled(
+        songsToPlay: List<Song>, 
+        queueName: String = "None", 
+        playlistId: String? = null,
+        startAtZero: Boolean = false
+    ) {
         viewModelScope.launch {
-            val result = queueStateHolder.prepareShuffledQueueSuspending(songsToPlay, queueName)
+            val result = queueStateHolder.prepareShuffledQueueSuspending(songsToPlay, queueName, startAtZero)
             if (result == null) {
                 sendToast("No songs to shuffle.")
                 return@launch
