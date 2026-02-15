@@ -1858,10 +1858,9 @@ class PlayerViewModel @Inject constructor(
                 }
                 _playerUiState.update { it.copy(currentPosition = initialPosition) }
                 viewModelScope.launch {
-                    song.albumArtUriString?.toUri()?.let { uri ->
-                        val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
-                        themeStateHolder.extractAndGenerateColorScheme(uri, currentUri)
-                    }
+                    val uri = song.albumArtUriString?.toUri()
+                    val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
+                    themeStateHolder.extractAndGenerateColorScheme(uri, currentUri)
                 }
                 listeningStatsTracker.onSongChanged(
                     song = song,
@@ -1977,10 +1976,9 @@ class PlayerViewModel @Inject constructor(
                                 isPlaying = playerCtrl.isPlaying
                             )
                             viewModelScope.launch {
-                                currentSongValue.albumArtUriString?.toUri()?.let { uri ->
-                                    val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
-                                    themeStateHolder.extractAndGenerateColorScheme(uri, currentUri)
-                                }
+                                val uri = currentSongValue.albumArtUriString?.toUri()
+                                val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
+                                themeStateHolder.extractAndGenerateColorScheme(uri, currentUri)
                             }
                             loadLyricsForCurrentSong()
                         }
