@@ -101,13 +101,18 @@ class LibraryStateHolder @Inject constructor(
     val currentFavoriteSortOption = _currentFavoriteSortOption.asStateFlow()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> = _currentFavoriteSortOption
-        .flatMapLatest { sortOption ->
-            musicRepository.getPaginatedFavoriteSongs(sortOption)
+    val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
+        kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, _currentStorageFilter) { sort, filter ->
+            sort to filter
+        }.flatMapLatest { (sortOption, storageFilter) ->
+            musicRepository.getPaginatedFavoriteSongs(sortOption, storageFilter)
         }
         .flowOn(Dispatchers.IO)
 
-    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = musicRepository.getFavoriteSongCountFlow()
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = _currentStorageFilter
+        .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
+        .flowOn(Dispatchers.IO)
 
     @OptIn(ExperimentalStdlibApi::class)
     val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> = _allSongs

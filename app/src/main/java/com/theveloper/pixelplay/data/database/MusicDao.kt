@@ -115,19 +115,57 @@ interface MusicDao {
     @Query("DELETE FROM song_artist_cross_ref WHERE song_id IN (:songIds)")
     suspend fun deleteCrossRefsBySongIds(songIds: List<Long>)
 
+    @Query("DELETE FROM favorites WHERE songId IN (:songIds)")
+    suspend fun deleteFavoritesBySongIds(songIds: List<Long>)
+
+    @Query("DELETE FROM lyrics WHERE songId IN (:songIds)")
+    suspend fun deleteLyricsBySongIds(songIds: List<Long>)
+
+    @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'telegram://%'")
+    suspend fun getAllTelegramSongIds(): List<Long>
+
+    @Query("""
+        SELECT id FROM songs
+        WHERE telegram_chat_id = :chatId
+        OR content_uri_string LIKE 'telegram://' || :chatId || '/%'
+    """)
+    suspend fun getTelegramSongIdsByChatId(chatId: Long): List<Long>
+
     @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'netease://%'")
     suspend fun getAllNeteaseSongIds(): List<Long>
+
+    @Transaction
+    suspend fun deleteSongsAndRelatedData(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        songIds.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
+            deleteCrossRefsBySongIds(chunk)
+            deleteFavoritesBySongIds(chunk)
+            deleteLyricsBySongIds(chunk)
+            deleteSongsByIds(chunk)
+        }
+        deleteOrphanedAlbums()
+        deleteOrphanedArtists()
+    }
 
     @Transaction
     suspend fun clearAllNeteaseSongs() {
         val neteaseSongIds = getAllNeteaseSongIds()
         if (neteaseSongIds.isEmpty()) return
-        neteaseSongIds.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
-            deleteCrossRefsBySongIds(chunk)
-            deleteSongsByIds(chunk)
-        }
-        deleteOrphanedAlbums()
-        deleteOrphanedArtists()
+        deleteSongsAndRelatedData(neteaseSongIds)
+    }
+
+    @Transaction
+    suspend fun clearAllTelegramSongs() {
+        val telegramSongIds = getAllTelegramSongIds()
+        if (telegramSongIds.isEmpty()) return
+        deleteSongsAndRelatedData(telegramSongIds)
+    }
+
+    @Transaction
+    suspend fun clearTelegramSongsForChat(chatId: Long) {
+        val telegramSongIds = getTelegramSongIdsByChatId(chatId)
+        if (telegramSongIds.isEmpty()) return
+        deleteSongsAndRelatedData(telegramSongIds)
     }
 
     /**
@@ -146,6 +184,8 @@ interface MusicDao {
         if (deletedSongIds.isNotEmpty()) {
             deletedSongIds.chunked(CROSS_REF_BATCH_SIZE).forEach { chunk ->
                 deleteCrossRefsBySongIds(chunk)
+                deleteFavoritesBySongIds(chunk)
+                deleteLyricsBySongIds(chunk)
                 deleteSongsByIds(chunk)
             }
         }
@@ -343,6 +383,21 @@ interface MusicDao {
         SELECT songs.* FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
         WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND (
+            :filterMode = 0
+            OR (
+                :filterMode = 1
+                AND songs.content_uri_string NOT LIKE 'telegram://%'
+                AND songs.content_uri_string NOT LIKE 'netease://%'
+            )
+            OR (
+                :filterMode = 2
+                AND (
+                    songs.content_uri_string LIKE 'telegram://%'
+                    OR songs.content_uri_string LIKE 'netease://%'
+                )
+            )
+        )
         ORDER BY
             CASE WHEN :sortOrder = 'liked_title_az' THEN songs.title END ASC,
             CASE WHEN :sortOrder = 'liked_title_za' THEN songs.title END DESC,
@@ -354,7 +409,8 @@ interface MusicDao {
     fun getFavoriteSongsPaginated(
         allowedParentDirs: List<String>,
         applyDirectoryFilter: Boolean,
-        sortOrder: String
+        sortOrder: String,
+        filterMode: Int
     ): PagingSource<Int, SongEntity>
 
     /**
@@ -364,11 +420,27 @@ interface MusicDao {
         SELECT songs.* FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
         WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND (
+            :filterMode = 0
+            OR (
+                :filterMode = 1
+                AND songs.content_uri_string NOT LIKE 'telegram://%'
+                AND songs.content_uri_string NOT LIKE 'netease://%'
+            )
+            OR (
+                :filterMode = 2
+                AND (
+                    songs.content_uri_string LIKE 'telegram://%'
+                    OR songs.content_uri_string LIKE 'netease://%'
+                )
+            )
+        )
         ORDER BY songs.title ASC
     """)
     suspend fun getFavoriteSongsList(
         allowedParentDirs: List<String>,
-        applyDirectoryFilter: Boolean
+        applyDirectoryFilter: Boolean,
+        filterMode: Int
     ): List<SongEntity>
 
     /**
@@ -378,10 +450,26 @@ interface MusicDao {
         SELECT COUNT(*) FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
         WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND (
+            :filterMode = 0
+            OR (
+                :filterMode = 1
+                AND songs.content_uri_string NOT LIKE 'telegram://%'
+                AND songs.content_uri_string NOT LIKE 'netease://%'
+            )
+            OR (
+                :filterMode = 2
+                AND (
+                    songs.content_uri_string LIKE 'telegram://%'
+                    OR songs.content_uri_string LIKE 'netease://%'
+                )
+            )
+        )
     """)
     fun getFavoriteSongCount(
         allowedParentDirs: List<String>,
-        applyDirectoryFilter: Boolean
+        applyDirectoryFilter: Boolean,
+        filterMode: Int
     ): Flow<Int>
 
     // --- Paginated Search Query ---

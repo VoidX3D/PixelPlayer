@@ -834,7 +834,7 @@ class PlayerViewModel @Inject constructor(
 
         // Load favorite songs from DB on-demand instead of holding them in memory
         viewModelScope.launch {
-            val favSongs = musicRepository.getFavoriteSongsOnce()
+            val favSongs = musicRepository.getFavoriteSongsOnce(playerUiState.value.currentStorageFilter)
             if (favSongs.isNotEmpty()) {
                 playSongsShuffled(favSongs, "Liked Songs (Shuffled)")
             }

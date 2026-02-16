@@ -148,16 +148,16 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getPaginatedFavoriteSongs(sortOption: SortOption): Flow<PagingData<Song>> {
-        return songRepository.getPaginatedFavoriteSongs(sortOption)
+    override fun getPaginatedFavoriteSongs(sortOption: SortOption, storageFilter: StorageFilter): Flow<PagingData<Song>> {
+        return songRepository.getPaginatedFavoriteSongs(sortOption, storageFilter)
     }
 
-    override suspend fun getFavoriteSongsOnce(): List<Song> {
-        return songRepository.getFavoriteSongsOnce()
+    override suspend fun getFavoriteSongsOnce(storageFilter: StorageFilter): List<Song> {
+        return songRepository.getFavoriteSongsOnce(storageFilter)
     }
 
-    override fun getFavoriteSongCountFlow(): Flow<Int> {
-        return songRepository.getFavoriteSongCountFlow()
+    override fun getFavoriteSongCountFlow(storageFilter: StorageFilter): Flow<Int> {
+        return songRepository.getFavoriteSongCountFlow(storageFilter)
     }
 
     override fun getSongCountFlow(): Flow<Int> {
@@ -630,6 +630,7 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearTelegramData() {
+        musicDao.clearAllTelegramSongs()
         telegramDao.clearAll()
         // Clear all Telegram caches (TDLib files, embedded art, memory)
         telegramRepository.clearMemoryCache()
@@ -645,6 +646,7 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteTelegramChannel(chatId: Long) {
+        musicDao.clearTelegramSongsForChat(chatId)
         telegramDao.deleteSongsByChatId(chatId) // Cascade delete songs
         telegramDao.deleteChannel(chatId)
     }

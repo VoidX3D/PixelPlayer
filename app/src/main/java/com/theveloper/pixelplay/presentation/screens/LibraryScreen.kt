@@ -111,6 +111,7 @@ import com.theveloper.pixelplay.data.model.MusicFolder
 import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
+import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
@@ -739,6 +740,7 @@ fun LibraryScreen(
                                     showStorageFilterButton = currentTabId == LibraryTabId.SONGS ||
                                         currentTabId == LibraryTabId.ALBUMS ||
                                         currentTabId == LibraryTabId.ARTISTS ||
+                                        currentTabId == LibraryTabId.LIKED ||
                                         (ENABLE_FOLDERS_STORAGE_FILTER && currentTabId == LibraryTabId.FOLDERS),
                                     currentStorageFilter = playerUiState.currentStorageFilter,
                                     onStorageFilterClick = { playerViewModel.toggleStorageFilter() }
@@ -908,7 +910,8 @@ fun LibraryScreen(
                                             onSongSelectionToggle = onSongSelectionToggle,
                                             onLocateCurrentSongVisibilityChanged = { songsShowLocateButton = it },
                                             onRegisterLocateCurrentSongAction = { songsLocateAction = it },
-                                            sortOption = playerUiState.currentSongSortOption
+                                            sortOption = playerUiState.currentSongSortOption,
+                                            storageFilter = playerUiState.currentStorageFilter
                                         )
                                     }
                                     LibraryTabId.ALBUMS -> {
@@ -927,7 +930,8 @@ fun LibraryScreen(
                                             bottomBarHeight = bottomBarHeightDp,
                                             onAlbumClick = stableOnAlbumClick,
                                             isRefreshing = isRefreshing,
-                                            onRefresh = onRefresh
+                                            onRefresh = onRefresh,
+                                            storageFilter = libraryUiState.currentStorageFilter
                                         )
                                     }
 
@@ -948,7 +952,8 @@ fun LibraryScreen(
                                                 )
                                             },
                                             isRefreshing = isRefreshing,
-                                            onRefresh = onRefresh
+                                            onRefresh = onRefresh,
+                                            storageFilter = libraryUiState.currentStorageFilter
                                         )
                                     }
 
@@ -981,7 +986,8 @@ fun LibraryScreen(
                                             onSongSelectionToggle = onSongSelectionToggle,
                                             getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
                                             onLocateCurrentSongVisibilityChanged = { likedShowLocateButton = it },
-                                            onRegisterLocateCurrentSongAction = { likedLocateAction = it }
+                                            onRegisterLocateCurrentSongAction = { likedLocateAction = it },
+                                            storageFilter = libraryUiState.currentStorageFilter
                                         )
                                     }
 
@@ -1851,29 +1857,11 @@ fun LibraryFoldersTab(
                 }
 
                 itemsToShow.isEmpty() && songsToShow.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_folder),
-                                contentDescription = null,
-                                Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                            Text(
-                                "No folders found.",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    LibraryExpressiveEmptyState(
+                        tabId = LibraryTabId.FOLDERS,
+                        storageFilter = StorageFilter.OFFLINE,
+                        bottomBarHeight = bottomBarHeight
+                    )
                 }
 
                 else -> {
@@ -2096,7 +2084,8 @@ fun LibraryFavoritesTab(
     onSongSelectionToggle: (Song) -> Unit = {},
     getSelectionIndex: (String) -> Int? = { null },
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
-    onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {}
+    onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
+    storageFilter: StorageFilter = StorageFilter.ALL
 ) {
     val stablePlayerState by playerViewModel.stablePlayerStateInfrequent.collectAsState()
     val listState = rememberLazyListState()
@@ -2157,19 +2146,11 @@ fun LibraryFavoritesTab(
     }
 
     if (favoriteSongs.itemCount == 0 && favoriteSongs.loadState.refresh !is androidx.paging.LoadState.Loading) {
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp), contentAlignment = Alignment.Center) {
-            Column(
-                modifier = Modifier.align(Alignment.TopCenter),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(Icons.Filled.FavoriteBorder, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(8.dp))
-                Text("No liked songs yet.", style = MaterialTheme.typography.titleMedium)
-                Text("Touch the heart icon in the player to add songs.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-            }
-        }
+        LibraryExpressiveEmptyState(
+            tabId = LibraryTabId.LIKED,
+            storageFilter = storageFilter,
+            bottomBarHeight = bottomBarHeight
+        )
     } else {
         Box(modifier = Modifier
             .fillMaxSize(),
@@ -2492,7 +2473,8 @@ fun LibraryAlbumsTab(
     bottomBarHeight: Dp,
     onAlbumClick: (Long) -> Unit,
     isRefreshing: Boolean,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    storageFilter: StorageFilter = StorageFilter.ALL
 ) {
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState() // New state for list view
@@ -2633,14 +2615,11 @@ fun LibraryAlbumsTab(
             }
         }
     } else if (albums.isEmpty() && !isLoading) { // canLoadMore removed
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.Album, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                Text("No albums found.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        LibraryExpressiveEmptyState(
+            tabId = LibraryTabId.ALBUMS,
+            storageFilter = storageFilter,
+            bottomBarHeight = bottomBarHeight
+        )
     } else {
         // Songs loaded
         Box(modifier = Modifier.fillMaxSize()) {
@@ -2904,7 +2883,8 @@ fun LibraryArtistsTab(
     bottomBarHeight: Dp,
     onArtistClick: (Long) -> Unit,
     isRefreshing: Boolean,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    storageFilter: StorageFilter = StorageFilter.ALL
 ) {
     val listState = rememberLazyListState()
     val playerUiState by playerViewModel.playerUiState.collectAsState()
@@ -2942,7 +2922,13 @@ fun LibraryArtistsTab(
             }
         }
     }
-    else if (artists.isEmpty() && !isLoading) { /* ... No artists ... */ } // canLoadMore removed
+    else if (artists.isEmpty() && !isLoading) {
+        LibraryExpressiveEmptyState(
+            tabId = LibraryTabId.ARTISTS,
+            storageFilter = storageFilter,
+            bottomBarHeight = bottomBarHeight
+        )
+    }
     else {
         Box(
             modifier = Modifier.fillMaxSize()

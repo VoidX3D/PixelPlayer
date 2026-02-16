@@ -31,17 +31,24 @@ interface MusicRepository {
      * Returns paginated favorite songs for efficient display.
      * @return Flow of PagingData<Song> for use with LazyPagingItems.
      */
-    fun getPaginatedFavoriteSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption): Flow<PagingData<Song>>
+    fun getPaginatedFavoriteSongs(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+    ): Flow<PagingData<Song>>
 
     /**
      * Returns all favorite songs as a list (for playback queue on shuffle).
      */
-    suspend fun getFavoriteSongsOnce(): List<Song>
+    suspend fun getFavoriteSongsOnce(
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+    ): List<Song>
 
     /**
      * Returns the count of favorite songs (reactive).
      */
-    fun getFavoriteSongCountFlow(): Flow<Int>
+    fun getFavoriteSongCountFlow(
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+    ): Flow<Int>
 
     /**
      * Returns the count of songs in the library.

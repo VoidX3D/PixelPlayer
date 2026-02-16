@@ -382,7 +382,10 @@ class MediaStoreSongRepository @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getPaginatedFavoriteSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption): Flow<PagingData<Song>> {
+    override fun getPaginatedFavoriteSongs(
+        sortOption: com.theveloper.pixelplay.data.model.SortOption,
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): Flow<PagingData<Song>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
             userPreferencesRepository.blockedDirectoriesFlow
@@ -399,7 +402,8 @@ class MediaStoreSongRepository @Inject constructor(
                             musicDao.getFavoriteSongsPaginated(
                                 allowedParentDirs = allowedParentDirs,
                                 applyDirectoryFilter = applyDirectoryFilter,
-                                sortOrder = sortOption.storageKey
+                                sortOrder = sortOption.storageKey,
+                                filterMode = storageFilter.value
                             )
                         }
                     ).flow
@@ -410,17 +414,25 @@ class MediaStoreSongRepository @Inject constructor(
         }
     }
 
-    override suspend fun getFavoriteSongsOnce(): List<Song> = withContext(Dispatchers.IO) {
+    override suspend fun getFavoriteSongsOnce(
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): List<Song> = withContext(Dispatchers.IO) {
         val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
         val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
         val (allowedParentDirs, applyDirectoryFilter) =
             computeAllowedDirs(allowedDirs, blockedDirs)
-        musicDao.getFavoriteSongsList(allowedParentDirs, applyDirectoryFilter)
+        musicDao.getFavoriteSongsList(
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter,
+            filterMode = storageFilter.value
+        )
             .map { entity -> entity.toSong().copy(isFavorite = true) }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getFavoriteSongCountFlow(): Flow<Int> {
+    override fun getFavoriteSongCountFlow(
+        storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
+    ): Flow<Int> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
             userPreferencesRepository.blockedDirectoriesFlow
@@ -432,7 +444,11 @@ class MediaStoreSongRepository @Inject constructor(
                     computeAllowedDirs(allowedDirs, blockedDirs)
                 emit(Pair(allowedParentDirs, applyDirectoryFilter))
             }.flatMapLatest { (allowedDirs, applyFilter) ->
-                musicDao.getFavoriteSongCount(allowedDirs, applyFilter)
+                musicDao.getFavoriteSongCount(
+                    allowedParentDirs = allowedDirs,
+                    applyDirectoryFilter = applyFilter,
+                    filterMode = storageFilter.value
+                )
             }
         }
     }

@@ -1351,8 +1351,12 @@ constructor(
         try {
             val telegramSongs = telegramDao.getAllTelegramSongs().first()
             val channels = telegramDao.getAllChannels().first().associateBy { it.chatId }
+            val existingUnifiedTelegramIds = musicDao.getAllTelegramSongIds()
             
             if (telegramSongs.isEmpty()) { 
+                if (existingUnifiedTelegramIds.isNotEmpty()) {
+                    musicDao.clearAllTelegramSongs()
+                }
                 Log.d(TAG, "No Telegram songs to sync.")
                 return 
             }
@@ -1507,6 +1511,8 @@ constructor(
             val finalAlbums = albumsToInsert.values.map { album ->
                 album.copy(songCount = albumCounts[album.id] ?: 0)
             }
+            val syncedTelegramSongIds = songsToInsert.map { it.id }.toHashSet()
+            val deletedUnifiedSongIds = existingUnifiedTelegramIds.filterNot { it in syncedTelegramSongIds }
 
             // Upsert into MusicDao
             musicDao.incrementalSyncMusicData(
@@ -1514,7 +1520,7 @@ constructor(
                 albums = finalAlbums,
                 artists = artistsToInsert.values.toList(),
                 crossRefs = crossRefsToInsert,
-                deletedSongIds = emptyList() // Do not delete anything here
+                deletedSongIds = deletedUnifiedSongIds
             )
             Log.i(TAG, "Synced ${songsToInsert.size} Telegram songs with Unified Metadata.")
         } catch (e: Exception) {
