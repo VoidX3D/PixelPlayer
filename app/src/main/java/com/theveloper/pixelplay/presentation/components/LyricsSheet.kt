@@ -693,7 +693,7 @@ fun LyricsSheet(
                         backgroundColor = backgroundColor, // Transparent as it's now inline
                         onBackgroundColor = onBackgroundColor,
                         primaryColor = accentColor,
-                        currentPosition = playbackPosition,
+                        currentPositionProvider = { playbackPosition },
                         totalDuration = stablePlayerState.totalDuration,
                         onSeek = onSeekTo,
                         isPlaying = isPlaying,

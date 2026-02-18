@@ -11,6 +11,7 @@ import androidx.paging.map
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.toSong
+import com.theveloper.pixelplay.data.model.ArtistRef
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.observer.MediaStoreObserver
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
@@ -18,6 +19,7 @@ import com.theveloper.pixelplay.utils.DirectoryRuleResolver
 import com.theveloper.pixelplay.utils.LogUtils
 import com.theveloper.pixelplay.utils.normalizeMetadataText
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
+import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,16 +71,23 @@ class MediaStoreSongRepository @Inject constructor(
         mediaStoreObserver.mediaStoreChanges.onStart { emit(Unit) },
         favoritesDao.getFavoriteSongIds(),
         userPreferencesRepository.allowedDirectoriesFlow,
-        userPreferencesRepository.blockedDirectoriesFlow
-    ) { _, favoriteIds, allowedDirs, blockedDirs ->
+        userPreferencesRepository.blockedDirectoriesFlow,
+        userPreferencesRepository.artistDelimitersFlow
+    ) { _, favoriteIds, allowedDirs, blockedDirs, artistDelimiters ->
         // Triggered by mediaStore change or favorites change or directory config change
-        fetchSongsFromMediaStore(favoriteIds.toSet(), allowedDirs.toList(), blockedDirs.toList())
+        fetchSongsFromMediaStore(
+            favoriteIds.toSet(),
+            allowedDirs.toList(),
+            blockedDirs.toList(),
+            artistDelimiters
+        )
     }.flowOn(Dispatchers.IO)
 
     private suspend fun fetchSongsFromMediaStore(
         favoriteIds: Set<Long>,
         allowedDirs: List<String>,
-        blockedDirs: List<String>
+        blockedDirs: List<String>,
+        artistDelimiters: List<String>
     ): List<Song> = withContext(Dispatchers.IO) {
         val songs = mutableListOf<Song>()
         val projection = arrayOf(
@@ -151,12 +160,23 @@ class MediaStoreSongRepository @Inject constructor(
                     val id = cursor.getLong(idCol)
                     val albumId = cursor.getLong(albumIdCol)
 
+                    val rawArtist = cursor.getString(artistCol).normalizeMetadataTextOrEmpty()
+                    val artistId = cursor.getLong(artistIdCol)
+                    val artistNames = rawArtist.splitArtistsByDelimiters(artistDelimiters)
+                    val artists = artistNames.mapIndexed { index, name ->
+                        ArtistRef(
+                            id = if (index == 0) artistId else -1L,
+                            name = name,
+                            isPrimary = index == 0
+                        )
+                    }
+
                     val song = Song(
                         id = id.toString(),
                         title = cursor.getString(titleCol).normalizeMetadataTextOrEmpty(),
-                        artist = cursor.getString(artistCol).normalizeMetadataTextOrEmpty(),
-                        artistId = cursor.getLong(artistIdCol),
-                        artists = emptyList(), // TODO: Secondary query for Multi-Artist or split string
+                        artist = rawArtist,
+                        artistId = artistId,
+                        artists = artists,
                         album = cursor.getString(albumCol).normalizeMetadataTextOrEmpty(),
                         albumId = albumId,
                         albumArtist = if (albumArtistCol != -1) cursor.getString(albumArtistCol).normalizeMetadataText() else null,

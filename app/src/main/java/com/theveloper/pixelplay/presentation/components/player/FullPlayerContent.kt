@@ -1062,7 +1062,7 @@ private fun SoundControlsSection(
                 modifier = Modifier.size(20.dp)
             )
             WavySliderExpressive(
-                value = loudnessStrength,
+                value = { loudnessStrength },
                 onValueChange = { onLoudnessChange(it.roundToInt()) },
                 valueRange = 0f..1000f,
                 modifier = Modifier.weight(1f),
@@ -1509,7 +1509,7 @@ private fun EfficientSlider(
     isPlaying: Boolean // Added parameter
 ) {
     WavySliderExpressive(
-        value = valueState.value,
+        value = { valueState.value },
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         activeTrackColor = activeTrackColor,
