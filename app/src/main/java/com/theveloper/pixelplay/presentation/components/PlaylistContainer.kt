@@ -522,7 +522,7 @@ fun CreatePlaylistDialogRedesigned(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.generate_playlist_ai),
-                            contentDescription = null,
+                            contentDescription = "Generate with AI",
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))

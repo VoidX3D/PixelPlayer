@@ -41,7 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -147,7 +149,8 @@ fun EnhancedSongListItem(
     }
 
     val colors = MaterialTheme.colorScheme
-    
+    val hapticFeedback = LocalHapticFeedback.current
+
     // Container colors - selection takes precedence over current song
     val containerColor by animateColorAsState(
         targetValue = when {
@@ -260,6 +263,7 @@ fun EnhancedSongListItem(
                 .pointerInput(isSelectionMode) {
                     detectTapGestures(
                         onTap = { 
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             if (isSelectionMode) {
                                 // In selection mode, tap toggles selection
                                 onLongPress()
@@ -268,6 +272,7 @@ fun EnhancedSongListItem(
                             }
                         },
                         onLongPress = { 
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             // Long press always activates/toggles selection
                             onLongPress()
                         },
@@ -386,7 +391,10 @@ fun EnhancedSongListItem(
                 // Hide more options button in selection mode
                 if (!isSelectionMode) {
                     FilledIconButton(
-                        onClick = { onMoreOptionsClick(song) },
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onMoreOptionsClick(song)
+                        },
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = mvContentColor,
                             contentColor = mvContainerColor

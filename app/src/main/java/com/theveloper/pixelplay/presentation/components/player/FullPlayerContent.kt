@@ -76,8 +76,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -108,6 +110,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks
 import com.theveloper.pixelplay.presentation.components.AlbumCarouselSection
+import com.theveloper.pixelplay.presentation.components.ShimmerBox
 import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.LocalMaterialTheme
 import com.theveloper.pixelplay.presentation.components.LyricsSheet
@@ -207,6 +210,7 @@ fun FullPlayerContent(
     val selectedRouteName by playerViewModel.selectedRoute.map { it?.name }.collectAsState(initial = null)
     val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsState()
     val bluetoothName by playerViewModel.bluetoothName.collectAsState()
+    val hapticFeedback = LocalHapticFeedback.current
 
     var showFetchLyricsDialog by remember { mutableStateOf(false) }
     var totalDrag by remember { mutableStateOf(0f) }
@@ -758,7 +762,10 @@ fun FullPlayerContent(
                                     .size(42.dp)
                                     .clip(CircleShape)
                                     .background(playerOnAccentColor.copy(alpha = 0.7f))
-                                    .clickable(onClick = onCollapse),
+                                    .clickable {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onCollapse()
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -829,7 +836,10 @@ fun FullPlayerContent(
                                         )
                                     )
                                     .background(castContainerColor)
-                                    .clickable { onShowCastClicked() },
+                                    .clickable {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onShowCastClicked()
+                                    },
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(
@@ -911,6 +921,7 @@ fun FullPlayerContent(
                                     )
                                     .background(playerOnAccentColor.copy(alpha = 0.7f))
                                     .clickable {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         showSongInfoBottomSheet = true
                                         onShowQueueClicked()
                                     },
@@ -1117,6 +1128,7 @@ private fun SongMetadataDisplaySection(
     onClickArtist: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     Row(
         modifier
             .fillMaxWidth()
@@ -1208,7 +1220,10 @@ private fun SongMetadataDisplaySection(
                             )
                         )
                         .background(chipColor)
-                        .clickable { onClickLyrics() },
+                        .clickable {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClickLyrics()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1229,7 +1244,10 @@ private fun SongMetadataDisplaySection(
                             )
                         )
                         .background(chipColor)
-                        .clickable { onClickQueue() },
+                        .clickable {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClickQueue()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1248,7 +1266,10 @@ private fun SongMetadataDisplaySection(
                     containerColor = chipColor,
                     contentColor = chipContentColor
                 ),
-                onClick = onClickLyrics,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClickLyrics()
+                },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.rounded_lyrics_24),
@@ -1848,6 +1869,7 @@ private fun AlbumPlaceholder(
         tonalElevation = 0.dp
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            ShimmerBox(modifier = Modifier.fillMaxSize())
             Icon(
                 modifier = Modifier.size(86.dp),
                 painter = painterResource(R.drawable.pixelplay_base_monochrome),

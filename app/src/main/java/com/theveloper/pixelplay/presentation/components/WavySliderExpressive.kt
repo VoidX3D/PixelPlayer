@@ -28,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -40,6 +42,7 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import androidx.compose.runtime.mutableIntStateOf
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -113,6 +116,7 @@ fun WavySliderExpressive(
     )
 
     val containerHeight = max(WavyProgressIndicatorDefaults.LinearContainerHeight, max(thumbRadius * 2, thumbLineHeightWhenInteracting))
+    val hapticFeedback = LocalHapticFeedback.current
 
     Box(
         modifier = modifier
@@ -120,9 +124,24 @@ fun WavySliderExpressive(
             .height(containerHeight),
         contentAlignment = Alignment.Center
     ) {
+        val lastHapticStep = remember { mutableIntStateOf(-1) }
         Slider(
             value = clampedValueProvider(),
-            onValueChange = onValueChange,
+            onValueChange = { newValue ->
+                val normalizedNew = if (valueRange.endInclusive == valueRange.start) 0f
+                else ((newValue - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+
+                val currentStep = (normalizedNew * 50f).roundToInt()
+                if (currentStep != lastHapticStep.intValue) {
+                    if (normalizedNew <= 0.01f || normalizedNew >= 0.99f) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
+                    lastHapticStep.intValue = currentStep
+                }
+                onValueChange(newValue)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(containerHeight)

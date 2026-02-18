@@ -34,6 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -71,6 +73,7 @@ fun PlaylistBottomSheet(
         else playlistUiState.playlists.filter { it.name.contains(searchQuery, true) }
     }
     val hasGeminiApiKey by playerViewModel.hasGeminiApiKey.collectAsState()
+    val hapticFeedback = LocalHapticFeedback.current
 
     val selectedPlaylists = remember {
         mutableStateMapOf<String, Boolean>().apply {
@@ -205,6 +208,7 @@ fun PlaylistBottomSheet(
                     .padding(bottom = 18.dp, end = 8.dp),
                 shape = CircleShape,
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     if (songs.size == 1) {
                          playlistViewModel.addOrRemoveSongFromPlaylists(
                             songs.first().id,

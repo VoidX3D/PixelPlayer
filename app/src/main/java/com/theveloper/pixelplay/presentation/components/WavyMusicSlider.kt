@@ -171,7 +171,11 @@ fun WavyMusicSlider(
                 // Slightly coarser haptic granularity keeps tactile quality while reducing binder chatter.
                 val currentStep = (normalizedNew * 50f).roundToInt()
                 if (currentStep != lastHapticStep.intValue) {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    if (normalizedNew <= 0.01f || normalizedNew >= 0.99f) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
                     lastHapticStep.intValue = currentStep
                 }
                 onValueChange(newValue)

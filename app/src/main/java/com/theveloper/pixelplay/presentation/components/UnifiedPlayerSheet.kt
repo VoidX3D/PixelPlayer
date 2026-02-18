@@ -45,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -808,6 +809,7 @@ internal fun MiniPlayerContentInternal(
 
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(LocalMaterialTheme.current.onPrimary)
@@ -833,6 +835,7 @@ internal fun MiniPlayerContentInternal(
 
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(LocalMaterialTheme.current.primary)
@@ -858,6 +861,7 @@ internal fun MiniPlayerContentInternal(
 
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(LocalMaterialTheme.current.onPrimary)
