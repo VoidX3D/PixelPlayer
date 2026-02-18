@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,8 +100,12 @@ private fun androidx.compose.foundation.layout.RowScope.SyncButton(
     enabled: Boolean = true,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     FilledTonalButton(
-        onClick = onClick,
+        onClick = {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         modifier = Modifier
             .weight(weight)
             .fillMaxHeight(),

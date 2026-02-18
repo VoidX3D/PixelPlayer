@@ -36,7 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,6 +75,7 @@ fun RecentlyPlayedSection(
     contentPadding: PaddingValues = HomeRecentlyPlayedDefaultContentPadding,
     modifier: Modifier = Modifier
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val visibleSongs = remember(songs) { songs.take(HomeRecentlyPlayedPillsLimit) }
     if (visibleSongs.size < RecentlyPlayedSectionMinSongsToShow) return
 
@@ -124,7 +127,10 @@ fun RecentlyPlayedSection(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.secondary
                 ),
-                onClick = onOpenAllClick,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onOpenAllClick()
+                },
                 enabled = visibleSongs.size >= RecentlyPlayedSectionMinSongsToShow
             ) {
                 Icon(
@@ -261,6 +267,7 @@ private fun RecentlyPlayedPill(
         animationSpec = tween(durationMillis = 280),
         label = "pillArtistColor"
     )
+    val hapticFeedback = LocalHapticFeedback.current
     val shape = RoundedCornerShape(animatedCorner)
     val artStartPadding = (HomeRecentlyPlayedPillHeight - HomeRecentlyPlayedPillArtSize) / 2
 
@@ -271,7 +278,10 @@ private fun RecentlyPlayedPill(
         modifier = modifier
             .height(HomeRecentlyPlayedPillHeight)
             .clip(shape)
-            .clickable(onClick = onClick)
+            .clickable {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
     ) {
         Row(
             modifier = Modifier

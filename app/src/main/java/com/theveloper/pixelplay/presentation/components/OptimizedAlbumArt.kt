@@ -96,11 +96,10 @@ fun OptimizedAlbumArt(
 @Composable
 private fun PlaceholderContent(title: String) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+        ShimmerBox(modifier = Modifier.fillMaxSize())
         Image(
             painter = painterResource(R.drawable.ic_music_placeholder),
             contentDescription = "$title placeholder",

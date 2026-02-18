@@ -43,8 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -385,11 +387,15 @@ fun YourMixHeader(
             )
         }
         // Play Button - color changes based on shuffle state
+        val hapticFeedback = LocalHapticFeedback.current
         LargeExtendedFloatingActionButton(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 12.dp),
-            onClick = onPlayShuffled,
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onPlayShuffled()
+            },
             containerColor = if (isShuffleEnabled) colors.primary else colors.tertiaryContainer,
             contentColor = if (isShuffleEnabled) colors.onPrimary else colors.onTertiaryContainer,
             shape = AbsoluteSmoothCornerShape(
@@ -426,13 +432,17 @@ fun SongListItemFavs(
     onClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val hapticFeedback = LocalHapticFeedback.current
     val containerColor = if (isCurrentSong) colors.primaryContainer.copy(alpha = 0.46f) else colors.surfaceContainer
     val contentColor = if (isCurrentSong) colors.primary else colors.onSurface
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
         shape = RoundedCornerShape(cardCorners),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(0.dp)

@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -174,6 +176,7 @@ private fun ToggleSegmentButtonContainer(
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val bgColor by animateColorAsState(
         targetValue = if (active) activeColor else inactiveColor,
         animationSpec = tween(durationMillis = 250),
@@ -190,7 +193,10 @@ private fun ToggleSegmentButtonContainer(
             .fillMaxSize()
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
-            .clickable(onClick = onClick),
+            .clickable {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         content()
