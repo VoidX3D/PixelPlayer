@@ -770,29 +770,39 @@ class PlaybackStatsRepository @Inject constructor(
         if (buckets.isEmpty()) return emptyList()
         val durationByBucket = LongArray(buckets.size)
         val playCountByBucket = DoubleArray(buckets.size)
-        spans.forEach { span ->
+
+        for (i in spans.indices) {
+            val span = spans[i]
             val spanStart = span.startMillis
             val spanEnd = span.endMillis
             val spanDuration = span.durationMs
-            if (spanDuration <= 0L) return@forEach
-            buckets.forEachIndexed { index, bucket ->
+            if (spanDuration <= 0L) continue
+
+            for (j in buckets.indices) {
+                val bucket = buckets[j]
                 val bucketEndExclusive = if (bucket.inclusiveEnd) bucket.endMillis + 1 else bucket.endMillis
                 val overlapStart = max(spanStart, bucket.startMillis)
                 val overlapEnd = min(spanEnd, bucketEndExclusive)
                 val overlap = (overlapEnd - overlapStart).coerceAtLeast(0L)
                 if (overlap > 0) {
-                    durationByBucket[index] += overlap
-                    playCountByBucket[index] += overlap.toDouble() / spanDuration.toDouble()
+                    durationByBucket[j] += overlap
+                    playCountByBucket[j] += overlap.toDouble() / spanDuration.toDouble()
                 }
             }
         }
-        return buckets.mapIndexed { index, bucket ->
-            TimelineEntry(
-                label = bucket.label,
-                totalDurationMs = durationByBucket[index],
-                playCount = playCountByBucket[index].roundToInt()
+
+        val result = ArrayList<TimelineEntry>(buckets.size)
+        for (i in buckets.indices) {
+            val bucket = buckets[i]
+            result.add(
+                TimelineEntry(
+                    label = bucket.label,
+                    totalDurationMs = durationByBucket[i],
+                    playCount = playCountByBucket[i].roundToInt()
+                )
             )
         }
+        return result
     }
 
     private fun createTimelineBuckets(
