@@ -121,7 +121,6 @@ class ConnectivityStateHolder @Inject constructor(
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
         _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled ?: false
-        updateBluetoothName()
 
         // Register WiFi network callback
         networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -185,7 +184,12 @@ class ConnectivityStateHolder @Inject constructor(
                 when (intent?.action) {
                     BluetoothAdapter.ACTION_STATE_CHANGED -> {
                         _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled ?: false
-                        updateBluetoothName()
+                        if (_isBluetoothEnabled.value) {
+                            updateAudioDevices()
+                        } else {
+                            _bluetoothAudioDevices.value = emptyList()
+                            updateBluetoothName()
+                        }
                     }
                 }
             }
@@ -229,17 +233,16 @@ class ConnectivityStateHolder @Inject constructor(
          }
     }
 
-    @SuppressLint("MissingPermission")
     private fun updateBluetoothName() {
-        if (_isBluetoothEnabled.value) {
-            try {
-                _bluetoothName.value = bluetoothAdapter?.name
-            } catch (e: SecurityException) {
-                _bluetoothName.value = null
-            }
-        } else {
+        if (!_isBluetoothEnabled.value) {
             _bluetoothName.value = null
+            return
         }
+
+        val connectedAudioDevices = _bluetoothAudioDevices.value
+        _bluetoothName.value = _bluetoothName.value
+            ?.takeIf { it in connectedAudioDevices }
+            ?: connectedAudioDevices.firstOrNull()
     }
 
     private fun updateAudioDevices() {
@@ -255,10 +258,6 @@ class ConnectivityStateHolder @Inject constructor(
         
         // Also check via BluetoothManager for completeness if permissions allow
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-            bluetoothManager.getConnectedDevices(BluetoothProfile.GATT)
-                .mapNotNull { it.name }
-                .forEach { if (!connectedDevices.contains(it)) connectedDevices.add(it) }
-                
             safeGetConnectedDevices(BluetoothProfile.A2DP)
                 .mapNotNull { it.name }
                 .forEach { if (!connectedDevices.contains(it)) connectedDevices.add(it) }
@@ -268,7 +267,12 @@ class ConnectivityStateHolder @Inject constructor(
                 .forEach { if (!connectedDevices.contains(it)) connectedDevices.add(it) }
         }
 
-        _bluetoothAudioDevices.value = connectedDevices.distinct().sorted()
+        _bluetoothAudioDevices.value = connectedDevices
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sorted()
+        updateBluetoothName()
     }
 
     @SuppressLint("MissingPermission")

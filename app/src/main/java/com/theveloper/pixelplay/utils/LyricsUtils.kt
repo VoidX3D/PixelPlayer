@@ -96,17 +96,24 @@ object LyricsUtils {
                             val wordText = stripFormatCharacters(wordMatcher.group(4) ?: "")
                             val wordMillis = if (wordMatcher.group(3)?.length == 2) wordFraction * 10 else wordFraction
                             val wordTimestamp = wordMinutes * 60 * 1000 + wordSeconds * 1000 + wordMillis
-                            words.add(SyncedWord(wordTimestamp.toInt(), wordText))
+                            if (wordText.isNotEmpty()) {
+                                words.add(SyncedWord(wordTimestamp.toInt(), wordText))
+                            }
                         } else {
-                            // This is untagged text at the beginning of the line
-                            val lastTime = words.lastOrNull()?.time ?: lineTimestamp.toInt()
-                            words.add(SyncedWord(lastTime, part))
+                            // Preserve only leading untagged text as a timed word.
+                            // Trailing untagged chunks (e.g. inline translations) should remain visible in line text
+                            // but must not steal word highlight timing.
+                            if (words.isEmpty()) {
+                                val leading = stripFormatCharacters(part)
+                                if (leading.isNotEmpty()) {
+                                    words.add(SyncedWord(lineTimestamp.toInt(), leading))
+                                }
+                            }
                         }
                     }
 
                     if (words.isNotEmpty()) {
-                        val fullLineText = words.joinToString("") { it.word }
-                        syncedLines.add(SyncedLine(lineTimestamp.toInt(), fullLineText, words))
+                        syncedLines.add(SyncedLine(lineTimestamp.toInt(), text, words))
                     } else {
                         syncedLines.add(SyncedLine(lineTimestamp.toInt(), text))
                     }

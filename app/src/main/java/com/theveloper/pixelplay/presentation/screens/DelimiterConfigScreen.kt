@@ -74,6 +74,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.viewmodel.ArtistSettingsViewModel
 import kotlinx.coroutines.launch
@@ -161,7 +162,7 @@ fun DelimiterConfigScreen(
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = currentTopBarHeightDp, start = 16.dp, end = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(top = currentTopBarHeightDp + 8.dp, start = 16.dp, end = 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Current Delimiters
@@ -349,79 +350,33 @@ fun DelimiterConfigScreen(
             }
         }
 
-        DelimiterSettingsTopBar(
+        CollapsibleCommonTopBar(
+            title = "Delimiters",
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
-            onBackPressed = { navController.popBackStack() },
-            onResetClick = {
-                viewModel.resetDelimitersToDefault()
-                Toast.makeText(context, "Delimiters reset to defaults", Toast.LENGTH_SHORT).show()
+            onBackClick = { navController.popBackStack() },
+            actions = {
+                Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    onClick = {
+                        viewModel.resetDelimitersToDefault()
+                        Toast.makeText(context, "Delimiters reset to defaults", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.padding(end = 16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.RestartAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Reset")
+                }
             }
         )
-    }
-}
-
-@Composable
-private fun DelimiterSettingsTopBar(
-    collapseFraction: Float,
-    headerHeight: Dp,
-    onBackPressed: () -> Unit,
-    onResetClick: () -> Unit,
-    title: String = "Delimiters",
-    expandedStartPadding: Dp = 20.dp,
-    collapsedStartPadding: Dp = 68.dp,
-    maxLines: Int = 1
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(headerHeight)
-            .background(surfaceColor.copy(alpha = collapseFraction))
-    ) {
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp),
-                onClick = onBackPressed,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
-            ) {
-                Icon(painterResource(R.drawable.rounded_arrow_back_24), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
-            }
-
-            ExpressiveTopBarContent(
-                title = title,
-                collapseFraction = collapseFraction,
-                modifier = Modifier.fillMaxSize(),
-                collapsedTitleStartPadding = collapsedStartPadding,
-                expandedTitleStartPadding = expandedStartPadding,
-                maxLines = maxLines
-            )
-
-            // Reset Button
-            Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ),
-                onClick = onResetClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp, top = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.RestartAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Reset")
-            }
-        }
     }
 }
 

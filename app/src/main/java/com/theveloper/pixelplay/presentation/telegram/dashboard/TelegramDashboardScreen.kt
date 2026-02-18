@@ -112,7 +112,7 @@ fun TelegramDashboardScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 ),

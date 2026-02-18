@@ -14,6 +14,7 @@ import com.theveloper.pixelplay.PixelPlayApplication
 import com.theveloper.pixelplay.data.database.AlbumArtThemeDao
 import com.theveloper.pixelplay.data.database.EngagementDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
+import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.PixelPlayDatabase
@@ -116,7 +117,8 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_17_18,
             PixelPlayDatabase.MIGRATION_18_19,
             PixelPlayDatabase.MIGRATION_19_20,
-            PixelPlayDatabase.MIGRATION_20_21
+            PixelPlayDatabase.MIGRATION_20_21,
+            PixelPlayDatabase.MIGRATION_21_22
         )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
@@ -164,6 +166,12 @@ object AppModule {
         return database.lyricsDao()
     }
 
+    @Singleton
+    @Provides
+    fun provideGDriveDao(database: PixelPlayDatabase): GDriveDao {
+        return database.gdriveDao()
+    }
+
     @Provides
     @Singleton
     fun provideImageLoader(
@@ -192,12 +200,14 @@ object AppModule {
     fun provideLyricsRepository(
         @ApplicationContext context: Context,
         lrcLibApiService: LrcLibApiService,
-        lyricsDao: LyricsDao
+        lyricsDao: LyricsDao,
+        okHttpClient: OkHttpClient
     ): LyricsRepository {
         return LyricsRepositoryImpl(
             context = context,
             lrcLibApiService = lrcLibApiService,
-            lyricsDao = lyricsDao
+            lyricsDao = lyricsDao,
+            okHttpClient = okHttpClient
         )
     }
 
@@ -482,4 +492,3 @@ object AppModule {
         return ArtistImageRepository(deezerApiService, musicDao)
     }
 }
-

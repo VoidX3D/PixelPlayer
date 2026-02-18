@@ -22,8 +22,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -239,7 +239,7 @@ private fun DeckUi(
                     }
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -317,7 +317,7 @@ private fun SongPickerSheet(songs: List<Song>, onSongSelected: (Song) -> Unit) {
             .padding(horizontal = 8.dp)) {
             items(songs, key = { it.id }) { song ->
                 SongPickerItem(song = song, onClick = { onSongSelected(song) })
-                Divider()
+                HorizontalDivider()
             }
         }
     }
@@ -344,4 +344,3 @@ private fun SongPickerItem(song: Song, onClick: () -> Unit) {
         }
     }
 }
-

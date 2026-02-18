@@ -100,6 +100,7 @@ import coil.request.ImageRequest
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.github.GitHubContributorService
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.brickbreaker.BrickBreakerOverlay
@@ -171,69 +172,7 @@ private fun normalizeHandle(handle: String): String {
     return handle.trim().removePrefix("@").lowercase()
 }
 
-@Composable
-private fun AboutTopBar(
-    collapseFraction: Float,
-    headerHeight: Dp,
-    onBackPressed: () -> Unit,
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val titleScale = lerpFloat(1.2f, 0.85f, collapseFraction)
-    val titlePaddingStart = lerpDp(32.dp, 58.dp, collapseFraction)
-    val titleVerticalBias = lerpFloat(1f, -1f, collapseFraction)
-    val animatedTitleAlignment = BiasAlignment(horizontalBias = -1f, verticalBias = titleVerticalBias)
-    val titleContainerHeight = lerpDp(88.dp, 56.dp, collapseFraction)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(headerHeight)
-            .background(surfaceColor.copy(alpha = collapseFraction)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-        ) {
-            FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp),
-                onClick = onBackPressed,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.rounded_arrow_back_24),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .align(animatedTitleAlignment)
-                    .height(titleContainerHeight)
-                    .fillMaxWidth()
-                    .padding(start = titlePaddingStart, end = 24.dp),
-            ) {
-                Text(
-                    text = "About",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .graphicsLayer {
-                            scaleX = titleScale
-                            scaleY = titleScale
-                        },
-                )
-            }
-        }
-    }
-}
+// AboutTopBar removed, replaced by CollapsibleCommonTopBar
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Suppress("UNUSED_PARAMETER")
@@ -418,7 +357,7 @@ fun AboutScreen(
         LazyColumn(
             state = lazyListState,
             contentPadding = PaddingValues(
-                top = currentTopBarHeightDp,
+                top = currentTopBarHeightDp + 8.dp,
                 bottom = MiniPlayerHeight +
                     WindowInsets.navigationBars
                         .asPaddingValues()
@@ -542,10 +481,13 @@ fun AboutScreen(
             }
         }
 
-        AboutTopBar(
+        CollapsibleCommonTopBar(
+            title = "About",
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
-            onBackPressed = onNavigationIconClick,
+            onBackClick = onNavigationIconClick,
+            expandedTitleStartPadding = 20.dp,
+            collapsedTitleStartPadding = 68.dp
         )
 
         if (showBrickBreaker) {

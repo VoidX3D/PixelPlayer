@@ -1460,9 +1460,8 @@ class PlayerViewModel @Inject constructor(
                     // Same queue context: jump directly for immediate, deterministic song changes.
                     remoteQueueLoadJob?.cancel()
                     castTransferStateHolder.markPendingRemoteSong(song)
-                    if (targetItemId != null) {
-                        castStateHolder.castPlayer?.jumpToItem(targetItemId, 0L)
-                    }
+                    val itemId = requireNotNull(targetItemId)
+                    castStateHolder.castPlayer?.jumpToItem(itemId, 0L)
                 }
                 contextMatchesRemoteSnapshot && currentRemoteId == song.id -> {
                     // Already on target.

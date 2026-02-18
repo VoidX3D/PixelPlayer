@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.model
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DeveloperBoard
 import androidx.compose.material.icons.rounded.DeveloperMode
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Info
@@ -69,7 +70,7 @@ enum class SettingsCategory(
         id = "device_capabilities",
         title = "Device Capabilities",
         subtitle = "Audio specs, codecs, and decoder info",
-        icon = Icons.Rounded.Info // Placeholder, maybe Memory or SettingsInputComponent
+        icon = Icons.Rounded.DeveloperBoard // Placeholder, maybe Memory or SettingsInputComponent
     ),
     ABOUT(
         id = "about",

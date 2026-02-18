@@ -102,6 +102,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.viewmodel.EqualizerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
@@ -300,7 +301,7 @@ fun EqualizerScreen(
         LazyColumn(
             state = lazyListState,
             contentPadding = PaddingValues(
-                top = currentTopBarHeightDp,
+                top = currentTopBarHeightDp + 8.dp,
                 bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 20.dp
             ),
             modifier = Modifier.fillMaxSize(),
@@ -380,109 +381,65 @@ fun EqualizerScreen(
             }
         }
         
-        EqualizerTopBar(
+        CollapsibleCommonTopBar(
+            title = "Equalizer",
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
-            isEnabled = uiState.isEnabled,
-            onBackPressed = { navController.popBackStack() },
-            onToggleEnabled = { equalizerViewModel.toggleEqualizer() },
-            viewMode = uiState.viewMode,
-            onToggleViewMode = { equalizerViewModel.cycleViewMode() }
+            onBackClick = { navController.popBackStack() },
+            expandedTitleStartPadding = 18.dp, // Matches original 18.dp
+            collapsedTitleStartPadding = 68.dp,
+            actions = {
+                // View Mode Toggle
+                FilledIconButton(
+                    onClick = { equalizerViewModel.cycleViewMode() },
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(
+                        imageVector = when(uiState.viewMode) {
+                            EqualizerViewMode.SLIDERS -> Icons.Rounded.GraphicEq
+                            EqualizerViewMode.GRAPH -> Icons.AutoMirrored.Rounded.ShowChart
+                            EqualizerViewMode.HYBRID -> Icons.AutoMirrored.Rounded.ViewQuilt
+                        },
+                        contentDescription = "Change View Mode"
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Power toggle
+                val isEnabled = uiState.isEnabled
+                val powerButtonCorner by animateIntAsState(
+                    targetValue = if (isEnabled) 50 else 12,
+                    label = "PowerButtonShape"
+                )
+
+                FilledIconToggleButton(
+                    checked = isEnabled,
+                    onCheckedChange = { equalizerViewModel.toggleEqualizer() },
+                    shape = RoundedCornerShape(powerButtonCorner),
+                    colors = IconButtonDefaults.filledIconToggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        checkedContainerColor = MaterialTheme.colorScheme.primary,
+                        checkedContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PowerSettingsNew,
+                        contentDescription = if (isEnabled) "Disable equalizer" else "Enable equalizer"
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+            }
         )
     }
 }
 
-@Composable
-fun EqualizerTopBar(
-    collapseFraction: Float,
-    headerHeight: androidx.compose.ui.unit.Dp,
-    isEnabled: Boolean,
-    onBackPressed: () -> Unit,
-    onToggleEnabled: () -> Unit, // Added missing param
-    viewMode: EqualizerViewMode,
-    onToggleViewMode: () -> Unit
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(headerHeight)
-            .background(surfaceColor.copy(alpha = collapseFraction))
-    ) {
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp),
-                onClick = onBackPressed,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
-            ) {
-                Icon(
-                    painterResource(R.drawable.rounded_arrow_back_24),
-                    contentDescription = "Back"
-                )
-            }
-            
-            // View Mode Toggle
-            FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 64.dp, top = 4.dp), // Position to the left of Power toggle
-                onClick = onToggleViewMode,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(
-                    imageVector = when(viewMode) {
-                        EqualizerViewMode.SLIDERS -> Icons.Rounded.GraphicEq
-                        EqualizerViewMode.GRAPH -> Icons.AutoMirrored.Rounded.ShowChart
-                        EqualizerViewMode.HYBRID -> Icons.AutoMirrored.Rounded.ViewQuilt
-                    },
-                    contentDescription = "Change View Mode"
-                )
-            }
-            
-            // Power toggle
-            val powerButtonCorner by animateIntAsState(
-                targetValue = if (isEnabled) 50 else 12,
-                label = "PowerButtonShape"
-            )
-            
-            FilledIconToggleButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 12.dp, top = 4.dp),
-                checked = isEnabled,
-                onCheckedChange = { onToggleEnabled() },
-                shape = RoundedCornerShape(powerButtonCorner), // Animated shape
-                colors = IconButtonDefaults.filledIconToggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    checkedContainerColor = MaterialTheme.colorScheme.primary,
-                    checkedContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.PowerSettingsNew,
-                    contentDescription = if (isEnabled) "Disable equalizer" else "Enable equalizer"
-                )
-            }
-            
-            ExpressiveTopBarContent(
-                title = "Equalizer",
-                collapseFraction = collapseFraction,
-                collapsedTitleStartPadding = 68.dp,
-                expandedTitleStartPadding = 18.dp,
-                modifier = Modifier.fillMaxSize().padding(start = 0.dp, end = 0.dp)
-            )
-        }
-    }
-}
+// EqualizerTopBar removed, replaced by CollapsibleCommonTopBar
 
 @Composable
 private fun PresetTabsRow(

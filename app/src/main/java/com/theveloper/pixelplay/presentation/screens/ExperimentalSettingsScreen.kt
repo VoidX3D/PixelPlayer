@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -179,7 +180,7 @@ fun ExperimentalSettingsScreen(
 
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(top = currentTopBarHeightDp),
+            contentPadding = PaddingValues(top = currentTopBarHeightDp + 8.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             item(key = "player_ui_tweaks_section") {
@@ -713,11 +714,11 @@ fun ExperimentalSettingsScreen(
             }
         }
 
-        SettingsTopBar(
+        CollapsibleCommonTopBar(
+            title = "Experimental",
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
-            onBackPressed = onNavigationIconClick,
-            title = "Experimental"
+            onBackClick = onNavigationIconClick
         )
     }
 }

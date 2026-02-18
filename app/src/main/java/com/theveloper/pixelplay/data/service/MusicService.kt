@@ -572,7 +572,7 @@ class MusicService : MediaSessionService() {
     private fun refreshMediaSessionUi(session: MediaSession) {
         val buttons = buildMediaButtonPreferences(session)
         session.setMediaButtonPreferences(buttons)
-        onUpdateNotification(session)
+        onUpdateNotification(session, false)
     }
 
     private fun updateManualShuffleState(
@@ -605,10 +605,10 @@ class MusicService : MediaSessionService() {
         val player = session.player
         val songId = player.currentMediaItem?.mediaId
         val isFavorite = isSongFavorite(songId)
-        val likeIcon = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.round_favorite_border_24
-        val likeButton = CommandButton.Builder()
+        val likeButton = CommandButton.Builder(
+            if (isFavorite) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED
+        )
             .setDisplayName("Like")
-            .setIconResId(likeIcon)
             .setSessionCommand(SessionCommand(MusicNotificationProvider.CUSTOM_COMMAND_LIKE, Bundle.EMPTY))
             .build()
 
@@ -618,21 +618,21 @@ class MusicService : MediaSessionService() {
         } else {
             MusicNotificationProvider.CUSTOM_COMMAND_SHUFFLE_ON
         }
-        val shuffleIcon = if (shuffleOn) R.drawable.rounded_shuffle_on_24 else R.drawable.rounded_shuffle_24
-        val shuffleButton = CommandButton.Builder()
+        val shuffleButton = CommandButton.Builder(
+            if (shuffleOn) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF
+        )
             .setDisplayName("Shuffle")
-            .setIconResId(shuffleIcon)
             .setSessionCommand(SessionCommand(shuffleCommandAction, Bundle.EMPTY))
             .build()
 
-        val repeatIcon = when (player.repeatMode) {
-            Player.REPEAT_MODE_ONE -> R.drawable.rounded_repeat_one_on_24
-            Player.REPEAT_MODE_ALL -> R.drawable.rounded_repeat_on_24
-            else -> R.drawable.rounded_repeat_24
-        }
-        val repeatButton = CommandButton.Builder()
+        val repeatButton = CommandButton.Builder(
+            when (player.repeatMode) {
+                Player.REPEAT_MODE_ONE -> CommandButton.ICON_REPEAT_ONE
+                Player.REPEAT_MODE_ALL -> CommandButton.ICON_REPEAT_ALL
+                else -> CommandButton.ICON_REPEAT_OFF
+            }
+        )
             .setDisplayName("Repeat")
-            .setIconResId(repeatIcon)
             .setSessionCommand(SessionCommand(MusicNotificationProvider.CUSTOM_COMMAND_CYCLE_REPEAT_MODE, Bundle.EMPTY))
             .build()
 

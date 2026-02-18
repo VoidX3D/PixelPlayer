@@ -33,10 +33,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Cloud
@@ -53,6 +51,7 @@ import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -346,7 +345,7 @@ fun LibraryActionRow(
 
                     @OptIn(ExperimentalMaterial3Api::class)
                     TooltipBox(
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                         tooltip = {
                             PlainTooltip {
                                 Text(tooltipText)

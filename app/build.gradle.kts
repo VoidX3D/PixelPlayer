@@ -306,6 +306,11 @@ dependencies {
 
     // Telegram TDLib
     implementation(libs.tdlib)
+
+    // Google Sign-In via Credential Manager (for Google Drive)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 }
 
 tasks.withType<Test> {

@@ -37,6 +37,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
+import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
 import com.theveloper.pixelplay.data.telegram.TelegramRepository
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -58,6 +59,7 @@ class DualPlayerEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val telegramRepository: TelegramRepository,
     private val telegramStreamProxy: com.theveloper.pixelplay.data.telegram.TelegramStreamProxy,
+    private val neteaseStreamProxy: NeteaseStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
@@ -272,7 +274,7 @@ class DualPlayerEngine @Inject constructor(
                 // But wait, the parameter 'audioSink' is passed IN. 
                 // We should probably ignore the passed one if we want to enforce ours, OR configure ours and pass it to super.
                 
-                val sink = androidx.media3.exoplayer.audio.DefaultAudioSink.Builder()
+                val sink = androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(false) // Disable Float output to fix CCodec/Hardware errors on some devices
                     .build()
 
@@ -370,6 +372,27 @@ class DualPlayerEngine @Inject constructor(
                              return dataSpec.buildUpon().setUri(android.net.Uri.parse(proxyUrl)).build()
                          }
                      }
+                 } else if (dataSpec.uri.scheme == "netease") {
+                     val uriString = dataSpec.uri.toString()
+                     Timber.tag("DualPlayerEngine").d("Resolving Netease URI: $uriString")
+
+                     if (!neteaseStreamProxy.isReady()) {
+                         Timber.tag("DualPlayerEngine").w("NeteaseStreamProxy not ready, waiting...")
+                         val proxyReady = kotlinx.coroutines.runBlocking {
+                             neteaseStreamProxy.awaitReady(5_000L)
+                         }
+                         if (!proxyReady) {
+                             Timber.tag("DualPlayerEngine").e("NeteaseStreamProxy not ready after timeout")
+                             return dataSpec
+                         }
+                     }
+
+                     val proxyUrl = neteaseStreamProxy.resolveNeteaseUri(uriString)
+                     if (!proxyUrl.isNullOrBlank()) {
+                         return dataSpec.buildUpon().setUri(android.net.Uri.parse(proxyUrl)).build()
+                     }
+
+                     Timber.tag("DualPlayerEngine").w("Failed to resolve Netease URI: $uriString")
                  }
                  return dataSpec
             }

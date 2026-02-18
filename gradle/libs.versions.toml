@@ -58,6 +58,8 @@ taglib = "1.0.5"
 jaudiotagger = "3.0.1"
 vorbisjava = "0.8"
 datastore = "1.1.1"
+credentials = "1.5.0"
+googleid = "1.1.1"
 androidxTestCore = "1.6.1"
 junit5 = "5.10.1"
 
@@ -98,6 +100,9 @@ pagingCommon = "3.3.6"
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
 
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 tdlib = { module = "com.github.tdlibx:td", version = "1.8.56" }
 androidx-paging-common = { group = "androidx.paging", name = "paging-common", version = "3.3.6" }
 androidx-app = { module = "androidx.car.app:app", version.ref = "app" }

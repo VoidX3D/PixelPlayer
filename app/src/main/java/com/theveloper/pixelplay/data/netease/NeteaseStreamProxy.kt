@@ -1,7 +1,7 @@
 package com.theveloper.pixelplay.data.netease
 
 import android.net.Uri
-import com.theveloper.pixelplay.utils.LogUtils
+import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -15,6 +15,7 @@ import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -38,6 +39,15 @@ class NeteaseStreamProxy @Inject constructor(
     private val repository: NeteaseRepository,
     private val okHttpClient: OkHttpClient
 ) {
+    private companion object {
+        val ALLOWED_REMOTE_HOST_SUFFIXES = setOf(
+            "music.126.net",
+            "music.163.com",
+            "126.net",
+            "163.com"
+        )
+    }
+
     private var server: ApplicationEngine? = null
     private var actualPort: Int = 0
 
@@ -51,9 +61,31 @@ class NeteaseStreamProxy @Inject constructor(
 
     fun isReady(): Boolean = actualPort > 0
 
+    /**
+     * Suspends until the proxy server is ready (port bound).
+     * @param timeoutMs Maximum time to wait
+     * @return true if ready, false if timed out
+     */
+    suspend fun awaitReady(timeoutMs: Long = 10_000L): Boolean {
+        if (isReady()) return true
+
+        val stepMs = 50L
+        var elapsed = 0L
+        while (elapsed < timeoutMs) {
+            if (isReady()) return true
+            delay(stepMs)
+            elapsed += stepMs
+        }
+        return false
+    }
+
     fun getProxyUrl(songId: Long): String {
         if (actualPort == 0) {
             Timber.w("NeteaseStreamProxy: getProxyUrl called but actualPort is 0")
+            return ""
+        }
+        if (!CloudStreamSecurity.validateNeteaseSongId(songId)) {
+            Timber.w("NeteaseStreamProxy: getProxyUrl rejected invalid songId: $songId")
             return ""
         }
         return "http://127.0.0.1:$actualPort/netease/$songId"
@@ -67,6 +99,7 @@ class NeteaseStreamProxy @Inject constructor(
         val uri = Uri.parse(uriString)
         if (uri.scheme != "netease") return null
         val songId = uri.host?.toLongOrNull() ?: return null
+        if (!CloudStreamSecurity.validateNeteaseSongId(songId)) return null
         return getProxyUrl(songId)
     }
 
@@ -93,57 +126,95 @@ class NeteaseStreamProxy @Inject constructor(
     }
 
     private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(CIO, port = port) {
+        return embeddedServer(CIO, host = "127.0.0.1", port = port) {
             routing {
                 get("/netease/{songId}") {
                     val songId = call.parameters["songId"]?.toLongOrNull()
-                    if (songId == null) {
+                    if (songId == null || !CloudStreamSecurity.validateNeteaseSongId(songId)) {
                         call.respond(HttpStatusCode.BadRequest, "Invalid Song ID")
                         return@get
                     }
 
                     try {
+                        val rangeValidation = CloudStreamSecurity.validateRangeHeader(call.request.headers["Range"])
+                        if (!rangeValidation.isValid) {
+                            call.respond(HttpStatusCode(416, "Range Not Satisfiable"), "Invalid range header")
+                            return@get
+                        }
+
                         val streamUrl = getOrFetchStreamUrl(songId)
                         if (streamUrl == null) {
                             call.respond(HttpStatusCode.NotFound, "No stream URL available")
                             return@get
                         }
+                        if (!CloudStreamSecurity.isSafeRemoteStreamUrl(
+                                url = streamUrl,
+                                allowedHostSuffixes = ALLOWED_REMOTE_HOST_SUFFIXES,
+                                allowHttpForAllowedHosts = true
+                            )
+                        ) {
+                            call.respond(HttpStatusCode.BadGateway, "Rejected upstream stream URL")
+                            return@get
+                        }
 
                         // Proxy the audio stream
-                        val rangeHeader = call.request.headers["Range"]
                         val requestBuilder = Request.Builder().url(streamUrl)
-                        if (rangeHeader != null) {
-                            requestBuilder.header("Range", rangeHeader)
+                        rangeValidation.normalizedHeader?.let {
+                            requestBuilder.header("Range", it)
                         }
 
                         val response = withContext(Dispatchers.IO) {
                             okHttpClient.newCall(requestBuilder.build()).execute()
                         }
-                        val body = response.body
 
-                        if (body == null) {
-                            call.respond(HttpStatusCode.BadGateway, "No response body")
-                            return@get
-                        }
+                        response.use { upstream ->
+                            if (upstream.code != 200 && upstream.code != 206) {
+                                call.respond(
+                                    CloudStreamSecurity.mapUpstreamStatusToProxyStatus(upstream.code),
+                                    "Upstream stream request failed"
+                                )
+                                return@get
+                            }
 
-                        val contentLength = response.header("Content-Length")
-                        val contentRange = response.header("Content-Range")
-                        val acceptRanges = response.header("Accept-Ranges")
+                            val body = upstream.body
 
-                        if (response.code == 206) {
-                            call.response.status(HttpStatusCode.PartialContent)
-                        }
-                        call.response.header("Accept-Ranges", acceptRanges ?: "bytes")
-                        contentLength?.let { call.response.header("Content-Length", it) }
-                        contentRange?.let { call.response.header("Content-Range", it) }
+                            val contentTypeHeader = upstream.header("Content-Type")
+                            if (!CloudStreamSecurity.isSupportedAudioContentType(contentTypeHeader)) {
+                                call.respond(HttpStatusCode.BadGateway, "Unsupported stream content type")
+                                return@get
+                            }
 
-                        call.respondBytesWriter(contentType = ContentType.Audio.Any) {
-                            withContext(Dispatchers.IO) {
-                                body.byteStream().use { input ->
-                                    val buffer = ByteArray(64 * 1024)
-                                    var bytesRead: Int
-                                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                                        writeFully(buffer, 0, bytesRead)
+                            val contentLength = upstream.header("Content-Length")
+                            if (!CloudStreamSecurity.isAcceptableContentLength(contentLength)) {
+                                call.respond(HttpStatusCode(413, "Payload Too Large"), "Stream content too large")
+                                return@get
+                            }
+
+                            val contentRange = upstream.header("Content-Range")
+                            val acceptRanges = upstream.header("Accept-Ranges")
+                            val responseContentType = contentTypeHeader
+                                ?.substringBefore(';')
+                                ?.trim()
+                                ?.let { raw -> runCatching { ContentType.parse(raw) }.getOrNull() }
+                                ?: ContentType.Audio.Any
+
+                            if (upstream.code == 206) {
+                                call.response.status(HttpStatusCode.PartialContent)
+                            } else {
+                                call.response.status(HttpStatusCode.OK)
+                            }
+                            call.response.header("Accept-Ranges", acceptRanges ?: "bytes")
+                            contentLength?.let { call.response.header("Content-Length", it) }
+                            contentRange?.let { call.response.header("Content-Range", it) }
+
+                            call.respondBytesWriter(contentType = responseContentType) {
+                                withContext(Dispatchers.IO) {
+                                    body.byteStream().use { input ->
+                                        val buffer = ByteArray(64 * 1024)
+                                        var bytesRead: Int
+                                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                                            writeFully(buffer, 0, bytesRead)
+                                        }
                                     }
                                 }
                             }

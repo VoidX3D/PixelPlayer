@@ -59,7 +59,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
@@ -144,6 +144,7 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
+import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.FileExplorerDialog
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
@@ -357,7 +358,7 @@ fun SettingsCategoryScreen(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = currentTopBarHeightDp,
+                top = currentTopBarHeightDp + 8.dp,
                 start = 16.dp,
                 end = 16.dp,
                 bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
@@ -934,13 +935,11 @@ fun SettingsCategoryScreen(
             }
         }
 
-        SettingsTopBar(
+        CollapsibleCommonTopBar(
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
-            onBackPressed = onBackClick,
+            onBackClick = onBackClick,
             title = category.title,
-            expandedStartPadding = 20.dp,
-            collapsedStartPadding = 68.dp,
             maxLines = titleMaxLines
         )
 
@@ -1340,7 +1339,7 @@ private fun BackupSectionSelectionDialog(
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )
@@ -1793,7 +1792,7 @@ private fun ImportFileSelectionDialog(
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )
@@ -2117,12 +2116,12 @@ private fun ImportModuleSelectionDialog(
                                         )
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Rounded.ArrowBack,
+                                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                             contentDescription = "Back"
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )

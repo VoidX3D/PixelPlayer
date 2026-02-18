@@ -20,9 +20,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FavoritesEntity::class,
         LyricsEntity::class,
         NeteaseSongEntity::class,
-        NeteasePlaylistEntity::class
+        NeteasePlaylistEntity::class,
+        GDriveSongEntity::class,
+        GDriveFolderEntity::class
     ],
-    version = 21, // Incremented for Netease Cloud Music tables
+    version = 22, // Incremented for Google Drive tables
 
     exportSchema = false
 )
@@ -36,6 +38,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun favoritesDao(): FavoritesDao
     abstract fun lyricsDao(): LyricsDao
     abstract fun neteaseDao(): NeteaseDao
+    abstract fun gdriveDao(): GDriveDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -393,6 +396,41 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         cover_url TEXT,
                         song_count INTEGER NOT NULL,
                         last_sync_time INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        /**
+         * Add Google Drive tables.
+         */
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS gdrive_songs (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        drive_file_id TEXT NOT NULL,
+                        folder_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        artist TEXT NOT NULL,
+                        album TEXT NOT NULL,
+                        album_id INTEGER NOT NULL,
+                        duration INTEGER NOT NULL,
+                        album_art_url TEXT,
+                        mime_type TEXT NOT NULL,
+                        bitrate INTEGER,
+                        file_size INTEGER NOT NULL,
+                        date_added INTEGER NOT NULL,
+                        date_modified INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS gdrive_folders (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        song_count INTEGER NOT NULL DEFAULT 0,
+                        last_sync_time INTEGER NOT NULL DEFAULT 0
                     )
                 """.trimIndent())
             }

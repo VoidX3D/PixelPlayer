@@ -481,7 +481,7 @@ class CastTransferStateHolder @Inject constructor(
              updateQueue?.invoke(queueForUi)
         }
         
-        if (castSession != null && (newQueue.isNotEmpty() || previousQueue.isNotEmpty())) {
+        if (newQueue.isNotEmpty() || previousQueue.isNotEmpty()) {
             onSheetVisible?.invoke()
         }
     }
@@ -669,8 +669,6 @@ class CastTransferStateHolder @Inject constructor(
 
     private fun resolveCastDeviceIp(session: CastSession?): String? {
         val castDevice = session?.castDevice ?: return null
-        val direct = normalizeHostAddress(runCatching { castDevice.ipAddress }.getOrNull())
-        if (direct != null) return direct
         return normalizeHostAddress(runCatching { castDevice.inetAddress }.getOrNull())
     }
 

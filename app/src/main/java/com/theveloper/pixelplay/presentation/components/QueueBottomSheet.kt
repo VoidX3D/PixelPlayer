@@ -165,6 +165,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -576,7 +577,7 @@ fun QueueBottomSheet(
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                 if (updatedIsReordering || updatedReorderHandleInUse) return Offset.Zero
 
-                if (draggingSheetFromList && source == NestedScrollSource.Drag && available.y != 0f) {
+                if (draggingSheetFromList && source == NestedScrollSource.UserInput && available.y != 0f) {
                     listDragAccumulated += available.y
                     updatedOnQueueDrag(available.y)
                     return Offset(0f, available.y)
@@ -909,9 +910,9 @@ fun QueueBottomSheet(
                         elevation = FloatingActionButtonDefaults.elevation(0.dp) // Opcional: para igualar elevación flat
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Add,
+                            imageVector = Icons.Rounded.MoreHoriz,
                             contentDescription = "Queue actions",
-                            modifier = Modifier.rotate(fabRotation)
+                            //modifier = Modifier.rotate(fabRotation)
                         )
                     }
                 }
@@ -1390,7 +1391,7 @@ fun SaveQueueAsPlaylistSheet(
                                     }
                                 }
                             },
-                            colors = TopAppBarDefaults.mediumTopAppBarColors(
+                            colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 scrolledContainerColor = MaterialTheme.colorScheme.surface
                             ),

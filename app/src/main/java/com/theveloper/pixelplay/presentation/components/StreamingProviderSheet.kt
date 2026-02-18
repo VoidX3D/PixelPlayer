@@ -8,12 +8,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +29,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 /**
  * Bottom sheet that lets the user choose between streaming providers
- * (Telegram, Netease Cloud Music).
+ * (Telegram, Google Drive, Netease Cloud Music).
  *
  * For Netease: if already logged in, navigates to dashboard.
  * If not logged in, launches WebView login activity.
@@ -38,7 +40,9 @@ fun StreamingProviderSheet(
     onDismissRequest: () -> Unit,
     isNeteaseLoggedIn: Boolean = false,
     onNavigateToNeteaseDashboard: () -> Unit = {},
-    sheetState: SheetState = rememberModalBottomSheetState()
+    sheetState: SheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
 ) {
     val context = LocalContext.current
 
@@ -100,6 +104,21 @@ fun StreamingProviderSheet(
 
             Spacer(Modifier.height(12.dp))
 
+            // Google Drive Provider (coming soon)
+            ProviderCard(
+                icon = Icons.Rounded.CloudQueue,
+                title = "Google Drive",
+                subtitle = "Coming soon",
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                iconColor = MaterialTheme.colorScheme.secondary,
+                shape = cardShape,
+                enabled = false,
+                onClick = { }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
             // Netease Cloud Music Provider
             ProviderCard(
                 icon = Icons.Rounded.MusicNote,
@@ -134,12 +153,14 @@ private fun ProviderCard(
     contentColor: androidx.compose.ui.graphics.Color,
     iconColor: androidx.compose.ui.graphics.Color,
     shape: AbsoluteSmoothCornerShape,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .alpha(if (enabled) 1f else 0.62f)
+            .clickable(enabled = enabled, onClick = onClick),
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = containerColor

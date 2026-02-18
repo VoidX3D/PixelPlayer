@@ -1,10 +1,10 @@
 package com.theveloper.pixelplay.data.telegram
 
 import com.theveloper.pixelplay.utils.LogUtils
+import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.application.install
 import io.ktor.server.engine.*
 import io.ktor.server.cio.*
 import io.ktor.server.response.respond
@@ -12,15 +12,12 @@ import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.header
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.writeStringUtf8
 import io.ktor.utils.io.writeFully
-import io.ktor.utils.io.ByteWriteChannel
 import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.drinkless.tdlib.TdApi
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.ServerSocket
@@ -34,11 +31,11 @@ class TelegramStreamProxy @Inject constructor(
     private var server: ApplicationEngine? = null
 
     private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(CIO, port = port) {
+        return embeddedServer(CIO, host = "127.0.0.1", port = port) {
             routing {
                 get("/stream/{fileId}") {
                     val fileId = call.parameters["fileId"]?.toIntOrNull()
-                    if (fileId == null) {
+                    if (fileId == null || !CloudStreamSecurity.validateTelegramFileId(fileId)) {
                         call.respond(HttpStatusCode.BadRequest, "Invalid File ID")
                         return@get
                     }
@@ -78,15 +75,12 @@ class TelegramStreamProxy @Inject constructor(
                     val path = fileInfo!!.local.path
                     var expectedSize = fileInfo.expectedSize
 
-                    // Use known size from query param if available (authoritative)
-                    val knownSize = call.parameters["size"]?.toLongOrNull() ?: 0L
-                    if (knownSize > 0) {
+                    // Optional hint from caller; only trusted within sane limits.
+                    val knownSize = call.parameters["size"]?.toLongOrNull()?.takeIf {
+                        it in 1..CloudStreamSecurity.MAX_STREAM_CONTENT_LENGTH_BYTES
+                    } ?: 0L
+                    if (knownSize > 0 && expectedSize <= 0L) {
                         expectedSize = knownSize
-                    }
-                    
-                    // Fallback to disk size if still 0
-                    if (expectedSize == 0L) {
-                         expectedSize = File(path).length()
                     }
 
                     val file = File(path)
@@ -108,22 +102,46 @@ class TelegramStreamProxy @Inject constructor(
                          return@get
                     }
 
+                    if (!file.isFile) {
+                        call.respond(HttpStatusCode.NotFound, "Invalid file")
+                        return@get
+                    }
+
+                    if (expectedSize <= 0L) {
+                        expectedSize = file.length()
+                    }
+                    if (expectedSize > CloudStreamSecurity.MAX_STREAM_CONTENT_LENGTH_BYTES) {
+                        call.respond(HttpStatusCode(413, "Payload Too Large"), "File too large for proxy streaming")
+                        return@get
+                    }
+
                     // Range Handling
-                    val rangeHeader = call.request.headers["Range"]
+                    val rangeValidation = CloudStreamSecurity.validateRangeHeader(call.request.headers["Range"])
+                    if (!rangeValidation.isValid) {
+                        call.respond(HttpStatusCode(416, "Range Not Satisfiable"), "Invalid range header")
+                        return@get
+                    }
+
+                    val isRangeRequest = rangeValidation.normalizedHeader != null
                     var start = 0L
                     var end = if (expectedSize > 0) expectedSize - 1 else Long.MAX_VALUE - 1
 
-                    if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-                        try {
-                            val ranges = rangeHeader.substring(6).split("-")
-                            if (ranges.isNotEmpty() && ranges[0].isNotEmpty()) {
-                                start = ranges[0].toLong()
+                    if (isRangeRequest) {
+                        if (rangeValidation.isSuffixRange) {
+                            if (expectedSize <= 0L) {
+                                call.respond(HttpStatusCode(416, "Range Not Satisfiable"), "Suffix range requires known size")
+                                return@get
                             }
-                            if (ranges.size > 1 && ranges[1].isNotEmpty()) {
-                                end = ranges[1].toLong()
+                            val suffixLength = rangeValidation.endInclusive ?: 0L
+                            if (suffixLength <= 0L) {
+                                call.respond(HttpStatusCode(416, "Range Not Satisfiable"), "Invalid suffix range")
+                                return@get
                             }
-                        } catch (e: NumberFormatException) {
-                            // Ignore invalid range
+                            start = (expectedSize - suffixLength).coerceAtLeast(0L)
+                            end = expectedSize - 1
+                        } else {
+                            start = rangeValidation.startInclusive ?: 0L
+                            end = rangeValidation.endInclusive ?: if (expectedSize > 0) expectedSize - 1 else Long.MAX_VALUE - 1
                         }
                     }
 
@@ -131,19 +149,29 @@ class TelegramStreamProxy @Inject constructor(
                     if (expectedSize > 0 && end >= expectedSize) {
                         end = expectedSize - 1
                     }
-                    
-                    if (start > end) {
+
+                    if (expectedSize > 0 && start >= expectedSize) {
+                        call.respond(HttpStatusCode(416, "Range Not Satisfiable"))
+                        return@get
+                    }
+
+                    if (start > end || start < 0 || end < 0) {
                          call.respond(HttpStatusCode(416, "Range Not Satisfiable"))
                          return@get
                     }
 
                     val contentLength = end - start + 1
-                    
+
                     call.response.header("Accept-Ranges", "bytes")
-                    if (expectedSize > 0) {
-                        call.response.header("Content-Range", "bytes $start-$end/$expectedSize")
+                    if (isRangeRequest) {
+                        if (expectedSize > 0) {
+                            call.response.header("Content-Range", "bytes $start-$end/$expectedSize")
+                        }
                         call.response.header("Content-Length", contentLength.toString())
                         call.response.status(HttpStatusCode.PartialContent)
+                    } else if (expectedSize > 0) {
+                        call.response.header("Content-Length", expectedSize.toString())
+                        call.response.status(HttpStatusCode.OK)
                     }
 
                     // Stream the file
@@ -245,7 +273,12 @@ class TelegramStreamProxy @Inject constructor(
             LogUtils.w("StreamProxy", "getProxyUrl called but actualPort is 0")
             return ""
         }
-        val url = "http://127.0.0.1:$actualPort/stream/$fileId?size=$knownSize"
+        if (!CloudStreamSecurity.validateTelegramFileId(fileId)) {
+            LogUtils.w("StreamProxy", "getProxyUrl rejected invalid fileId: $fileId")
+            return ""
+        }
+        val safeKnownSize = knownSize.takeIf { it in 0..CloudStreamSecurity.MAX_STREAM_CONTENT_LENGTH_BYTES } ?: 0L
+        val url = "http://127.0.0.1:$actualPort/stream/$fileId?size=$safeKnownSize"
         LogUtils.d("StreamProxy", "Generated Proxy URL: $url")
         return url
     }

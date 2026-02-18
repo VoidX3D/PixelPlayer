@@ -93,6 +93,9 @@ fun SongEntity.toSong(): Song {
         neteaseId = if (this.contentUriString.startsWith("netease://")) {
             this.contentUriString.removePrefix("netease://").toLongOrNull()
         } else null,
+        gdriveFileId = if (this.contentUriString.startsWith("gdrive://")) {
+            this.contentUriString.removePrefix("gdrive://")
+        } else null,
         mimeType = this.mimeType,
         bitrate = this.bitrate,
         sampleRate = this.sampleRate
@@ -141,6 +144,9 @@ fun SongEntity.toSongWithArtistRefs(artists: List<ArtistEntity>, crossRefs: List
         } else null,
         neteaseId = if (this.contentUriString.startsWith("netease://")) {
             this.contentUriString.removePrefix("netease://").toLongOrNull()
+        } else null,
+        gdriveFileId = if (this.contentUriString.startsWith("gdrive://")) {
+            this.contentUriString.removePrefix("gdrive://")
         } else null,
         mimeType = this.mimeType,
         bitrate = this.bitrate,

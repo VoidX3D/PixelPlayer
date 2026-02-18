@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.TextFormat
 import androidx.compose.material3.DropdownMenu
@@ -74,7 +74,7 @@ fun LyricsFloatingToolbar(
             onClick = onNavigateBack
         ) {
             Icon(
-                imageVector = Icons.Rounded.ArrowBack,
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
                 tint = onBackgroundColor
             )

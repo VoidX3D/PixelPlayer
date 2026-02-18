@@ -8,6 +8,7 @@ import com.theveloper.pixelplay.utils.StorageInfo
 import com.theveloper.pixelplay.utils.StorageUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -44,6 +45,7 @@ private data class RawDirectoryEntry(
     val displayName: String? = null
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FileExplorerStateHolder(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val scope: CoroutineScope,
