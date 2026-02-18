@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -75,20 +76,22 @@ fun WavySliderExpressive(
     val thumbRadiusPx = with(density) { thumbRadius.toPx() }
     val thumbLineHeightPx = with(density) { thumbLineHeightWhenInteracting.toPx() }
 
+    val updatedValueProvider by rememberUpdatedState(value)
+
     val stroke = remember(strokeWidthPx) {
         Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
     }
 
-    val normalizedValueProvider = remember(value, valueRange) {
+    val normalizedValueProvider = remember(valueRange) {
         {
-            val v = value()
+            val v = updatedValueProvider()
             if (valueRange.endInclusive == valueRange.start) 0f
             else ((v - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
         }
     }
 
-    val clampedValueProvider = remember(value, valueRange) {
-        { value().coerceIn(valueRange.start, valueRange.endInclusive) }
+    val clampedValueProvider = remember(valueRange) {
+        { updatedValueProvider().coerceIn(valueRange.start, valueRange.endInclusive) }
     }
 
     val safeSemanticsStep = semanticsProgressStep.coerceIn(0.005f, 0.25f)

@@ -17,11 +17,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,27 +43,35 @@ fun PlayerSeekBar(
     backgroundColor: Color,
     onBackgroundColor: Color,
     primaryColor: Color,
-    currentPosition: Long,
+    currentPositionProvider: () -> Long,
     totalDuration: Long,
     onSeek: (Long) -> Unit,
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val progressFraction = remember(currentPosition, totalDuration) {
-        if (totalDuration > 0) {
-            (currentPosition.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
-        } else {
-            0f
+    val updatedCurrentPositionProvider by rememberUpdatedState(currentPositionProvider)
+
+    val progressFractionState = remember(totalDuration) {
+        derivedStateOf {
+            val currentPosition = updatedCurrentPositionProvider()
+            if (totalDuration > 0) {
+                (currentPosition.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
         }
     }
 
     var isUserSeeking by remember { mutableStateOf(false) }
-    var seekFraction by remember { mutableFloatStateOf(progressFraction) }
+    var seekFraction by remember { mutableFloatStateOf(progressFractionState.value) }
 
-    LaunchedEffect(progressFraction) {
-        if (!isUserSeeking) {
-            seekFraction = progressFraction
-        }
+    LaunchedEffect(totalDuration) {
+        snapshotFlow { progressFractionState.value }
+            .collect { fraction ->
+                if (!isUserSeeking) {
+                    seekFraction = fraction
+                }
+            }
     }
 
     Row(
@@ -90,7 +101,7 @@ fun PlayerSeekBar(
                 .fillMaxWidth()
                 .padding(horizontal = 0.dp),
                 //.weight(0.8f),
-            value = seekFraction,
+            value = { seekFraction },
             onValueChange = { newFraction ->
                 isUserSeeking = true
                 seekFraction = newFraction
