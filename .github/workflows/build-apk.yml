@@ -7,13 +7,13 @@ on:
       - 'v*' # Triggers when you create a tag like v1.0, v2.1.3, etc.
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed to create the release
+      contents: write # 👈 CRITICAL: Allows the bot to create the release and upload APKs
     
     steps:
       - name: Checkout repository
@@ -49,7 +49,7 @@ jobs:
       # This step only runs if you pushed a tag (e.g., v1.0)
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.2 # 👈 Pinned to stable version to avoid the retry loop bug
         with:
           files: app/build/outputs/apk/debug/app-debug.apk
           tag_name: ${{ github.ref_name }}
