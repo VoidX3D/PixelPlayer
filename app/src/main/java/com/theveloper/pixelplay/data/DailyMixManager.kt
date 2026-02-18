@@ -276,17 +276,19 @@ class DailyMixManager @Inject constructor(
         val artistAffinity = mutableMapOf<Long, Double>()
         val genreAffinity = mutableMapOf<String, Double>()
 
-        engagements.forEach { (songId, stats) ->
-            val song = songById[songId] ?: return@forEach
+        for (entry in engagements) {
+            val songId = entry.key
+            val stats = entry.value
+            val song = songById[songId] ?: continue
             val weight = stats.playCount.toDouble() + (stats.totalPlayDurationMs / 60000.0)
-            if (weight <= 0) return@forEach
+            if (weight <= 0) continue
             artistAffinity.merge(song.artistId, weight, Double::plus)
             song.genre?.lowercase()?.let { genreAffinity.merge(it, weight, Double::plus) }
         }
 
         val favoriteArtistWeights = mutableMapOf<Long, Int>()
-        favoriteSongIds.forEach { id ->
-            val song = songById[id] ?: return@forEach
+        for (id in favoriteSongIds) {
+            val song = songById[id] ?: continue
             favoriteArtistWeights.merge(song.artistId, 1, Int::plus)
         }
 
@@ -440,9 +442,11 @@ class DailyMixManager @Inject constructor(
         if (limit <= 0 || rankedSongs.isEmpty()) return emptyList()
 
         val selected = mutableListOf<Song>()
+        val selectedIds = mutableSetOf<String>()
         val artistCounts = mutableMapOf<Long, Int>()
 
-        for (candidate in rankedSongs) {
+        for (i in rankedSongs.indices) {
+            val candidate = rankedSongs[i]
             if (selected.size >= limit) break
             val artistId = candidate.song.artistId
             val maxPerArtist = if (favoriteSongIds.contains(candidate.song.id)) 2 else 1
@@ -450,14 +454,17 @@ class DailyMixManager @Inject constructor(
             if (currentCount >= maxPerArtist) continue
 
             selected += candidate.song
+            selectedIds += candidate.song.id
             artistCounts[artistId] = currentCount + 1
         }
 
         if (selected.size < limit) {
-            for (candidate in rankedSongs) {
+            for (i in rankedSongs.indices) {
+                val candidate = rankedSongs[i]
                 if (selected.size >= limit) break
-                if (selected.any { it.id == candidate.song.id }) continue
+                if (selectedIds.contains(candidate.song.id)) continue
                 selected += candidate.song
+                selectedIds += candidate.song.id
             }
         }
 
