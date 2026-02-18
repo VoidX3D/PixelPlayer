@@ -205,7 +205,7 @@ class SettingsViewModel @Inject constructor(
         
         // Group 1: Core UI settings (theme, navigation, appearance)
         viewModelScope.launch {
-            combine(
+            combine<Any?, SettingsUiUpdate.Group1>(
                 userPreferencesRepository.appRebrandDialogShownFlow,
                 userPreferencesRepository.appThemeModeFlow,
                 userPreferencesRepository.playerThemePreferenceFlow,
@@ -252,7 +252,7 @@ class SettingsViewModel @Inject constructor(
         
         // Group 2: Playback and system settings
         viewModelScope.launch {
-            combine(
+            combine<Any?, SettingsUiUpdate.Group2>(
                 userPreferencesRepository.keepPlayingInBackgroundFlow,
                 userPreferencesRepository.disableCastAutoplayFlow,
                 userPreferencesRepository.showQueueHistoryFlow,

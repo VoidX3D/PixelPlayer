@@ -576,7 +576,7 @@ fun QueueBottomSheet(
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                 if (updatedIsReordering || updatedReorderHandleInUse) return Offset.Zero
 
-                if (draggingSheetFromList && source == NestedScrollSource.Drag && available.y != 0f) {
+                if (draggingSheetFromList && source == NestedScrollSource.UserInput && available.y != 0f) {
                     listDragAccumulated += available.y
                     updatedOnQueueDrag(available.y)
                     return Offset(0f, available.y)
@@ -1390,7 +1390,7 @@ fun SaveQueueAsPlaylistSheet(
                                     }
                                 }
                             },
-                            colors = TopAppBarDefaults.mediumTopAppBarColors(
+                            colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 scrolledContainerColor = MaterialTheme.colorScheme.surface
                             ),

@@ -73,7 +73,6 @@ import com.theveloper.pixelplay.ui.theme.MontserratFamily
 import kotlinx.coroutines.launch
 import java.io.File
 
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.graphics.TransformOrigin
 import com.theveloper.pixelplay.presentation.screens.TabAnimation
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -481,7 +480,7 @@ fun SongInfoBottomSheet(
             }
 
             // Bottom Tab Bar
-            TabRow(
+            PrimaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

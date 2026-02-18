@@ -36,6 +36,7 @@ class PlaybackStateHolder @Inject constructor(
     companion object {
         private const val TAG = "PlaybackStateHolder"
         private const val DURATION_MISMATCH_TOLERANCE_MS = 1500L
+        private const val PROGRESS_TICK_MS = 100L
         /**
          * Threshold above which we skip per-item moveMediaItem calls and use
          * a single setMediaItems call instead. moveMediaItem triggers an IPC
@@ -88,7 +89,7 @@ class PlaybackStateHolder @Inject constructor(
                     )
                 }
             } else {
-                if (remoteMediaClient.mediaQueue != null && remoteMediaClient.mediaQueue.itemCount > 0) {
+                if (remoteMediaClient.mediaQueue.itemCount > 0) {
                     castStateHolder.castPlayer?.play()
                     _stablePlayerState.update {
                         it.copy(
@@ -332,9 +333,9 @@ class PlaybackStateHolder @Inject constructor(
                                  visibleSong?.id,
                                  currentMediaId
                              )
-                             delay(500)
-                             continue
-                         }
+                            delay(PROGRESS_TICK_MS)
+                            continue
+                        }
 
                          val currentPosition = controller.currentPosition.coerceAtLeast(0L)
                          val songDurationHint = visibleSong?.duration ?: 0L
@@ -355,7 +356,7 @@ class PlaybackStateHolder @Inject constructor(
                         }
                      }
                 }
-                delay(500) // 500ms ticker
+                delay(PROGRESS_TICK_MS)
             }
         }
     }

@@ -52,10 +52,6 @@ import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-// Utilidad para “inflar” un rect en px (evita hairlines)
-private fun Rect.inflate(p: Float) =
-    Rect(left - p, top - p, right + p, bottom + p)
-
 /* ================================================================================================
    PUBLIC API
    ================================================================================================ */
@@ -1596,5 +1592,4 @@ private class KeylineListScopeImpl : KeylineListScope {
         )
     }
 }
-
 

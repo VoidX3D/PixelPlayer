@@ -366,17 +366,31 @@ class NeteaseRepository @Inject constructor(
     suspend fun getSongUrl(songId: Long, quality: String = "exhigh"): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val raw = api.getSongDownloadUrl(songId, quality)
-                val root = JSONObject(raw)
-                val data = root.optJSONArray("data")
-                val urlObj = data?.optJSONObject(0)
-                val url = urlObj?.optString("url", "")
+                val qualityFallbacks = linkedSetOf(quality, "higher", "standard")
+                var lastFailure: String? = null
 
-                if (!url.isNullOrBlank() && url != "null") {
-                    Result.success(url)
-                } else {
-                    Result.failure(Exception("No URL available for song $songId"))
+                for (level in qualityFallbacks) {
+                    val raw = api.getSongDownloadUrl(songId, level)
+                    val root = JSONObject(raw)
+                    val code = root.optInt("code", -1)
+                    if (code != 200) {
+                        lastFailure = "API code=$code for level=$level"
+                        continue
+                    }
+
+                    val data = root.optJSONArray("data")
+                    val urlObj = data?.optJSONObject(0)
+                    val url = urlObj?.optString("url", "")
+                    if (!url.isNullOrBlank() && url != "null") {
+                        Timber.d("Resolved Netease URL for songId=$songId with level=$level")
+                        return@withContext Result.success(url)
+                    }
+
+                    val freeTrialInfo = urlObj?.opt("freeTrialInfo")
+                    lastFailure = "Empty URL at level=$level, freeTrialInfo=$freeTrialInfo"
                 }
+
+                Result.failure(Exception("No URL available for song $songId ($lastFailure)"))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to get URL for song $songId")
                 Result.failure(e)

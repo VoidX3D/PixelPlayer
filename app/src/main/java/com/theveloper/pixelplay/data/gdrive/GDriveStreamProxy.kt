@@ -173,10 +173,6 @@ class GDriveStreamProxy @Inject constructor(
                             }
 
                             val body = upstream.body
-                            if (body == null) {
-                                call.respond(HttpStatusCode.BadGateway, "No response body")
-                                return@get
-                            }
 
                             val contentTypeHeader = upstream.header("Content-Type")
                             if (!CloudStreamSecurity.isSupportedAudioContentType(contentTypeHeader)) {

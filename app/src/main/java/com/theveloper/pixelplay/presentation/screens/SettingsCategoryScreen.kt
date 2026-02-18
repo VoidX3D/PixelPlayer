@@ -59,7 +59,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
@@ -1340,7 +1340,7 @@ private fun BackupSectionSelectionDialog(
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )
@@ -1793,7 +1793,7 @@ private fun ImportFileSelectionDialog(
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )
@@ -2117,12 +2117,12 @@ private fun ImportModuleSelectionDialog(
                                         )
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Rounded.ArrowBack,
+                                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                             contentDescription = "Back"
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                colors = TopAppBarDefaults.topAppBarColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 )
                             )

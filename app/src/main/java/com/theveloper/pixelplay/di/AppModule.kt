@@ -200,12 +200,14 @@ object AppModule {
     fun provideLyricsRepository(
         @ApplicationContext context: Context,
         lrcLibApiService: LrcLibApiService,
-        lyricsDao: LyricsDao
+        lyricsDao: LyricsDao,
+        okHttpClient: OkHttpClient
     ): LyricsRepository {
         return LyricsRepositoryImpl(
             context = context,
             lrcLibApiService = lrcLibApiService,
-            lyricsDao = lyricsDao
+            lyricsDao = lyricsDao,
+            okHttpClient = okHttpClient
         )
     }
 
@@ -471,4 +473,3 @@ object AppModule {
         return ArtistImageRepository(deezerApiService, musicDao)
     }
 }
-

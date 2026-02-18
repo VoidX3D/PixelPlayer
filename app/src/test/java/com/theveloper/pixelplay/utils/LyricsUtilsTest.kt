@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LyricsUtilsTest {
@@ -179,5 +180,19 @@ class LyricsUtilsTest {
             ),
             synced.map { it.line }
         )
+    }
+
+    @Test
+    fun parseLyrics_wordByWord_ignoresTrailingUntaggedTranslationInWordTiming() {
+        val lrc = "[00:10.00]<00:10.00>To <00:10.30>fall <00:10.60>in <00:10.90>love\\n怦然心动"
+
+        val lyrics = LyricsUtils.parseLyrics(lrc)
+        val synced = requireNotNull(lyrics.synced)
+        val first = synced.first()
+        val words = requireNotNull(first.words)
+
+        assertEquals("To fall in love\\n怦然心动", first.line)
+        assertEquals(listOf("To ", "fall ", "in ", "love"), words.map { it.word })
+        assertTrue(words.none { it.word.contains("怦然心动") })
     }
 }

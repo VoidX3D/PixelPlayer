@@ -49,7 +49,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -862,8 +862,9 @@ fun SyncedLyricsList(
             if (lines.isEmpty()) return@derivedStateOf -1
             val currentPosition = position
             lines.withIndex().lastOrNull { (index, line) ->
-                val nextTime = lines.getOrNull(index + 1)?.time?.toLong() ?: Long.MAX_VALUE
-                currentPosition in line.time.toLong()..<nextTime
+                val nextTime = lines.getOrNull(index + 1)?.time ?: Int.MAX_VALUE
+                val lineEndTime = resolveLineEndTimeMs(line, nextTime)
+                currentPosition in line.time.toLong()..<lineEndTime
             }?.index ?: -1
         }
     }
@@ -968,8 +969,11 @@ fun LyricLineRow(
     val sanitizedWords = remember(line.words) {
         line.words?.let(::sanitizeSyncedWords)
     }
-    val isCurrentLine by remember(position, line.time, nextTime) {
-        derivedStateOf { position in line.time.toLong()..<nextTime.toLong() }
+    val lineEndTime = remember(line, nextTime) {
+        resolveLineEndTimeMs(line, nextTime)
+    }
+    val isCurrentLine by remember(position, line.time, lineEndTime) {
+        derivedStateOf { position in line.time.toLong()..<lineEndTime }
     }
     val unhighlightedColor = LocalContentColor.current.copy(alpha = 0.45f)
     val lineColor by animateColorAsState(
@@ -990,24 +994,30 @@ fun LyricLineRow(
                 .padding(vertical = 4.dp, horizontal = 2.dp)
         )
     } else {
+        val highlightedWordIndex by remember(position, sanitizedWords, line.time, lineEndTime) {
+            derivedStateOf {
+                resolveHighlightedWordIndex(
+                    words = sanitizedWords,
+                    positionMs = position,
+                    lineStartTimeMs = line.time.toLong(),
+                    lineEndTimeMs = lineEndTime
+                )
+            }
+        }
+
         FlowRow(
             modifier = modifier
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
                 .padding(vertical = 4.dp, horizontal = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             sanitizedWords.forEachIndexed { wordIndex, word ->
                 key("${line.time}_${word.time}_${word.word}") {
-                    val nextWordTime =
-                        sanitizedWords.getOrNull(wordIndex + 1)?.time?.toLong() ?: nextTime.toLong()
-                    val isCurrentWord by remember(position, word.time, nextWordTime) {
-                        derivedStateOf { position in word.time.toLong()..<nextWordTime }
-                    }
                     LyricWordSpan(
                         word = word,
-                        isHighlighted = isCurrentLine && isCurrentWord,
+                        isHighlighted = isCurrentLine && wordIndex == highlightedWordIndex,
                         style = style,
                         highlightedColor = accentColor,
                         unhighlightedColor = unhighlightedColor
@@ -1063,11 +1073,50 @@ internal fun sanitizeLyricLineText(raw: String): String =
     LyricsUtils.stripLrcTimestamps(raw).replace(LeadingTagRegex, "").trimStart()
 
 internal fun sanitizeSyncedWords(words: List<SyncedWord>): List<SyncedWord> =
-    words.mapIndexedNotNull { index, word ->
+    buildList {
+        words.forEachIndexed { index, word ->
         val sanitized = if (index == 0) LeadingTagRegex.replace(word.word, "") else word.word
-        val trimmed = sanitized.trim()
-        if (trimmed.isEmpty()) null else word.copy(word = trimmed)
+            if (sanitized.isEmpty()) return@forEachIndexed
+
+            // Avoid invisible timed tokens stealing highlight from visible words.
+            if (sanitized.isBlank()) {
+                val lastIndex = this.lastIndex
+                if (lastIndex >= 0) {
+                    val previous = this[lastIndex]
+                    this[lastIndex] = previous.copy(word = previous.word + sanitized)
+                }
+                return@forEachIndexed
+            }
+
+            add(word.copy(word = sanitized))
+        }
     }
+
+internal fun normalizeWordEndTime(
+    currentWordTimeMs: Long,
+    nextWordTimeMs: Long,
+    lineEndTimeMs: Long
+): Long {
+    val minEnd = currentWordTimeMs + 1L
+    val boundedLineEnd = lineEndTimeMs.coerceAtLeast(minEnd)
+    return nextWordTimeMs.coerceIn(minEnd, boundedLineEnd)
+}
+
+internal fun resolveLineEndTimeMs(line: SyncedLine, nextLineStartMs: Int): Long {
+    val baseEnd = nextLineStartMs.toLong()
+    val lastWordStart = line.words?.maxOfOrNull { it.time.toLong() } ?: line.time.toLong()
+    return maxOf(baseEnd, lastWordStart + 1L)
+}
+
+internal fun resolveHighlightedWordIndex(
+    words: List<SyncedWord>,
+    positionMs: Long,
+    lineStartTimeMs: Long,
+    lineEndTimeMs: Long
+): Int {
+    if (positionMs < lineStartTimeMs || positionMs >= lineEndTimeMs) return -1
+    return words.indexOfLast { it.time.toLong() <= positionMs }
+}
 
 internal data class HighlightZoneMetrics(
     val topPadding: Dp,

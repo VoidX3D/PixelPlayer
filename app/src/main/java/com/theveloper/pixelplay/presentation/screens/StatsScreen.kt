@@ -50,7 +50,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
@@ -62,10 +61,9 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -616,16 +614,19 @@ private fun RangeTabsHeader(
         color = MaterialTheme.colorScheme.surface,
         //shadowElevation = 6.dp
     ) {
-        ScrollableTabRow(
+        PrimaryScrollableTabRow(
             modifier = if (indicatorSpacing > 0.dp) Modifier.padding(bottom = indicatorSpacing) else Modifier,
             selectedTabIndex = selectedIndex,
             edgePadding = 20.dp,
             divider = {},
             containerColor = Color.Transparent,
-            indicator = { positions ->
-                if (showIndicator && selectedIndex in positions.indices) {
+            indicator = {
+                if (showIndicator) {
                     TabRowDefaults.PrimaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(positions[selectedIndex]),
+                        modifier = Modifier.tabIndicatorOffset(
+                            selectedTabIndex = selectedIndex,
+                            matchContentSize = true
+                        ),
                         color = MaterialTheme.colorScheme.primary,
                         height = 3.dp
                     )
@@ -709,7 +710,7 @@ private fun ListeningHabitsCard(
                         value = String.format(Locale.US, "%.1f", summary.averageSessionsPerDay)
                     )
                 }
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 HighlightRow(
                     title = "Most active day",
                     value = summary.peakDayLabel ?: "—",
@@ -1346,7 +1347,7 @@ private fun CategoryHorizontalBarChart(
                     }
 
                     LinearProgressIndicator(
-                        progress = progress,
+                        progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
@@ -1830,7 +1831,7 @@ private fun TopArtistsCard(
                                 )
                             }
                             LinearProgressIndicator(
-                                progress = (artistSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f),
+                                progress = { (artistSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f) },
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.secondary,
                                 trackColor = contentColor.copy(alpha = 0.18f)
@@ -1941,7 +1942,7 @@ private fun TopAlbumsCard(
                                 )
                             }
                             LinearProgressIndicator(
-                                progress = (albumSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f),
+                                progress = { (albumSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f) },
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.tertiary,
                                 trackColor = contentColor.copy(alpha = 0.18f)
@@ -2077,7 +2078,7 @@ private fun SongStatsCard(
                                 }
 
                                 LinearProgressIndicator(
-                                    progress = (songSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f),
+                                    progress = { (songSummary.totalDurationMs.toFloat() / maxDuration.toFloat()).coerceIn(0f, 1f) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(7.dp)

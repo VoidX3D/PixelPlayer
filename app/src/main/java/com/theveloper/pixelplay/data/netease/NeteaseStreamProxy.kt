@@ -15,6 +15,7 @@ import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -59,6 +60,24 @@ class NeteaseStreamProxy @Inject constructor(
     }
 
     fun isReady(): Boolean = actualPort > 0
+
+    /**
+     * Suspends until the proxy server is ready (port bound).
+     * @param timeoutMs Maximum time to wait
+     * @return true if ready, false if timed out
+     */
+    suspend fun awaitReady(timeoutMs: Long = 10_000L): Boolean {
+        if (isReady()) return true
+
+        val stepMs = 50L
+        var elapsed = 0L
+        while (elapsed < timeoutMs) {
+            if (isReady()) return true
+            delay(stepMs)
+            elapsed += stepMs
+        }
+        return false
+    }
 
     fun getProxyUrl(songId: Long): String {
         if (actualPort == 0) {

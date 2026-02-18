@@ -79,7 +79,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getAudioMessages(chatId: Long): List<Song> {
         Timber.d("Fetching chat history for chat: $chatId")
         try {
-            clientManager.sendRequest(TdApi.OpenChat(chatId))
+            clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
         } catch (e: Exception) {
             Timber.w("Failed to open chat: $chatId")
         }

@@ -268,12 +268,13 @@ class NeteaseApiService @Inject constructor() {
      */
     fun getSongDownloadUrl(songId: Long, level: String = "exhigh"): String {
         fun call(): String {
+            val encodeType = if (level == "lossless" || level == "jyeffect") "flac" else "mp3"
             val params = mutableMapOf<String, Any>(
                 "ids" to "[$songId]",
                 "level" to level,
-                "encodeType" to "flac"
+                "encodeType" to encodeType
             )
-            return callEApi("/song/enhance/player/url/v1", params, usePersistedCookies = false)
+            return callEApi("/song/enhance/player/url/v1", params, usePersistedCookies = true)
         }
 
         var resp = call()
@@ -308,8 +309,13 @@ class NeteaseApiService @Inject constructor() {
         val params = mutableMapOf<String, Any>(
             "id" to songId.toString(),
             "cp" to "false",
-            "lv" to 0,
-            "tv" to 0
+            "lv" to -1,
+            "tv" to -1,
+            "kv" to -1,
+            "rv" to -1,
+            "yv" to 1,
+            "ytv" to 1,
+            "yrv" to 1
         )
         return callEApi("/song/lyric/v1", params, usePersistedCookies = true)
     }

@@ -192,7 +192,9 @@ class EqualizerViewModel @Inject constructor(
             ) { values -> // Too many args for standard destructuring, use array/list access
                  val enabled = values[0] as Boolean
                  val presetName = values[1] as String
-                 val customBands = values[2] as List<Int> // Already decoded in Repository
+                 val customBands = (values[2] as? List<*>)
+                     ?.mapNotNull { (it as? Number)?.toInt() }
+                     ?: emptyList()
                  val bbEnabled = values[3] as Boolean
                  val bbStrength = values[4] as Int
                  val vEnabled = values[5] as Boolean
@@ -203,8 +205,8 @@ class EqualizerViewModel @Inject constructor(
                  val vDismissed = values[10] as Boolean
                  val lDismissed = values[11] as Boolean
                  val viewMode = values[12] as UserPreferencesRepository.EqualizerViewMode
-                 val customPresets = values[13] as List<EqualizerPreset>
-                 val pinnedPresets = values[14] as List<String>
+                 val customPresets = (values[13] as? List<*>)?.filterIsInstance<EqualizerPreset>() ?: emptyList()
+                 val pinnedPresets = (values[14] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 val currentPreset = if (presetName == "custom") {
                     EqualizerPreset.custom(customBands)

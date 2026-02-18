@@ -173,7 +173,7 @@ fun ReorderPresetsSheet(
                 Scaffold(
                     topBar = {
                         CenterAlignedTopAppBar(
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             ),
                             title = {

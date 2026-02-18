@@ -350,7 +350,7 @@ private fun CreatePlaylistContent(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
@@ -643,7 +643,7 @@ fun EditPlaylistContent(
                         Icon(Icons.Rounded.Close, contentDescription = "Close")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
