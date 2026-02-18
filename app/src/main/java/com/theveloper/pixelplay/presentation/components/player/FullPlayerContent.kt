@@ -128,6 +128,12 @@ import java.util.Locale
 import kotlin.math.roundToLong
 import com.theveloper.pixelplay.presentation.components.WavySliderExpressive
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
+import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -170,7 +176,11 @@ fun FullPlayerContent(
     onShowCastClicked: () -> Unit,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    loudnessStrength: Float = 0f,
+    currentPreset: EqualizerPreset = EqualizerPreset.FLAT,
+    onLoudnessChange: (Int) -> Unit = {},
+    onPresetSelect: (EqualizerPreset) -> Unit = {}
 ) {
     var retainedSong by remember { mutableStateOf(currentSong) }
     LaunchedEffect(currentSong?.id) {
@@ -582,6 +592,16 @@ fun FullPlayerContent(
                 PlayerProgressSection()
             }
 
+            SoundControlsSection(
+                loudnessStrength = loudnessStrength,
+                currentPreset = currentPreset,
+                onLoudnessChange = onLoudnessChange,
+                onPresetSelect = onPresetSelect,
+                playerOnBaseColor = playerOnBaseColor,
+                playerAccentColor = playerAccentColor,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
             ControlsSection()
         }
     }
@@ -618,6 +638,16 @@ fun FullPlayerContent(
                 SongMetadataSection()
 
                 PlayerProgressSection()
+
+                SoundControlsSection(
+                    loudnessStrength = loudnessStrength,
+                    currentPreset = currentPreset,
+                    onLoudnessChange = onLoudnessChange,
+                    onPresetSelect = onPresetSelect,
+                    playerOnBaseColor = playerOnBaseColor,
+                    playerAccentColor = playerAccentColor,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
 
                 ControlsSection()
             }
@@ -988,6 +1018,80 @@ fun FullPlayerContent(
                         HorizontalDivider(color = LocalMaterialTheme.current.outlineVariant)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SoundControlsSection(
+    loudnessStrength: Float,
+    currentPreset: EqualizerPreset,
+    onLoudnessChange: (Int) -> Unit,
+    onPresetSelect: (EqualizerPreset) -> Unit,
+    playerOnBaseColor: Color,
+    playerAccentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Loudness Slider
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.rounded_volume_up_24),
+                contentDescription = "Loudness",
+                tint = playerOnBaseColor.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
+            WavySliderExpressive(
+                value = loudnessStrength,
+                onValueChange = { onLoudnessChange(it.roundToInt()) },
+                valueRange = 0f..1000f,
+                modifier = Modifier.weight(1f),
+                activeTrackColor = playerAccentColor,
+                inactiveTrackColor = playerOnBaseColor.copy(alpha = 0.2f),
+                thumbColor = playerAccentColor,
+                isPlaying = true
+            )
+            Text(
+                text = "${(loudnessStrength / 10).roundToInt()}%",
+                style = MaterialTheme.typography.labelMedium,
+                color = playerOnBaseColor,
+                modifier = Modifier.width(36.dp)
+            )
+        }
+
+        // Presets Row
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(EqualizerPreset.ALL_PRESETS) { preset ->
+                FilterChip(
+                    selected = currentPreset.name == preset.name,
+                    onClick = { onPresetSelect(preset) },
+                    label = {
+                        Text(
+                            text = preset.displayName,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = playerAccentColor,
+                        selectedLabelColor = Color.White, // Using white for better contrast
+                        containerColor = playerOnBaseColor.copy(alpha = 0.1f),
+                        labelColor = playerOnBaseColor
+                    ),
+                    border = null
+                )
             }
         }
     }

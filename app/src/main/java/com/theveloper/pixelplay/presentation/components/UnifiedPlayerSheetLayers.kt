@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.theveloper.pixelplay.presentation.viewmodel.EqualizerViewModel
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -68,6 +71,9 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     onQueueRelease: (Float, Float) -> Unit,
     onShowCastClicked: () -> Unit
 ) {
+    val equalizerViewModel: EqualizerViewModel = hiltViewModel()
+    val equalizerUiState by equalizerViewModel.uiState.collectAsState()
+
     currentSong?.let { currentSongNonNull ->
         miniPlayerScheme?.let { readyScheme ->
             CompositionLocalProvider(
@@ -208,7 +214,11 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         onShowCastClicked = onShowCastClicked,
                         onShuffleToggle = onShuffleToggle,
                         onRepeatToggle = onRepeatToggle,
-                        onFavoriteToggle = onFavoriteToggle
+                        onFavoriteToggle = onFavoriteToggle,
+                        loudnessStrength = equalizerUiState.loudnessEnhancerStrength,
+                        currentPreset = equalizerUiState.currentPreset,
+                        onLoudnessChange = equalizerViewModel::setLoudnessEnhancerStrength,
+                        onPresetSelect = equalizerViewModel::selectPreset
                     )
                 }
             }
@@ -237,6 +247,9 @@ internal fun UnifiedPlayerPrewarmLayer(
     onQueueDrag: (Float) -> Unit,
     onQueueRelease: (Float, Float) -> Unit
 ) {
+    val equalizerViewModel: EqualizerViewModel = hiltViewModel()
+    val equalizerUiState by equalizerViewModel.uiState.collectAsState()
+
     if (prewarmFullPlayer && currentSong != null) {
         CompositionLocalProvider(
             LocalMaterialTheme provides albumColorScheme
@@ -281,7 +294,11 @@ internal fun UnifiedPlayerPrewarmLayer(
                     onShowCastClicked = {},
                     onShuffleToggle = { playerViewModel.toggleShuffle() },
                     onRepeatToggle = playerViewModel::cycleRepeatMode,
-                    onFavoriteToggle = playerViewModel::toggleFavorite
+                    onFavoriteToggle = playerViewModel::toggleFavorite,
+                    loudnessStrength = equalizerUiState.loudnessEnhancerStrength,
+                    currentPreset = equalizerUiState.currentPreset,
+                    onLoudnessChange = equalizerViewModel::setLoudnessEnhancerStrength,
+                    onPresetSelect = equalizerViewModel::selectPreset
                 )
             }
         }

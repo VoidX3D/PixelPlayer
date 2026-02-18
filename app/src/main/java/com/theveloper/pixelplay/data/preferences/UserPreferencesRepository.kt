@@ -189,6 +189,10 @@ constructor(
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val IMMERSIVE_LYRICS_ENABLED = booleanPreferencesKey("immersive_lyrics_enabled")
         val IMMERSIVE_LYRICS_TIMEOUT = longPreferencesKey("immersive_lyrics_timeout")
+
+        // Pixel Intelligence
+        val PRE_AMP_FACTOR = androidx.datastore.preferences.core.floatPreferencesKey("pre_amp_factor")
+        val AI_TRACKING_ENABLED = booleanPreferencesKey("ai_tracking_enabled")
         
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
@@ -590,6 +594,28 @@ constructor(
     suspend fun setImmersiveLyricsTimeout(timeout: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IMMERSIVE_LYRICS_TIMEOUT] = timeout
+        }
+    }
+
+    // ===== Pixel Intelligence Settings =====
+
+    val preAmpFactorFlow: Flow<Float> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.PRE_AMP_FACTOR] ?: 1.0f
+    }
+
+    suspend fun setPreAmpFactor(factor: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRE_AMP_FACTOR] = factor.coerceIn(0f, 1f)
+        }
+    }
+
+    val aiTrackingEnabledFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AI_TRACKING_ENABLED] ?: true
+    }
+
+    suspend fun setAiTrackingEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_TRACKING_ENABLED] = enabled
         }
     }
 
