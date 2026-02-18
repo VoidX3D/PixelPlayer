@@ -51,12 +51,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -94,9 +91,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
-private const val HeaderVisualOverscan = 1.03f
-private val HeaderGradientLift = 10.dp
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -427,142 +421,118 @@ private fun CollapsingAlbumTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(headerHeight)
-            .clipToBounds()
+            .background(surfaceColor.copy(alpha = backgroundAlpha))
     ) {
+        // Header Content (visible when expanded)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = headerContentAlpha }
+        ) {
+            SmartImage(
+                model = album.albumArtUriString,
+                contentDescription = "Cover of ${album.title}",
+                contentScale = ContentScale.Crop,
+                targetSize = Size(1600, 1600),
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.4f to Color.Transparent,
+                                1f to MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Status bar gradient
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(headerHeight)
-                .background(surfaceColor.copy(alpha = backgroundAlpha))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = HeaderVisualOverscan
-                        scaleY = HeaderVisualOverscan
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
-            ) {
-                // Header Content (visible when expanded)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = headerContentAlpha }
-                ) {
-                    SmartImage(
-                        model = album.albumArtUriString,
-                        contentDescription = "Cover of ${album.title}",
-                        contentScale = ContentScale.Crop,
-                        targetSize = Size(1600, 1600),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .drawWithCache {
-                                val liftPx = HeaderGradientLift.toPx()
-                                val brush = Brush.verticalGradient(
-                                    colorStops = arrayOf(
-                                        0.30f to Color.Transparent,
-                                        0.60f to surfaceColor.copy(alpha = 0.30f),
-                                        0.83f to surfaceColor.copy(alpha = 0.90f),
-                                        0.92f to surfaceColor,
-                                        1f to surfaceColor
-                                    ),
-                                    startY = -liftPx,
-                                    endY = size.height - liftPx
-                                )
-                                onDrawBehind { drawRect(brush = brush) }
-                            }
-                    )
-                }
-
-                // Status bar gradient
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    statusBarColor,
-                                    Color.Transparent
-                                )
-                            )
+                .height(80.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            statusBarColor,
+                            Color.Transparent
                         )
-                        .align(Alignment.TopCenter)
+                    )
                 )
+                .align(Alignment.TopCenter)
+        )
+
+        // Top bar content (buttons, title, etc.)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            FilledIconButton(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp, top = 4.dp),
+                onClick = onBackPressed,
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
 
-            // Top bar content (buttons, title, etc.)
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
+                    .align(animatedTitleAlignment)
+                    .height(titleContainerHeight)
+                    .fillMaxWidth()
+                    .offset(y = yOffsetCorrection)
             ) {
-                FilledIconButton(
+                Column(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 4.dp),
-                    onClick = onBackPressed,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-
-                Box(
-                    modifier = Modifier
-                        .align(animatedTitleAlignment)
-                        .height(titleContainerHeight)
-                        .fillMaxWidth()
-                        .offset(y = yOffsetCorrection)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = titlePaddingStart, end = 120.dp)
-                            .graphicsLayer {
-                                scaleX = titleScale
-                                scaleY = titleScale
-                            },
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = album.title,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 26.sp,
-                                textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
-                            ),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = titleMaxLines,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "${album.artist} • $songsCount songs",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                LargeExtendedFloatingActionButton(
-                    onClick = onPlayClick,
-                    shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
+                        .align(Alignment.CenterStart)
+                        .padding(start = titlePaddingStart, end = 120.dp)
                         .graphicsLayer {
-                            scaleX = fabScale
-                            scaleY = fabScale
-                            alpha = fabScale
-                        }
+                            scaleX = titleScale
+                            scaleY = titleScale
+                        },
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle play album")
+                    Text(
+                        text = album.title,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 26.sp,
+                            textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
+                        ),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = titleMaxLines,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${album.artist} • $songsCount songs",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
+            }
+
+            LargeExtendedFloatingActionButton(
+                onClick = onPlayClick,
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .graphicsLayer {
+                        scaleX = fabScale
+                        scaleY = fabScale
+                        alpha = fabScale
+                    }
+            ) {
+                Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle play album")
             }
         }
     }
