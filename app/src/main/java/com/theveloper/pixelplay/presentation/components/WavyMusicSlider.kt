@@ -109,7 +109,6 @@ fun WavyMusicSlider(
 
     // FASE CONDICIONAL: si la onda no se muestra, no hay transición infinita ni invalidaciones.
     val phaseShiftAnim = remember { Animatable(0f) }
-    val phaseShift = phaseShiftAnim.value
 
     LaunchedEffect(shouldShowWave, waveAnimationDuration) {
         if (shouldShowWave && waveAnimationDuration > 0) {
@@ -233,6 +232,7 @@ fun WavyMusicSlider(
                         )
                     }
                     onDrawWithContent {
+                        val phaseShift = phaseShiftAnim.value
                         // --- Dibujar Pista Inactiva ---
                         val currentProgressPxEndVisual =
                             localTrackStart + localTrackWidth * normalizedValue

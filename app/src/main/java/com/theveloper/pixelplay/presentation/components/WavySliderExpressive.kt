@@ -20,6 +20,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,7 +48,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun WavySliderExpressive(
-    value: Float,
+    value: () -> Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -78,16 +79,25 @@ fun WavySliderExpressive(
         Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
     }
 
-    val normalizedValue = if (valueRange.endInclusive == valueRange.start) 0f
-        else ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
-
-    val clampedValue = value.coerceIn(valueRange.start, valueRange.endInclusive)
-    val safeSemanticsStep = semanticsProgressStep.coerceIn(0.005f, 0.25f)
-    val semanticNormalizedValue = remember(normalizedValue, safeSemanticsStep) {
-        ((normalizedValue / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
+    val normalizedValueProvider = remember(value, valueRange) {
+        {
+            val v = value()
+            if (valueRange.endInclusive == valueRange.start) 0f
+            else ((v - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+        }
     }
-    val semanticSliderValue = remember(semanticNormalizedValue, valueRange) {
-        valueRange.start + semanticNormalizedValue * (valueRange.endInclusive - valueRange.start)
+
+    val clampedValueProvider = remember(value, valueRange) {
+        { value().coerceIn(valueRange.start, valueRange.endInclusive) }
+    }
+
+    val safeSemanticsStep = semanticsProgressStep.coerceIn(0.005f, 0.25f)
+    val semanticSliderValue by remember(valueRange, safeSemanticsStep) {
+        derivedStateOf<Float> {
+            val nv = normalizedValueProvider()
+            val snv = ((nv / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
+            valueRange.start + snv * (valueRange.endInclusive - valueRange.start)
+        }
     }
     val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isDragged by resolvedInteractionSource.collectIsDraggedAsState()
@@ -116,7 +126,7 @@ fun WavySliderExpressive(
     ) {
         val lastHapticStep = remember { mutableIntStateOf(-1) }
         Slider(
-            value = clampedValue,
+            value = clampedValueProvider(),
             onValueChange = { newValue ->
                 val normalizedNew = if (valueRange.endInclusive == valueRange.start) 0f
                 else ((newValue - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
@@ -170,7 +180,7 @@ fun WavySliderExpressive(
         )
 
         LinearWavyProgressIndicator(
-            progress = { normalizedValue },
+            progress = normalizedValueProvider,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = thumbRadius)
@@ -191,7 +201,7 @@ fun WavySliderExpressive(
             val trackStart = thumbRadiusPx
             val trackEnd = size.width - thumbRadiusPx
             val trackWidth = (trackEnd - trackStart).coerceAtLeast(0f)
-            val thumbX = trackStart + (trackWidth * normalizedValue)
+            val thumbX = trackStart + (trackWidth * normalizedValueProvider())
             val thumbY = size.height / 2
 
             fun lerp(start: Float, stop: Float, fraction: Float): Float {
