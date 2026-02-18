@@ -34,6 +34,7 @@ data class EqualizerUiState(
     val virtualizerStrength: Float = 0f, // Changed to Float
     val loudnessEnhancerEnabled: Boolean = false,
     val loudnessEnhancerStrength: Float = 0f, // Changed to Float
+    val nightModeEnabled: Boolean = false,
     val isBassBoostSupported: Boolean = true,
     val isVirtualizerSupported: Boolean = true,
     val isLoudnessEnhancerSupported: Boolean = true,
@@ -134,6 +135,7 @@ class EqualizerViewModel @Inject constructor(
                 val virtualizer = userPreferencesRepository.virtualizerStrengthFlow.first()
                 val loudnessEnabled = userPreferencesRepository.loudnessEnhancerEnabledFlow.first()
                 val loudnessStrength = userPreferencesRepository.loudnessEnhancerStrengthFlow.first()
+                val nightModeEnabled = userPreferencesRepository.nightModeEnabledFlow.first()
                 
                 equalizerManager.restoreState(
                     enabled, presetName, customBands, 
@@ -141,6 +143,7 @@ class EqualizerViewModel @Inject constructor(
                     virtualizerEnabled, virtualizer,
                     loudnessEnabled, loudnessStrength
                 )
+                equalizerManager.setNightModeEnabled(nightModeEnabled)
                 
                 val initialSessionId = dualPlayerEngine.getAudioSessionId()
                 if (initialSessionId != 0) {
@@ -159,7 +162,8 @@ class EqualizerViewModel @Inject constructor(
 
             dualPlayerEngine.activeAudioSessionId.collect { sessionId ->
                 if (sessionId != 0) {
-                    Timber.tag(TAG).d("Audio Session ID changed to $sessionId.")
+                    Timber.tag(TAG).d("Audio Session ID changed to $sessionId. Attaching effects.")
+                    equalizerManager.attachToAudioSession(sessionId)
                     _uiState.value = _uiState.value.copy(
                         isBassBoostSupported = equalizerManager.isBassBoostSupported(),
                         isVirtualizerSupported = equalizerManager.isVirtualizerSupported(),
@@ -186,6 +190,7 @@ class EqualizerViewModel @Inject constructor(
                 userPreferencesRepository.bassBoostDismissedFlow,
                 userPreferencesRepository.virtualizerDismissedFlow,
                 userPreferencesRepository.loudnessDismissedFlow,
+                userPreferencesRepository.nightModeEnabledFlow,
                 userPreferencesRepository.equalizerViewModeFlow,
                 userPreferencesRepository.customPresetsFlow, // Added
                 userPreferencesRepository.pinnedPresetsFlow // Added
@@ -202,9 +207,10 @@ class EqualizerViewModel @Inject constructor(
                  val bbDismissed = values[9] as Boolean
                  val vDismissed = values[10] as Boolean
                  val lDismissed = values[11] as Boolean
-                 val viewMode = values[12] as UserPreferencesRepository.EqualizerViewMode
-                 val customPresets = values[13] as List<EqualizerPreset>
-                 val pinnedPresets = values[14] as List<String>
+                 val nmEnabled = values[12] as Boolean
+                 val viewMode = values[13] as UserPreferencesRepository.EqualizerViewMode
+                 val customPresets = values[14] as List<EqualizerPreset>
+                 val pinnedPresets = values[15] as List<String>
 
                 val currentPreset = if (presetName == "custom") {
                     EqualizerPreset.custom(customBands)
@@ -225,6 +231,7 @@ class EqualizerViewModel @Inject constructor(
                     virtualizerStrength = vStrength.toFloat(), // Raw 0-1000
                     loudnessEnhancerEnabled = lEnabled,
                     loudnessEnhancerStrength = lStrength.toFloat(), // Raw 0-1000
+                    nightModeEnabled = nmEnabled,
                     isBassBoostDismissed = bbDismissed,
                     isVirtualizerDismissed = vDismissed,
                     isLoudnessDismissed = lDismissed,
@@ -420,6 +427,16 @@ class EqualizerViewModel @Inject constructor(
         persistLoudnessJob = viewModelScope.launch {
             delay(SLIDER_PERSIST_DEBOUNCE_MS)
             userPreferencesRepository.setLoudnessEnhancerStrength(clampedStrength)
+        }
+    }
+
+    fun setNightModeEnabled(enabled: Boolean) {
+        equalizerManager.setNightModeEnabled(enabled)
+        _uiState.update { current ->
+            current.copy(nightModeEnabled = enabled)
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.setNightModeEnabled(enabled)
         }
     }
 

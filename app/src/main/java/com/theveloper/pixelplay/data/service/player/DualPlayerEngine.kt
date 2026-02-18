@@ -59,7 +59,8 @@ class DualPlayerEngine @Inject constructor(
     private val telegramRepository: TelegramRepository,
     private val telegramStreamProxy: com.theveloper.pixelplay.data.telegram.TelegramStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
-    private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
+    private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder,
+    private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var transitionJob: Job? = null
@@ -198,6 +199,29 @@ class DualPlayerEngine @Inject constructor(
 
     init {
         initialize()
+        observeAudioSettings()
+    }
+
+    private fun observeAudioSettings() {
+        scope.launch {
+            userPreferencesRepository.preAmpFactorFlow.collect { factor ->
+                playerA.volume = factor
+                playerB.volume = factor
+            }
+        }
+        scope.launch {
+            userPreferencesRepository.playbackSpeedFlow.collect { speed ->
+                playerA.setPlaybackSpeed(speed)
+                playerB.setPlaybackSpeed(speed)
+            }
+        }
+        scope.launch {
+            userPreferencesRepository.playbackPitchFlow.collect { pitch ->
+                val params = playerA.playbackParameters.withPitch(pitch)
+                playerA.playbackParameters = params
+                playerB.playbackParameters = params
+            }
+        }
     }
 
     fun initialize() {

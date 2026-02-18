@@ -744,6 +744,31 @@ fun LyricsSheet(
                         resetImmersiveTimer()
                         showSyncControls = !showSyncControls
                     },
+                    onShareLyricCard = {
+                        val currentLyrics = lyrics
+                        val song = currentSong
+                        if (currentLyrics != null && song != null) {
+                            coroutineScope.launch {
+                                val lyricsToShare = if (showSyncedLyrics == true) {
+                                    val currentLine = currentLyrics.synced?.find { line ->
+                                        val index = currentLyrics.synced.indexOf(line)
+                                        val nextTime = currentLyrics.synced.getOrNull(index + 1)?.time?.toLong() ?: Long.MAX_VALUE
+                                        playbackPosition in line.time.toLong()..<nextTime
+                                    }?.line ?: currentLyrics.plain?.take(4)?.joinToString("\n") ?: ""
+                                    currentLine
+                                } else {
+                                    currentLyrics.plain?.take(4)?.joinToString("\n") ?: ""
+                                }
+
+                                com.theveloper.pixelplay.utils.LyricCardGenerator.generateAndShare(
+                                    context = context,
+                                    song = song,
+                                    lyrics = lyricsToShare,
+                                    imageLoader = coil.ImageLoader(context)
+                                )
+                            }
+                        }
+                    },
                     isImmersiveTemporarilyDisabled = isImmersiveTemporarilyDisabled,
                     onSetImmersiveTemporarilyDisabled = {
                         resetImmersiveTimer()

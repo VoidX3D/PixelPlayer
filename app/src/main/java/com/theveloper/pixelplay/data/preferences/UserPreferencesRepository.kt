@@ -189,10 +189,15 @@ constructor(
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val IMMERSIVE_LYRICS_ENABLED = booleanPreferencesKey("immersive_lyrics_enabled")
         val IMMERSIVE_LYRICS_TIMEOUT = longPreferencesKey("immersive_lyrics_timeout")
+        val NIGHT_MODE_ENABLED = booleanPreferencesKey("night_mode_enabled")
+        val BIT_PERFECT_ENABLED = booleanPreferencesKey("bit_perfect_enabled")
 
         // Pixel Intelligence
         val PRE_AMP_FACTOR = androidx.datastore.preferences.core.floatPreferencesKey("pre_amp_factor")
         val AI_TRACKING_ENABLED = booleanPreferencesKey("ai_tracking_enabled")
+        val PLAYBACK_SPEED = androidx.datastore.preferences.core.floatPreferencesKey("playback_speed")
+        val PLAYBACK_PITCH = androidx.datastore.preferences.core.floatPreferencesKey("playback_pitch")
+        val SMART_SKIP_ENABLED = booleanPreferencesKey("smart_skip_enabled")
         
         // Genre View Preference
         val IS_GENRE_GRID_VIEW = booleanPreferencesKey("is_genre_grid_view")
@@ -597,6 +602,22 @@ constructor(
         }
     }
 
+    val nightModeEnabledFlow: Flow<Boolean> = dataStore.data.map {
+        it[PreferencesKeys.NIGHT_MODE_ENABLED] ?: false
+    }
+
+    suspend fun setNightModeEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.NIGHT_MODE_ENABLED] = enabled }
+    }
+
+    val bitPerfectEnabledFlow: Flow<Boolean> = dataStore.data.map {
+        it[PreferencesKeys.BIT_PERFECT_ENABLED] ?: false
+    }
+
+    suspend fun setBitPerfectEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.BIT_PERFECT_ENABLED] = enabled }
+    }
+
     // ===== Pixel Intelligence Settings =====
 
     val preAmpFactorFlow: Flow<Float> = dataStore.data.map { preferences ->
@@ -617,6 +638,21 @@ constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AI_TRACKING_ENABLED] = enabled
         }
+    }
+
+    val playbackSpeedFlow: Flow<Float> = dataStore.data.map { it[PreferencesKeys.PLAYBACK_SPEED] ?: 1.0f }
+    suspend fun setPlaybackSpeed(speed: Float) {
+        dataStore.edit { it[PreferencesKeys.PLAYBACK_SPEED] = speed.coerceIn(0.5f, 2.0f) }
+    }
+
+    val playbackPitchFlow: Flow<Float> = dataStore.data.map { it[PreferencesKeys.PLAYBACK_PITCH] ?: 1.0f }
+    suspend fun setPlaybackPitch(pitch: Float) {
+        dataStore.edit { it[PreferencesKeys.PLAYBACK_PITCH] = pitch.coerceIn(0.8f, 1.2f) }
+    }
+
+    val smartSkipEnabledFlow: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.SMART_SKIP_ENABLED] ?: false }
+    suspend fun setSmartSkipEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SMART_SKIP_ENABLED] = enabled }
     }
 
     // ===== End Lyrics Source Preference Settings =====

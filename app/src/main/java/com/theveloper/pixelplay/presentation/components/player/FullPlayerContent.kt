@@ -177,10 +177,7 @@ fun FullPlayerContent(
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
     onFavoriteToggle: () -> Unit,
-    loudnessStrength: Float = 0f,
-    currentPreset: EqualizerPreset = EqualizerPreset.FLAT,
-    onLoudnessChange: (Int) -> Unit = {},
-    onPresetSelect: (EqualizerPreset) -> Unit = {}
+    onAudioLabClick: () -> Unit = {}
 ) {
     var retainedSong by remember { mutableStateOf(currentSong) }
     LaunchedEffect(currentSong?.id) {
@@ -206,6 +203,11 @@ fun FullPlayerContent(
     val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsState()
     val selectedRouteName by playerViewModel.selectedRoute.map { it?.name }.collectAsState(initial = null)
     val isBluetoothEnabled by playerViewModel.isBluetoothEnabled.collectAsState()
+
+    val parallaxOffset by playerViewModel.parallaxOffset.collectAsState()
+    val songEnergy by playerViewModel.songEnergy.collectAsState()
+    val loudnessStrength by playerViewModel.loudnessStrength.collectAsState()
+    val currentPreset by playerViewModel.currentEqualizerPreset.collectAsState()
     val bluetoothName by playerViewModel.bluetoothName.collectAsState()
 
     var showFetchLyricsDialog by remember { mutableStateOf(false) }
@@ -406,7 +408,8 @@ fun FullPlayerContent(
                             scaleX = albumArtScale
                             scaleY = albumArtScale
                         },
-                    albumArtQuality = albumArtQuality
+                    albumArtQuality = albumArtQuality,
+                    parallaxOffset = parallaxOffset
                 )
             }
         }
@@ -472,7 +475,8 @@ fun FullPlayerContent(
                     isFavoriteProvider = isFavoriteProvider,
                     onShuffleToggle = onShuffleToggle,
                     onRepeatToggle = onRepeatToggle,
-                    onFavoriteToggle = onFavoriteToggle
+                    onFavoriteToggle = onFavoriteToggle,
+                    onAudioLabClick = onAudioLabClick
                 )
             }
         }
@@ -489,6 +493,7 @@ fun FullPlayerContent(
             audioMimeType = if (isMetadataForCurrentSong) playbackAudioMetadata.mimeType else null,
             audioBitrate = if (isMetadataForCurrentSong) playbackAudioMetadata.bitrate else null,
             audioSampleRate = if (isMetadataForCurrentSong) playbackAudioMetadata.sampleRate else null,
+        songEnergy = songEnergy,
             showAudioFileInfo = showPlayerFileInfo,
             onSeek = onSeek,
             expansionFractionProvider = expansionFractionProvider,
@@ -595,8 +600,8 @@ fun FullPlayerContent(
             SoundControlsSection(
                 loudnessStrength = loudnessStrength,
                 currentPreset = currentPreset,
-                onLoudnessChange = onLoudnessChange,
-                onPresetSelect = onPresetSelect,
+                onLoudnessChange = playerViewModel::setLoudnessStrength,
+                onPresetSelect = playerViewModel::selectEqualizerPreset,
                 playerOnBaseColor = playerOnBaseColor,
                 playerAccentColor = playerAccentColor,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -642,8 +647,8 @@ fun FullPlayerContent(
                 SoundControlsSection(
                     loudnessStrength = loudnessStrength,
                     currentPreset = currentPreset,
-                    onLoudnessChange = onLoudnessChange,
-                    onPresetSelect = onPresetSelect,
+                    onLoudnessChange = playerViewModel::setLoudnessStrength,
+                    onPresetSelect = playerViewModel::selectEqualizerPreset,
                     playerOnBaseColor = playerOnBaseColor,
                     playerAccentColor = playerAccentColor,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -1287,6 +1292,7 @@ private fun PlayerProgressBarSection(
     audioMimeType: String?,
     audioBitrate: Int?,
     audioSampleRate: Int?,
+    songEnergy: Float = 0.5f,
     showAudioFileInfo: Boolean,
     onSeek: (Long) -> Unit,
     expansionFractionProvider: () -> Float,
@@ -1461,7 +1467,9 @@ private fun PlayerProgressBarSection(
                 activeTrackColor = activeTrackColor,
                 inactiveTrackColor = inactiveTrackColor,
                 interactionSource = interactionSource,
-                isPlaying = shouldAnimateWavyProgress
+                isPlaying = shouldAnimateWavyProgress,
+                amplitudeMultiplier = songEnergy * 2f,
+                speedMultiplier = 0.5f + songEnergy
             )
 
             // Isolated Time Labels
@@ -1485,7 +1493,9 @@ private fun EfficientSlider(
     activeTrackColor: Color,
     inactiveTrackColor: Color,
     interactionSource: MutableInteractionSource,
-    isPlaying: Boolean // Added parameter
+    isPlaying: Boolean,
+    amplitudeMultiplier: Float = 1f,
+    speedMultiplier: Float = 1f
 ) {
     WavySliderExpressive(
         value = valueState.value,
@@ -1495,6 +1505,8 @@ private fun EfficientSlider(
         inactiveTrackColor = inactiveTrackColor,
         thumbColor = thumbColor,
         isPlaying = isPlaying,
+        amplitudeMultiplier = amplitudeMultiplier,
+        speedMultiplier = speedMultiplier,
         semanticsLabel = "Playback position",
         modifier = Modifier
             .fillMaxWidth()
@@ -2121,7 +2133,8 @@ private fun BottomToggleRow(
     isFavoriteProvider: () -> Boolean,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    onAudioLabClick: () -> Unit = {}
 ) {
     val isFavorite = isFavoriteProvider()
     val rowCorners = 60.dp
@@ -2207,6 +2220,18 @@ private fun BottomToggleRow(
                 onClick = onFavoriteToggle,
                 iconId = R.drawable.round_favorite_24,
                 contentDesc = "Favorito"
+            )
+            ToggleSegmentButton(
+                modifier = commonModifier,
+                active = false,
+                activeColor = LocalMaterialTheme.current.tertiary,
+                activeCornerRadius = rowCorners,
+                activeContentColor = LocalMaterialTheme.current.onTertiary,
+                inactiveColor = inactiveBg,
+                inactiveContentColor = inactiveContentColor,
+                onClick = onAudioLabClick,
+                iconId = R.drawable.rounded_tune_24,
+                contentDesc = "Audio Lab"
             )
         }
     }

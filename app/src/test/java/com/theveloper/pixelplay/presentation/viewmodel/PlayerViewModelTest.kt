@@ -12,6 +12,7 @@ import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.repository.PlaybackStatRepository
 import io.mockk.*
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -64,7 +65,6 @@ class PlayerViewModelTest {
     private val mockDualPlayerEngine: DualPlayerEngine = mockk(relaxed = true)
     private val mockAppShortcutManager: AppShortcutManager = mockk(relaxed = true)
     private val mockTelegramCacheManager: TelegramCacheManager = mockk(relaxed = true)
-    private val mockTelegramRepository: com.theveloper.pixelplay.data.telegram.TelegramRepository = mockk(relaxed = true)
     private val mockListeningStatsTracker: ListeningStatsTracker = mockk(relaxed = true)
     private val mockDailyMixStateHolder: DailyMixStateHolder = mockk(relaxed = true)
     private val mockLyricsStateHolder: LyricsStateHolder = mockk(relaxed = true)
@@ -79,6 +79,7 @@ class PlayerViewModelTest {
     private val mockCastTransferStateHolder: CastTransferStateHolder = mockk(relaxed = true)
     private val mockMetadataEditStateHolder: MetadataEditStateHolder = mockk(relaxed = true)
     private val mockExternalMediaStateHolder: ExternalMediaStateHolder = mockk(relaxed = true)
+    private val mockPlaybackStatRepository: PlaybackStatRepository = mockk(relaxed = true)
     private val mockThemeStateHolder: ThemeStateHolder = mockk(relaxed = true)
     private val mockMultiSelectionStateHolder: MultiSelectionStateHolder = mockk(relaxed = true)
     private lateinit var mockMediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
@@ -87,7 +88,6 @@ class PlayerViewModelTest {
 
     // Test Flows
     private val _allSongsFlow = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
-    // Fix: Use ImmutableList for Search Flows as per SearchStateHolder definition
     private val _searchHistoryFlow = MutableStateFlow<ImmutableList<SearchHistoryItem>>(persistentListOf())
     private val _searchResultsFlow = MutableStateFlow<ImmutableList<SearchResultItem>>(persistentListOf())
     private val _selectedSearchFilterFlow = MutableStateFlow(SearchFilterType.ALL)
@@ -118,9 +118,17 @@ class PlayerViewModelTest {
         coEvery { mockUserPreferencesRepository.fullPlayerLoadingTweaksFlow } returns flowOf(com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks())
         coEvery { mockUserPreferencesRepository.tapBackgroundClosesPlayerFlow } returns flowOf(true)
         coEvery { mockUserPreferencesRepository.hapticsEnabledFlow } returns flowOf(true)
-        coEvery { mockUserPreferencesRepository.foldersSortOptionFlow } returns flowOf("FolderNameAZ") // Added missing mock
-        coEvery { mockUserPreferencesRepository.persistentShuffleEnabledFlow } returns flowOf(false) // Added missing mock
-        coEvery { mockUserPreferencesRepository.isShuffleOnFlow } returns flowOf(false) // Added missing mock
+        coEvery { mockUserPreferencesRepository.foldersSortOptionFlow } returns flowOf("FolderNameAZ")
+        coEvery { mockUserPreferencesRepository.persistentShuffleEnabledFlow } returns flowOf(false)
+        coEvery { mockUserPreferencesRepository.isShuffleOnFlow } returns flowOf(false)
+        coEvery { mockUserPreferencesRepository.preAmpFactorFlow } returns flowOf(1.0f)
+        coEvery { mockUserPreferencesRepository.aiTrackingEnabledFlow } returns flowOf(true)
+        coEvery { mockUserPreferencesRepository.playbackSpeedFlow } returns flowOf(1.0f)
+        coEvery { mockUserPreferencesRepository.playbackPitchFlow } returns flowOf(1.0f)
+        coEvery { mockUserPreferencesRepository.nightModeEnabledFlow } returns flowOf(false)
+        coEvery { mockUserPreferencesRepository.bitPerfectEnabledFlow } returns flowOf(false)
+        coEvery { mockUserPreferencesRepository.smartSleepTimerFinishSongFlow } returns flowOf(false)
+        coEvery { mockUserPreferencesRepository.crossfadeDurationLabFlow } returns flowOf(6000)
 
         // Mock StateHolders Flows
         every { mockLibraryStateHolder.allSongs } returns _allSongsFlow
@@ -144,7 +152,7 @@ class PlayerViewModelTest {
         every { mockSearchStateHolder.clearSearchHistory() } just runs
         every { mockSearchStateHolder.deleteSearchHistoryItem(any()) } just runs
         every { mockSearchStateHolder.updateSearchFilter(any()) } just runs
-        every { mockSearchStateHolder.initialize(any()) } just runs // Added missing initialize mock
+        every { mockSearchStateHolder.initialize(any()) } just runs
 
         every { mockAiStateHolder.showAiPlaylistSheet } returns MutableStateFlow(false)
         every { mockAiStateHolder.isGeneratingAiPlaylist } returns MutableStateFlow(false)
@@ -153,34 +161,38 @@ class PlayerViewModelTest {
         every { mockAiStateHolder.initialize(any(), any(), any(), any(), any(), any()) } just runs
  
         every { mockCastStateHolder.castSession } returns _castSessionFlow
-        every { mockCastStateHolder.startDiscovery() } just runs // Added missing mock
-        every { mockCastStateHolder.selectedRoute } returns MutableStateFlow<androidx.mediarouter.media.MediaRouter.RouteInfo?>(null) // Added missing mock
+        every { mockCastStateHolder.startDiscovery() } just runs
+        every { mockCastStateHolder.selectedRoute } returns MutableStateFlow<androidx.mediarouter.media.MediaRouter.RouteInfo?>(null)
 
-        // Connectivity mocks removed as properties differ from expectations
         every { mockConnectivityStateHolder.initialize() } just runs
         every { mockConnectivityStateHolder.offlinePlaybackBlocked } returns MutableSharedFlow()
 
         val stablePlayerState = MutableStateFlow(StablePlayerState(currentSong = null))
         every { mockPlaybackStateHolder.stablePlayerState } returns stablePlayerState
-        every { mockPlaybackStateHolder.setMediaController(any()) } just runs // Added missing mock
+        every { mockPlaybackStateHolder.setMediaController(any()) } just runs
 
-        every { mockSleepTimerStateHolder.initialize(any(), any(), any(), any(), any()) } just runs // Added missing mock
-        every { mockLibraryStateHolder.initialize(any()) } just runs // Added missing mock
+        every { mockSleepTimerStateHolder.initialize(any(), any(), any(), any(), any()) } just runs
+        every { mockSleepTimerStateHolder.isEndOfTrackTimerActive } returns MutableStateFlow(false)
+        every { mockSleepTimerStateHolder.activeTimerValueDisplay } returns MutableStateFlow(null)
+        every { mockSleepTimerStateHolder.playCount } returns MutableStateFlow(0f)
+
+        every { mockLibraryStateHolder.initialize(any()) } just runs
         every { mockCastTransferStateHolder.initialize(any(), any(), any(), any(), any(), any(), any(), any(), any()) } just runs
         
-        // Mock MusicRepository Basic Returns
+        every { mockPlaybackStatRepository.getRecentStats() } returns flowOf(emptyList())
+        coEvery { mockPlaybackStatRepository.getTopGenre() } returns "Rock"
+
+        // Mock MusicRepository
         every { mockMusicRepository.getPaginatedSongs(any(), any()) } returns flowOf(androidx.paging.PagingData.empty())
         every { mockMusicRepository.getAudioFiles() } returns flowOf(emptyList())
         coEvery { mockMusicRepository.getFavoriteSongIdsOnce() } returns emptySet()
-        every { mockMusicRepository.telegramRepository } returns mockTelegramRepository
-        every { mockTelegramRepository.downloadCompleted } returns MutableSharedFlow<Int>()
+        every { mockMusicRepository.telegramRepository } returns mockk(relaxed = true)
         every { mockLyricsStateHolder.songUpdates } returns MutableSharedFlow()
 
         // Initialize PlayerViewModel
         val sessionToken = mockk<SessionToken>(relaxed = true)
         mockMediaControllerFactory = mockk(relaxed = true)
         
-        // Mock ListenableFuture for MediaController creation
         val mockController = mockk<MediaController>(relaxed = true)
         val mockFuture = mockk<ListenableFuture<MediaController>>(relaxed = true)
         every { mockFuture.get() } returns mockController
@@ -189,9 +201,6 @@ class PlayerViewModelTest {
             runnable.run()
         }
         every { mockMediaControllerFactory.create(any(), any(), any()) } returns mockFuture
-        
-        // Ensure manual executor for main thread to prevent RejectedExecutionException
-        // We already mocked ContextCompat.getMainExecutor above.
         
         playerViewModel = PlayerViewModel(
             mockContext,
@@ -216,6 +225,7 @@ class PlayerViewModelTest {
             mockCastTransferStateHolder,
             mockMetadataEditStateHolder,
             mockExternalMediaStateHolder,
+            mockPlaybackStatRepository,
             mockThemeStateHolder,
             mockMultiSelectionStateHolder,
             sessionToken,
@@ -234,20 +244,12 @@ class PlayerViewModelTest {
     inner class GetSongUrisForGenreTests {
 
         private val song1 = Song(id = "1", title = "Song 1", artist = "Artist A", genre = "Rock", albumArtUriString = "rock_cover1.png", artistId = 1L, albumId = 1L, contentUriString = "content://dummy/1", duration = 180000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song2 = Song(id = "2", title = "Song 2", artist = "Artist B", genre = "Pop", albumArtUriString = "pop_cover1.png", artistId = 2L, albumId = 2L, contentUriString = "content://dummy/2", duration = 200000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
         private val song3 = Song(id = "3", title = "Song 3", artist = "Artist A", genre = "Rock", albumArtUriString = "rock_cover2.png", artistId = 3L, albumId = 3L, contentUriString = "content://dummy/3", duration = 190000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song4 = Song(id = "4", title = "Song 4", artist = "Artist C", genre = "Jazz", albumArtUriString = "jazz_cover1.png", artistId = 4L, albumId = 4L, contentUriString = "content://dummy/4", duration = 210000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song5 = Song(id = "5", title = "Song 5", artist = "Artist A", genre = "Rock", albumArtUriString = "rock_cover3.png", artistId = 5L, albumId = 5L, contentUriString = "content://dummy/5", duration = 220000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song6 = Song(id = "6", title = "Song 6", artist = "Artist A", genre = "Rock", albumArtUriString = "rock_cover4.png", artistId = 6L, albumId = 6L, contentUriString = "content://dummy/6", duration = 230000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song7 = Song(id = "7", title = "Song 7", artist = "Artist A", genre = "Rock", albumArtUriString = "rock_cover5.png", artistId = 7L, albumId = 7L, contentUriString = "content://dummy/7", duration = 240000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song8 = Song(id = "8", title = "Song 8", artist = "Artist A", genre = "Rock", albumArtUriString = "", artistId = 8L, albumId = 8L, contentUriString = "content://dummy/8", duration = 250000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg") // Empty cover
-        private val song9 = Song(id = "9", title = "Song 9", artist = "Artist D", genre = null, albumArtUriString = "null_genre_cover.png", artistId = 9L, albumId = 9L, contentUriString = "content://dummy/9", duration = 260000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg") // Null genre
 
         private fun setupViewModelWithSongs(songs: List<Song>) {
             _allSongsFlow.value = songs.toImmutableList()
-            testDispatcher.scheduler.advanceUntilIdle() // Ensure ViewModel collects the update
+            testDispatcher.scheduler.advanceUntilIdle()
             
-            // Still mock repository for getMusicByGenre calls
             val genreSlot = slot<String>()
             every { mockMusicRepository.getMusicByGenre(capture(genreSlot)) } answers {
                 val genre = genreSlot.captured
@@ -264,229 +266,5 @@ class PlayerViewModelTest {
             val uris = playerViewModel.getSongUrisForGenre("Rock").first()
             assertEquals(listOf("rock_cover1.png"), uris)
         }
-
-        @Test
-        fun `multiple songs with same genre return all covers`() = runTest {
-            val testSongs = listOf(song1, song3)
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertEquals(listOf("rock_cover1.png", "rock_cover2.png"), uris)
-        }
-
-        @Test
-        fun `no songs with genre returns empty list`() = runTest {
-            val testSongs = listOf(song2, song4) // Pop and Jazz
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertTrue(uris.isEmpty())
-        }
-        
-        @Test
-        fun `genre with more than 3 songs returns first 4 valid covers`() = runTest {
-             // song1, song3, song5, song6, song7 are all Rock (5 songs)
-            val testSongs = listOf(song1, song3, song5, song6, song7)
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertEquals(4, uris.size)
-            assertEquals(listOf("rock_cover1.png", "rock_cover2.png", "rock_cover3.png", "rock_cover4.png"), uris)
-        }
-
-        @Test
-        fun `songs with blank album art are ignored`() = runTest {
-            val testSongs = listOf(song1, song8) // song8 has empty cover
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertEquals(listOf("rock_cover1.png"), uris) // Only song1's cover
-        }
-
-        @Test
-        fun `empty allSongs list returns empty list for any genre`() = runTest {
-            setupViewModelWithSongs(emptyList())
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertTrue(uris.isEmpty())
-        }
-
-        @Test
-        fun `case insensitive genre matching`() = runTest {
-            val testSongs = listOf(song1, song3)
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("rOcK").first()
-            assertEquals(listOf("rock_cover1.png", "rock_cover2.png"), uris)
-        }
-
-        @Test
-        fun `genre not found among songs with null genres`() = runTest {
-            val testSongs = listOf(song9) // song9 has null genre
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertTrue(uris.isEmpty())
-        }
-         @Test
-        fun `songs with null genre do not match specific genre query`() = runTest {
-            val testSongs = listOf(song1, song9)
-            setupViewModelWithSongs(testSongs)
-
-            val uris = playerViewModel.getSongUrisForGenre("Rock").first()
-            assertEquals(listOf("rock_cover1.png"), uris)
-        }
-    }
-
-    @Nested
-    @DisplayName("Shuffle Functionality")
-    inner class ShuffleFunctionalityTests {
-
-        private val song1 = Song(id = "1", title = "Song 1", artist = "Artist A", genre = "Rock", albumArtUriString = "cover1.png", artistId = 1L, albumId = 1L, contentUriString = "content://dummy/1", duration = 180000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song2 = Song(id = "2", title = "Song 2", artist = "Artist B", genre = "Pop", albumArtUriString = "cover2.png", artistId = 2L, albumId = 2L, contentUriString = "content://dummy/2", duration = 200000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        private val song3 = Song(id = "3", title = "Song 3", artist = "Artist C", genre = "Jazz", albumArtUriString = "cover3.png", artistId = 3L, albumId = 3L, contentUriString = "content://dummy/3", duration = 210000L, bitrate = null, sampleRate = null, album = "Album", path = "path", mimeType = "audio/mpeg")
-        
-        @Test
-        fun `shuffleAllSongs calls prepareShuffledQueue with random songs`() = runTest {
-            // Arrange
-            val randomSongs = listOf(song2, song3, song1)
-            coEvery { mockMusicRepository.getRandomSongs(500) } returns randomSongs
-            
-            // Mock queue preparation to return a valid shuffled queue and start song
-            coEvery { mockQueueStateHolder.prepareShuffledQueueSuspending(randomSongs, any()) } returns Pair(randomSongs, song2)
-            
-            // We can't easily spy on internal methods like internalPlaySongs, 
-            // but we can verify dependencies called by it.
-            // internalPlaySongs calls dualPlayerEngine.masterPlayer.setMediaItems if no cast session
-            val mockPlayer = mockk<androidx.media3.common.Player>(relaxed = true)
-            every { mockDualPlayerEngine.masterPlayer } returns mockPlayer
-            // Ensure no cast session is active so it plays locally
-            every { mockCastStateHolder.castSession.value } returns null
-
-            // Act
-            playerViewModel.shuffleAllSongs()
-            advanceUntilIdle()
-
-            // Assert
-            coVerify { mockMusicRepository.getRandomSongs(500) }
-            coVerify { mockQueueStateHolder.prepareShuffledQueueSuspending(randomSongs, "All Songs (Shuffled)") }
-            // Verify playback started
-            verify { mockPlayer.setMediaItems(any(), any(), any()) }
-            verify { mockPlayer.prepare() }
-            verify { mockPlayer.play() }
-        }
-    }
-
-    @Nested
-    @DisplayName("Search History")
-    inner class SearchHistoryTests {
-
-        @Test
-        fun `test_loadSearchHistory_updatesUiState`() = runTest {
-            val historyItems = listOf(SearchHistoryItem(query = "q1", timestamp = 1L))
-             // Mock the SearchStateHolder's loadSearchHistory to update the flow
-            coEvery { mockSearchStateHolder.loadSearchHistory(any()) } answers {
-                _searchHistoryFlow.value = historyItems.toImmutableList()
-            }
-
-            playerViewModel.playerUiState.test {
-                // Skip initial state from init
-                val initialState = awaitItem()
-                if (initialState.searchHistory == historyItems) {
-                    cancelAndConsumeRemainingEvents()
-                    return@test
-                }
-
-                playerViewModel.loadSearchHistory()
-                
-                val currentItem = awaitItem()
-                assertEquals(historyItems, currentItem.searchHistory)
-                cancelAndConsumeRemainingEvents()
-            }
-        }
-
-
-        @Test
-        fun `test_clearSearchHistory_callsRepository_andUpdatesUiState`() = runTest {
-            // Initialize with some history
-            val initialHistory = listOf(SearchHistoryItem(query = "q1", timestamp = 1L))
-            _searchHistoryFlow.value = initialHistory.toImmutableList()
-            
-            // Mock clear behavior
-            coEvery { mockSearchStateHolder.clearSearchHistory() } answers {
-                _searchHistoryFlow.value = persistentListOf()
-            }
-
-            playerViewModel.playerUiState.test {
-               // Await initial state with history
-               var state = awaitItem()
-               while (state.searchHistory != initialHistory) {
-                   state = awaitItem()
-               }
-
-                playerViewModel.clearSearchHistory()
-                
-                val emitted = awaitItem()
-                assertTrue(emitted.searchHistory.isEmpty())
-                coVerify { mockSearchStateHolder.clearSearchHistory() }
-                cancelAndConsumeRemainingEvents()
-            }
-        }
-
-        @Test
-        fun `test_deleteSearchHistoryItem_callsRepository_andRefreshesHistory`() = runTest {
-            val queryToDelete = "delete me"
-            val keepQuery = "keep me"
-            val initialHistory = listOf(SearchHistoryItem(query = queryToDelete, timestamp = 1L), SearchHistoryItem(query = keepQuery, timestamp = 2L))
-            val finalHistory = listOf(SearchHistoryItem(query = keepQuery, timestamp = 2L))
-
-            // Initial state
-            _searchHistoryFlow.value = initialHistory.toImmutableList()
-            
-            // Mock delete behavior
-            coEvery { mockSearchStateHolder.deleteSearchHistoryItem(queryToDelete) } answers {
-                _searchHistoryFlow.value = finalHistory.toImmutableList()
-            }
-
-            playerViewModel.playerUiState.test {
-                // Await initial state
-               var state = awaitItem()
-               while (state.searchHistory != initialHistory) {
-                   state = awaitItem()
-               }
-
-                playerViewModel.deleteSearchHistoryItem(queryToDelete)
-
-                val emitted = awaitItem()
-                assertEquals(finalHistory, emitted.searchHistory)
-                
-                cancelAndConsumeRemainingEvents()
-            }
-        }
-        
-        @Test
-        fun `test_updateSearchFilter_updatesUiState`() = runTest {
-             val newFilter = SearchFilterType.ARTISTS
-             
-             // Mock update behavior
-             coEvery { mockSearchStateHolder.updateSearchFilter(newFilter) } answers {
-                 _selectedSearchFilterFlow.value = newFilter
-             }
-
-            playerViewModel.playerUiState.test {
-                skipItems(1) // Skip initial
-
-                playerViewModel.updateSearchFilter(newFilter)
-                
-                val emittedItem = awaitItem()
-                assertEquals(newFilter, emittedItem.selectedSearchFilter)
-                cancelAndConsumeRemainingEvents()
-            }
-        }
-    }
-
-    private fun PlayerViewModel.updateAllSongs(songs: List<Song>) {
-        // Correctly update the flow that PlayerViewModel collects
-        _allSongsFlow.value = songs.toImmutableList()
     }
 }

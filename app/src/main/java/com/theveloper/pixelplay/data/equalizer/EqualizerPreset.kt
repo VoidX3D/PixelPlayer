@@ -79,6 +79,24 @@ data class EqualizerPreset(
             displayName = "VOCAL",
             bandLevels = listOf(-3, -2, -1, 2, 5, 6, 5, 3, 1, 0) // Midrange boost
         )
+
+        val FLAT_BASS = EqualizerPreset(
+            name = "flat_bass",
+            displayName = "FLAT BASS",
+            bandLevels = listOf(-2, -1, 0, 0, 0, 0, 0, 0, 1, 2) // Tames boomy bass for reference monitors
+        )
+
+        val STUDIO_OPTIMIZED = EqualizerPreset(
+            name = "studio_optimized",
+            displayName = "STUDIO",
+            bandLevels = listOf(1, 0, -1, -2, -1, 0, 1, 2, 1, 0) // Compensates for common consumer headphone dips
+        )
+
+        val DEEP_DYNAMIC = EqualizerPreset(
+            name = "deep_dynamic",
+            displayName = "DYNAMIC",
+            bandLevels = listOf(6, 4, 0, -2, -1, 1, 3, 5, 7, 8) // U-shape for high-energy listening
+        )
         
         fun custom(bandLevels: List<Int>) = EqualizerPreset(
             name = "custom",
@@ -88,7 +106,8 @@ data class EqualizerPreset(
         )
         
         val ALL_PRESETS = listOf(
-            FLAT, ROCK, POP, HIP_HOP, JAZZ, CLASSICAL, ELECTRONIC, BASS_BOOST, TREBLE_BOOST, VOCAL
+            FLAT, ROCK, POP, HIP_HOP, JAZZ, CLASSICAL, ELECTRONIC, BASS_BOOST, TREBLE_BOOST, VOCAL,
+            FLAT_BASS, STUDIO_OPTIMIZED, DEEP_DYNAMIC
         )
         
         fun fromName(name: String): EqualizerPreset {

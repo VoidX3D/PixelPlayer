@@ -102,7 +102,7 @@ internal fun rememberSheetVisualState(
                 } else if (isNavBarHidden) {
                     60.dp
                 } else {
-                    navBarCornerRadiusDp
+                    32.dp // Pill shape (MiniPlayerHeight is 64.dp)
                 }
 
                 if (predictiveBackCollapseProgress > 0f &&
@@ -156,7 +156,7 @@ internal fun rememberSheetVisualState(
                 } else {
                     if (showPlayerContentArea) {
                         val fraction = playerContentExpansionFraction.value
-                        val collapsedRadius = if (isNavBarHidden) 60.dp else 12.dp
+                        val collapsedRadius = if (isNavBarHidden) 60.dp else 32.dp
                         if (fraction < 0.2f) {
                             lerp(collapsedRadius, 26.dp, (fraction / 0.2f).coerceIn(0f, 1f))
                         } else {

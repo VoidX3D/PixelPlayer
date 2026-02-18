@@ -62,6 +62,8 @@ fun WavySliderExpressive(
     waveSpeed: Dp = WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2f, // Slower wave as requested
 
     waveAmplitudeWhenPlaying: Dp = 4.dp,
+    amplitudeMultiplier: Float = 1f,
+    speedMultiplier: Float = 1f,
     thumbLineHeightWhenInteracting: Dp = 24.dp,
     semanticsLabel: String? = null,
     semanticsProgressStep: Float = 0.01f
@@ -163,9 +165,9 @@ fun WavySliderExpressive(
             trackStroke = stroke,
             gapSize = thumbRadius + 4.dp,
             stopSize = 3.dp,
-            amplitude = { progress -> if (progress > 0f) animatedAmplitude else 0f },
+            amplitude = { progress -> if (progress > 0f) animatedAmplitude * amplitudeMultiplier else 0f },
             wavelength = wavelength,
-            waveSpeed = waveSpeed
+            waveSpeed = waveSpeed * speedMultiplier
         )
 
         Canvas(modifier = Modifier.fillMaxSize()) {

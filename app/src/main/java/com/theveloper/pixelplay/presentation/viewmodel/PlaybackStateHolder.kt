@@ -31,7 +31,8 @@ class PlaybackStateHolder @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val castStateHolder: CastStateHolder,
     private val queueStateHolder: QueueStateHolder,
-    private val listeningStatsTracker: ListeningStatsTracker
+    private val listeningStatsTracker: ListeningStatsTracker,
+    private val playbackTracker: PlaybackTracker
 ) {
     companion object {
         private const val TAG = "PlaybackStateHolder"
@@ -296,6 +297,7 @@ class PlaybackStateHolder @Inject constructor(
                         }
 
                         listeningStatsTracker.onProgress(currentPosition, isRemotePlaying)
+                        scope?.launch { playbackTracker.trackProgress(currentPosition) }
 
                         _stablePlayerState.update { state ->
                             val nextPosition = if (isRemotelySeeking) state.currentPosition else currentPosition
@@ -345,12 +347,36 @@ class PlaybackStateHolder @Inject constructor(
                          )
                          
                          listeningStatsTracker.onProgress(currentPosition, true)
+                         scope?.launch { playbackTracker.trackProgress(currentPosition) }
                          
                          _stablePlayerState.update { state ->
                              if (state.currentPosition == currentPosition && state.totalDuration == duration) {
                                  state
                              } else {
                                  state.copy(currentPosition = currentPosition, totalDuration = duration)
+                             }
+                        }
+
+                        // EOT Fade out logic
+                        val eotTargetId = com.theveloper.pixelplay.data.EotStateHolder.eotTargetSongId.value
+                        if (eotTargetId != null && eotTargetId == visibleSong?.id) {
+                            val timeRemaining = duration - currentPosition
+                            if (timeRemaining in 1..5000) {
+                                if (!com.theveloper.pixelplay.data.EotStateHolder.isEotFading.value) {
+                                    com.theveloper.pixelplay.data.EotStateHolder.setEotFading(true)
+                                    Timber.tag(TAG).d("Starting EOT Fade out...")
+                                }
+                                val fadeFactor = (timeRemaining.toFloat() / 5000f).coerceIn(0f, 1f)
+                                dualPlayerEngine.masterPlayer.volume = fadeFactor
+                            } else {
+                                if (com.theveloper.pixelplay.data.EotStateHolder.isEotFading.value) {
+                                    com.theveloper.pixelplay.data.EotStateHolder.setEotFading(false)
+                                    dualPlayerEngine.masterPlayer.volume = 1f
+                                }
+                            }
+                        } else {
+                             if (dualPlayerEngine.masterPlayer.volume < 1f && !dualPlayerEngine.isTransitionRunning()) {
+                                 dualPlayerEngine.masterPlayer.volume = 1f
                              }
                         }
                      }

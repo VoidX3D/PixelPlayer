@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.worker.IntelligenceManager
 import com.theveloper.pixelplay.data.worker.SyncManager
 import com.theveloper.pixelplay.data.worker.SyncProgress
 import com.theveloper.pixelplay.utils.LogUtils
@@ -18,9 +19,14 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val syncManager: SyncManager,
+    private val intelligenceManager: IntelligenceManager,
     musicRepository: MusicRepository,
     userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
+
+    init {
+        intelligenceManager.scheduleDiscoveryMixRefresh()
+    }
 
     val isSetupComplete: StateFlow<Boolean> = userPreferencesRepository.initialSetupDoneFlow
         .stateIn(

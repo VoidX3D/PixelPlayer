@@ -64,6 +64,7 @@ import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.repository.LyricsSearchResult
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.repository.PlaybackStatRepository
 import com.theveloper.pixelplay.data.service.MusicNotificationProvider
 import com.theveloper.pixelplay.data.service.MusicService
 import com.theveloper.pixelplay.data.service.player.CastPlayer
@@ -158,6 +159,11 @@ class PlayerViewModel @Inject constructor(
     private val castTransferStateHolder: CastTransferStateHolder,
     private val metadataEditStateHolder: MetadataEditStateHolder,
     private val externalMediaStateHolder: ExternalMediaStateHolder,
+    private val playbackStatRepository: PlaybackStatRepository,
+    private val playbackTracker: PlaybackTracker,
+    private val groupSyncManager: com.theveloper.pixelplay.data.service.GroupSyncManager,
+    private val equalizerManager: com.theveloper.pixelplay.data.equalizer.EqualizerManager,
+    private val sensorManager: android.hardware.SensorManager?,
     val themeStateHolder: ThemeStateHolder,
     val multiSelectionStateHolder: MultiSelectionStateHolder,
     private val sessionToken: SessionToken,
@@ -542,6 +548,128 @@ class PlayerViewModel @Inject constructor(
 
     private val _trackVolume = MutableStateFlow(1.0f)
     val trackVolume: StateFlow<Float> = _trackVolume.asStateFlow()
+
+    private val _parallaxOffset = MutableStateFlow(Pair(0f, 0f))
+    val parallaxOffset: StateFlow<Pair<Float, Float>> = _parallaxOffset.asStateFlow()
+
+    val loudnessStrength: StateFlow<Float> = equalizerManager.loudnessEnhancerStrength
+        .map { it.toFloat() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    val currentEqualizerPreset: StateFlow<com.theveloper.pixelplay.data.equalizer.EqualizerPreset> = equalizerManager.currentPresetName
+        .map { name ->
+            val customBands = userPreferencesRepository.equalizerCustomBandsFlow.first()
+            if (name == "custom") com.theveloper.pixelplay.data.equalizer.EqualizerPreset.custom(customBands)
+            else com.theveloper.pixelplay.data.equalizer.EqualizerPreset.fromName(name)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.theveloper.pixelplay.data.equalizer.EqualizerPreset.FLAT)
+
+    fun setLoudnessStrength(strength: Int) {
+        equalizerManager.setLoudnessEnhancerStrength(strength)
+        viewModelScope.launch {
+            userPreferencesRepository.setLoudnessEnhancerStrength(strength)
+        }
+    }
+
+    fun selectEqualizerPreset(preset: com.theveloper.pixelplay.data.equalizer.EqualizerPreset) {
+        equalizerManager.applyPreset(preset)
+        viewModelScope.launch {
+            userPreferencesRepository.setEqualizerPreset(preset.name)
+            if (!preset.isCustom) {
+                userPreferencesRepository.setEqualizerCustomBands(preset.bandLevels)
+            }
+        }
+    }
+
+    val preAmpFactor: StateFlow<Float> = userPreferencesRepository.preAmpFactorFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1.0f)
+
+    val playbackSpeed: StateFlow<Float> = userPreferencesRepository.playbackSpeedFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1.0f)
+
+    val playbackPitch: StateFlow<Float> = userPreferencesRepository.playbackPitchFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1.0f)
+
+    val nightModeEnabled: StateFlow<Boolean> = userPreferencesRepository.nightModeEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val bitPerfectEnabled: StateFlow<Boolean> = userPreferencesRepository.bitPerfectEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val aiTrackingEnabled: StateFlow<Boolean> = userPreferencesRepository.aiTrackingEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setPreAmpFactor(factor: Float) {
+        viewModelScope.launch { userPreferencesRepository.setPreAmpFactor(factor) }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        viewModelScope.launch { userPreferencesRepository.setPlaybackSpeed(speed) }
+    }
+
+    fun setPlaybackPitch(pitch: Float) {
+        viewModelScope.launch { userPreferencesRepository.setPlaybackPitch(pitch) }
+    }
+
+    fun setNightModeEnabled(enabled: Boolean) {
+        equalizerManager.setNightModeEnabled(enabled)
+        viewModelScope.launch { userPreferencesRepository.setNightModeEnabled(enabled) }
+    }
+
+    fun setBitPerfectEnabled(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setBitPerfectEnabled(enabled) }
+    }
+
+    fun setAiTrackingEnabled(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setAiTrackingEnabled(enabled) }
+    }
+
+    val discoveredGroupDevices = groupSyncManager.discoveredDevices
+    val isHostingGroup = groupSyncManager.isHosting
+
+    fun startGroupHosting() = groupSyncManager.startHosting()
+    fun stopGroupHosting() = groupSyncManager.stopHosting()
+    fun startGroupDiscovery() = groupSyncManager.startDiscovery()
+    fun stopGroupDiscovery() = groupSyncManager.stopDiscovery()
+
+    val songEnergy: StateFlow<Float> = stablePlayerState
+        .map { state ->
+            val genre = state.currentSong?.genre?.lowercase() ?: ""
+            when {
+                genre.contains("rock") || genre.contains("metal") -> 0.9f
+                genre.contains("pop") || genre.contains("electronic") -> 0.7f
+                genre.contains("jazz") || genre.contains("classical") -> 0.3f
+                else -> 0.5f
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.5f)
+
+    private val sensorListener = object : android.hardware.SensorEventListener {
+        override fun onSensorChanged(event: android.hardware.SensorEvent?) {
+            if (event?.sensor?.type == android.hardware.Sensor.TYPE_GYROSCOPE) {
+                val x = event.values[0]
+                val y = event.values[1]
+                _parallaxOffset.update { (oldX, oldY) ->
+                    Pair(
+                        (oldX + y * 2f).coerceIn(-15f, 15f),
+                        (oldY + x * 2f).coerceIn(-15f, 15f)
+                    )
+                }
+            }
+        }
+        override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+    }
+
+    private fun startGyroscope() {
+        val gyro = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_GYROSCOPE)
+        if (gyro != null) {
+            sensorManager.registerListener(sensorListener, gyro, android.hardware.SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    private fun stopGyroscope() {
+        sensorManager?.unregisterListener(sensorListener)
+    }
 
 
     @Inject
@@ -1357,6 +1485,8 @@ class PlayerViewModel @Inject constructor(
         // Auto-hide undo bar when a new song starts playing
         setupUndoBarPlaybackObserver()
 
+        startGyroscope()
+
         Trace.endSection() // End PlayerViewModel.init
     }
 
@@ -1999,6 +2129,7 @@ class PlayerViewModel @Inject constructor(
                         _playerUiState.update { it.copy(currentPosition = 0L) }
 
                         song?.let { currentSongValue ->
+                            playbackTracker.trackStart(currentSongValue.id, resolvedDuration)
                             listeningStatsTracker.onSongChanged(
                                 song = currentSongValue,
                                 positionMs = 0L,
@@ -3257,6 +3388,8 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        viewModelScope.launch { playbackTracker.trackEnd() }
+        stopGyroscope()
         remoteQueueLoadJob?.cancel()
         castSongUiSyncJob?.cancel()
         stopProgressUpdates()

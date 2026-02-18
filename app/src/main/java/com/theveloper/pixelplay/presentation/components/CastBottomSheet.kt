@@ -74,6 +74,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -318,6 +319,9 @@ fun CastBottomSheet(
                 }
             )
         } else {
+            val discoveredGroupDevices by playerViewModel.discoveredGroupDevices.collectAsState()
+            val isHostingGroup by playerViewModel.isHostingGroup.collectAsState()
+
             CastSheetContent(
                 state = uiState,
                 onSelectDevice = { id ->
@@ -344,7 +348,13 @@ fun CastBottomSheet(
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 },
-                onRefresh = { playerViewModel.refreshCastRoutes() }
+                onRefresh = { playerViewModel.refreshCastRoutes() },
+                isHostingGroup = isHostingGroup,
+                discoveredGroupDevices = discoveredGroupDevices,
+                onStartGroupHosting = playerViewModel::startGroupHosting,
+                onStopGroupHosting = playerViewModel::stopGroupHosting,
+                onStartGroupDiscovery = playerViewModel::startGroupDiscovery,
+                onStopGroupDiscovery = playerViewModel::stopGroupDiscovery
             )
         }
     }
@@ -505,7 +515,13 @@ private fun CastSheetContent(
     onVolumeChange: (Float) -> Unit,
     onTurnOnWifi: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    isHostingGroup: Boolean,
+    discoveredGroupDevices: List<android.net.nsd.NsdServiceInfo>,
+    onStartGroupHosting: () -> Unit,
+    onStopGroupHosting: () -> Unit,
+    onStartGroupDiscovery: () -> Unit,
+    onStopGroupDiscovery: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val allConnectivityOff = !state.wifiEnabled && !state.isBluetoothEnabled
@@ -571,6 +587,17 @@ private fun CastSheetContent(
                     device = state.activeDevice,
                     onDisconnect = onDisconnect,
                     onVolumeChange = onVolumeChange
+                )
+            }
+
+            stickyHeader(key = "lobbySectionHeader") {
+                LobbySectionHeader(
+                    isHosting = isHostingGroup,
+                    discovered = discoveredGroupDevices,
+                    onStartHosting = onStartGroupHosting,
+                    onStopHosting = onStopGroupHosting,
+                    onStartDiscovery = onStartGroupDiscovery,
+                    onStopDiscovery = onStopGroupDiscovery
                 )
             }
 
@@ -1004,6 +1031,78 @@ private fun CollapsibleCastTopBar(
                 bluetoothName = bluetoothName,
                 onBluetoothClick = onBluetoothClick
             )
+        }
+    }
+}
+
+@Composable
+private fun LobbySectionHeader(
+    isHosting: Boolean,
+    discovered: List<android.net.nsd.NsdServiceInfo>,
+    onStartHosting: () -> Unit,
+    onStopHosting: () -> Unit,
+    onStartDiscovery: () -> Unit,
+    onStopDiscovery: () -> Unit
+) {
+    DisposableEffect(Unit) {
+        onStartDiscovery()
+        onDispose {
+            onStopDiscovery()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Wi-Fi Lobby (BETA)",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = "Sync playback with nearby devices",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Switch(
+                checked = isHosting,
+                onCheckedChange = {
+                    if (it) onStartHosting()
+                    else onStopHosting()
+                }
+            )
+        }
+
+        if (discovered.isNotEmpty()) {
+            Text("Available Lobbies", style = MaterialTheme.typography.labelMedium)
+            discovered.forEach { service ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Wifi, contentDescription = null)
+                        Text(service.serviceName, modifier = Modifier.weight(1f))
+                        Button(onClick = { /* Join Logic */ }) {
+                            Text("Join")
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1750,7 +1849,13 @@ private fun CastSheetScanningPreview() {
         onVolumeChange = {},
         onTurnOnWifi = {},
         onOpenBluetoothSettings = {},
-        onRefresh = {}
+        onRefresh = {},
+        isHostingGroup = false,
+        discoveredGroupDevices = emptyList(),
+        onStartGroupHosting = {},
+        onStopGroupHosting = {},
+        onStartGroupDiscovery = {},
+        onStopGroupDiscovery = {}
     )
 }
 
@@ -1809,7 +1914,13 @@ private fun CastSheetDevicesPreview() {
         onVolumeChange = {},
         onTurnOnWifi = {},
         onOpenBluetoothSettings = {},
-        onRefresh = {}
+        onRefresh = {},
+        isHostingGroup = false,
+        discoveredGroupDevices = emptyList(),
+        onStartGroupHosting = {},
+        onStopGroupHosting = {},
+        onStartGroupDiscovery = {},
+        onStopGroupDiscovery = {}
     )
 }
 
@@ -1842,6 +1953,12 @@ private fun CastSheetWifiOffPreview() {
         onVolumeChange = {},
         onTurnOnWifi = {},
         onOpenBluetoothSettings = {},
-        onRefresh = {}
+        onRefresh = {},
+        isHostingGroup = false,
+        discoveredGroupDevices = emptyList(),
+        onStartGroupHosting = {},
+        onStopGroupHosting = {},
+        onStartGroupDiscovery = {},
+        onStopGroupDiscovery = {}
     )
 }

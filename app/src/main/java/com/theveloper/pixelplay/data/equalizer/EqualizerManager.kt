@@ -31,6 +31,7 @@ class EqualizerManager @Inject constructor() {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var dynamicsProcessing: android.media.audiofx.DynamicsProcessing? = null
     private var currentAudioSessionId: Int = 0
 
     val isAttached: Boolean
@@ -69,6 +70,9 @@ class EqualizerManager @Inject constructor() {
     private var maxEqLevel: Short = 1500
 
     private var loudnessEnhancer: android.media.audiofx.LoudnessEnhancer? = null
+
+    private val _nightModeEnabled = MutableStateFlow(false)
+    val nightModeEnabled: StateFlow<Boolean> = _nightModeEnabled.asStateFlow()
 
     // Global device capabilities (Checking existence of effect UUIDs)
     private var isBassBoostSupportedGlobal = false
@@ -157,6 +161,35 @@ class EqualizerManager @Inject constructor() {
                     if (retryCount < maxRetries - 1) kotlinx.coroutines.delay(300)
                 }
                 retryCount++
+            }
+
+            // Initialize Dynamics Processing for Night Mode
+            dynamicsProcessing = try {
+                val builder = android.media.audiofx.DynamicsProcessing.Config.Builder(
+                    android.media.audiofx.DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
+                    1, // 1 channel
+                    false, // preEq
+                    0, // mbc
+                    false, // postEq
+                    1, // limiter
+                )
+                val limiter = android.media.audiofx.DynamicsProcessing.Limiter(
+                    true, // enabled
+                    true, // inUse
+                    0, // channel
+                    10f, // attackTime
+                    100f, // releaseTime
+                    1.0f, // ratio
+                    -10f, // threshold
+                    0f // postGain
+                )
+                builder.setLimiterByChannelIndex(0, limiter)
+                android.media.audiofx.DynamicsProcessing(0, audioSessionId, builder.build()).apply {
+                    enabled = _nightModeEnabled.value
+                }
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "DynamicsProcessing not supported")
+                null
             }
 
             // Initialize Loudness Enhancer (usually robust, but let's be safe)
@@ -299,6 +332,15 @@ class EqualizerManager @Inject constructor() {
             loudnessEnhancer?.enabled = enabled
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to set loudness enhancer enabled")
+        }
+    }
+
+    fun setNightModeEnabled(enabled: Boolean) {
+        _nightModeEnabled.value = enabled
+        try {
+            dynamicsProcessing?.enabled = enabled
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to set night mode enabled")
         }
     }
 
@@ -490,6 +532,7 @@ class EqualizerManager @Inject constructor() {
             bassBoost?.release()
             virtualizer?.release()
             loudnessEnhancer?.release()
+            dynamicsProcessing?.release()
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error releasing audio effects")
         }

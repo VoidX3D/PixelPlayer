@@ -22,9 +22,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NeteaseSongEntity::class,
         NeteasePlaylistEntity::class,
         GDriveSongEntity::class,
-        GDriveFolderEntity::class
+        GDriveFolderEntity::class,
+        PlaybackStatEntity::class
     ],
-    version = 22, // Incremented for Google Drive tables
+    version = 23, // Incremented for Playback stats
 
     exportSchema = false
 )
@@ -39,6 +40,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun lyricsDao(): LyricsDao
     abstract fun neteaseDao(): NeteaseDao
     abstract fun gdriveDao(): GDriveDao
+    abstract fun playbackStatDao(): PlaybackStatDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -431,6 +433,25 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         name TEXT NOT NULL,
                         song_count INTEGER NOT NULL DEFAULT 0,
                         last_sync_time INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+            }
+        }
+
+        /**
+         * Add Playback statistics table.
+         */
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS playback_stats (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        mediaId TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        completionRate REAL NOT NULL,
+                        skipVelocity REAL NOT NULL,
+                        volumePreference REAL NOT NULL,
+                        timeOfDay INTEGER NOT NULL
                     )
                 """.trimIndent())
             }
