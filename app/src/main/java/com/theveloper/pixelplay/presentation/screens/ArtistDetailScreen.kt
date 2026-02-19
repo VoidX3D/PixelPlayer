@@ -3,6 +3,8 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -25,6 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.AddAPhoto
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Mic
@@ -112,6 +117,24 @@ fun ArtistDetailScreen(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
+    val isDarkTheme = LocalPixelPlayDarkTheme.current
+    val baseColorScheme = MaterialTheme.colorScheme
+
+    // --- Dynamic color palette from pre-warmed ViewModel state ---
+    // artistColorScheme is set by the ViewModel BEFORE isLoading becomes false,
+    // so the very first composition already has the correct palette — no flash.
+    val artistColorSchemePair by viewModel.artistColorScheme.collectAsState()
+    val artistColorScheme = remember(artistColorSchemePair, isDarkTheme) {
+        artistColorSchemePair?.let { pair -> if (isDarkTheme) pair.dark else pair.light }
+            ?: baseColorScheme
+    }
+
+    // --- Image picker for custom artist image ---
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.setCustomImage(it) }
+    }
 
     LaunchedEffect(Unit) {
         playerViewModel.collapsePlayerSheet()
@@ -189,9 +212,15 @@ fun ArtistDetailScreen(
         playerViewModel.collapsePlayerSheet()
     }
 
+    // Wrap in dynamic theme derived from the artist's image
+    MaterialTheme(
+        colorScheme = artistColorScheme,
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes
+    ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface // Asegura que el fondo coincida con el gradiente
+        color = MaterialTheme.colorScheme.surface
     ) {
         Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
             when {
@@ -336,6 +365,8 @@ fun ArtistDetailScreen(
 
                     CustomCollapsingTopBar(
                         artist = artist,
+                        effectiveImageUrl = uiState.effectiveImageUrl,
+                        hasCustomImage = !artist.customImageUri.isNullOrBlank(),
                         songsCount = songs.size,
                         collapseFraction = collapseFraction,
                         headerHeight = currentTopBarHeightDp,
@@ -344,12 +375,16 @@ fun ArtistDetailScreen(
                             if (songs.isNotEmpty()) {
                                 playerViewModel.playSongsShuffled(songs, artist.name, startAtZero = true)
                             }
-                        }
+                        },
+                        onChangeImage = { imagePickerLauncher.launch("image/*") },
+                        onClearCustomImage = { viewModel.clearCustomImage() }
                     )
                 }
             }
         }
-    }
+    } // End Surface
+
+    // Bottom sheets inherit the artist's dynamic color palette — same approach as AlbumDetailScreen
     if (showSongInfoBottomSheet && selectedSongForInfo != null) {
         val currentSong = selectedSongForInfo
         val isFavorite = remember(currentSong?.id, favoriteIds) {
@@ -414,6 +449,7 @@ fun ArtistDetailScreen(
             }
         }
     }
+    } // End MaterialTheme
 }
 
 private fun ArtistAlbumSection.collapseKey(): String = "artist_album_${albumId}_${title}"
@@ -461,6 +497,7 @@ private fun CollapsibleAlbumSectionHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(shape)
                 .clickable(onClick = onToggleExpanded)
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -585,11 +622,15 @@ private fun ArtistAlbumSectionSongItem(
 @Composable
 private fun CustomCollapsingTopBar(
     artist: Artist,
+    effectiveImageUrl: String?,
+    hasCustomImage: Boolean,
     songsCount: Int,
     collapseFraction: Float, // 0.0 = expandido, 1.0 = colapsado
     headerHeight: Dp,
     onBackPressed: () -> Unit,
-    onPlayClick: () -> Unit
+    onPlayClick: () -> Unit,
+    onChangeImage: () -> Unit,
+    onClearCustomImage: () -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val statusBarColor = if (LocalPixelPlayDarkTheme.current) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.4f)
@@ -637,10 +678,11 @@ private fun CustomCollapsingTopBar(
                         .graphicsLayer { alpha = headerContentAlpha }
                 ) {
                     // Artist artwork or fallback pattern
-                    if (!artist.imageUrl.isNullOrEmpty()) {
+                    val displayUrl = effectiveImageUrl?.takeIf { it.isNotBlank() }
+                    if (!displayUrl.isNullOrEmpty()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(artist.imageUrl)
+                                .data(displayUrl)
                                 .size(600, 600)
                                 .crossfade(true)
                                 .build(),
@@ -695,6 +737,48 @@ private fun CustomCollapsingTopBar(
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                 ) {
                     Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                }
+
+                // Image edit button (visible only when header is mostly expanded)
+                if (collapseFraction < 0.5f) {
+                    var showImageMenu by remember { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 12.dp, top = 4.dp)
+                            .graphicsLayer { alpha = 1f - (collapseFraction * 4).coerceAtMost(1f) }
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = { showImageMenu = true },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ) {
+                            Icon(Icons.Rounded.Edit, contentDescription = "Edit artist image")
+                        }
+                        DropdownMenu(
+                            expanded = showImageMenu,
+                            onDismissRequest = { showImageMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Change photo") },
+                                leadingIcon = { Icon(Icons.Rounded.AddAPhoto, contentDescription = null) },
+                                onClick = {
+                                    showImageMenu = false
+                                    onChangeImage()
+                                }
+                            )
+                            if (hasCustomImage) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset to default") },
+                                    leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+                                    onClick = {
+                                        showImageMenu = false
+                                        onClearCustomImage()
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Box contenedor para el título

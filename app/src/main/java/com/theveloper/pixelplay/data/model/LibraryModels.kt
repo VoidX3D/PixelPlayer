@@ -32,16 +32,22 @@ data class Artist(
     val id: Long, // MediaStore.Audio.Artists._ID
     val name: String,
     val songCount: Int,
-    val imageUrl: String? = null // Deezer artist image URL
+    val imageUrl: String? = null, // Deezer artist image URL (from API)
+    val customImageUri: String? = null // User-defined custom artist image (local file path)
 ) : Parcelable {
     companion object {
         fun empty() = Artist(
             id = -1,
             name = "",
             songCount = 0,
-            imageUrl = null
+            imageUrl = null,
+            customImageUri = null
         )
     }
+
+    /** Returns the image URL/path to use, preferring the user's custom image. */
+    val effectiveImageUrl: String?
+        get() = customImageUri?.takeIf { it.isNotBlank() } ?: imageUrl?.takeIf { it.isNotBlank() }
 }
 
 /**
