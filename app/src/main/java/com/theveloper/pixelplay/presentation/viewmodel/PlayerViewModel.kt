@@ -687,6 +687,8 @@ class PlayerViewModel @Inject constructor(
 
 
     private var mediaController: MediaController? = null
+    private val _isMediaControllerReady = MutableStateFlow(false)
+    val isMediaControllerReady: StateFlow<Boolean> = _isMediaControllerReady.asStateFlow()
     // SessionToken injected via constructor
     private val mediaControllerListener = object : MediaController.Listener, Player.Listener {
         override fun onCustomCommand(
@@ -806,6 +808,36 @@ class PlayerViewModel @Inject constructor(
             if (randomSongs.isNotEmpty()) {
                 playSongsShuffled(randomSongs, "All Songs (Shuffled)")
             }
+        }
+    }
+
+    /**
+     * Called from Quick Settings tile. Unlike shuffleAllSongs(), this always starts
+     * fresh playback regardless of current state, and correctly handles the case
+     * where the MediaController isn't ready yet (cold start from tile).
+     */
+    fun triggerShuffleAllFromTile() {
+        val action: () -> Unit = {
+            viewModelScope.launch {
+                // Retry a few times in case the DB (Room) hasn't finished any pending writes
+                var songs = musicRepository.getRandomSongs(limit = 500)
+                var attempts = 0
+                while (songs.isEmpty() && attempts < 10) {
+                    kotlinx.coroutines.delay(300)
+                    songs = musicRepository.getRandomSongs(limit = 500)
+                    attempts++
+                }
+                if (songs.isNotEmpty()) {
+                    playSongsShuffled(songs, "All Songs (Shuffled)")
+                }
+            }
+        }
+
+        if (mediaController == null) {
+            // MediaController not ready yet (cold start). Queue the action.
+            pendingPlaybackAction = action
+        } else {
+            action()
         }
     }
 
@@ -1129,6 +1161,7 @@ class PlayerViewModel @Inject constructor(
                 mediaController?.addListener(mediaControllerListener)
                 // Pass controller to PlaybackStateHolder
                 playbackStateHolder.setMediaController(mediaController)
+                _isMediaControllerReady.value = true
 
 
                 setupMediaControllerListeners()

@@ -196,6 +196,10 @@ constructor(
         
         // Album View Preference
         val IS_ALBUMS_LIST_VIEW = booleanPreferencesKey("is_albums_list_view")
+
+        // Quick Settings / Last Playlist
+        val LAST_PLAYLIST_ID = stringPreferencesKey("last_playlist_id")
+        val LAST_PLAYLIST_NAME = stringPreferencesKey("last_playlist_name")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -1926,6 +1930,21 @@ constructor(
                     }
                 }
             }
+        }
+    }
+
+    // --- Quick Settings: Last Playlist ---
+
+    val lastPlaylistIdFlow: Flow<String?> =
+        dataStore.data.map { it[PreferencesKeys.LAST_PLAYLIST_ID] }
+
+    val lastPlaylistNameFlow: Flow<String?> =
+        dataStore.data.map { it[PreferencesKeys.LAST_PLAYLIST_NAME] }
+
+    suspend fun setLastPlaylist(playlistId: String, playlistName: String) {
+        dataStore.edit {
+            it[PreferencesKeys.LAST_PLAYLIST_ID] = playlistId
+            it[PreferencesKeys.LAST_PLAYLIST_NAME] = playlistName
         }
     }
 }

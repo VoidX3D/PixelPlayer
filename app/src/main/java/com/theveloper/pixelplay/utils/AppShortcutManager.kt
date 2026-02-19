@@ -8,31 +8,46 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.theveloper.pixelplay.MainActivity
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Manages dynamic app shortcuts for the launcher.
+ * Manages dynamic app shortcuts for the launcher and persists the last playlist
+ * to DataStore so Quick Settings tiles can access it even when the app is closed.
  */
 @Singleton
 class AppShortcutManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) {
     companion object {
         private const val SHORTCUT_ID_LAST_PLAYLIST = "last_playlist"
     }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /**
-     * Updates the dynamic shortcut for the last played playlist.
+     * Updates the dynamic shortcut for the last played playlist and persists
+     * the playlist ID/name to DataStore for Quick Settings tile access.
      * @param playlistId The ID of the playlist
      * @param playlistName The display name of the playlist
      */
     fun updateLastPlaylistShortcut(playlistId: String, playlistName: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
-            return // Shortcuts not supported before API 25
+        // Persist to DataStore so the QS tile can read it when the app is closed
+        scope.launch {
+            userPreferencesRepository.setLastPlaylist(playlistId, playlistName)
         }
-        
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
+            return // Launcher shortcuts not supported before API 25
+        }
+
         val intent = Intent(context, MainActivity::class.java).apply {
             action = MainActivity.ACTION_OPEN_PLAYLIST
             putExtra(MainActivity.EXTRA_PLAYLIST_ID, playlistId)

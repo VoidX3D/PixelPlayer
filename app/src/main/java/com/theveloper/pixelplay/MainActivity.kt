@@ -292,9 +292,9 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
 
         when {
-            // Handle shuffle all shortcut
+            // Handle shuffle all shortcut / tile
             intent.action == ACTION_SHUFFLE_ALL -> {
-                _pendingShuffleAll.value = true
+                playerViewModel.triggerShuffleAllFromTile()
                 intent.action = null // Clear action to prevent re-triggering
             }
             
@@ -400,30 +400,17 @@ class MainActivity : ComponentActivity() {
         val hasCompletedInitialSync by mainViewModel.hasCompletedInitialSync.collectAsState()
         val syncProgress by mainViewModel.syncProgress.collectAsState()
         
-        // Observe pending shuffle action
-        val pendingShuffleAll by _pendingShuffleAll.collectAsState()
-        var processedShuffle by remember { mutableStateOf(false) }
-        
-        LaunchedEffect(pendingShuffleAll) {
-            if (pendingShuffleAll && !processedShuffle) {
-                processedShuffle = true
-                // Wait a bit for the library to be ready
-                kotlinx.coroutines.delay(500)
-                playerViewModel.shuffleAllSongs()
-                _pendingShuffleAll.value = false
-            } else if (!pendingShuffleAll) {
-                processedShuffle = false
-            }
-        }
+        // isMediaControllerReady used below for playlist navigation gate
+        val isMediaControllerReady by playerViewModel.isMediaControllerReady.collectAsState()
         
         // Observe pending playlist navigation
         val pendingPlaylistNav by _pendingPlaylistNavigation.collectAsState()
         var processedPlaylistId by remember { mutableStateOf<String?>(null) }
         
-        LaunchedEffect(pendingPlaylistNav) {
+        LaunchedEffect(pendingPlaylistNav, isMediaControllerReady) {
             val playlistId = pendingPlaylistNav
             // Only process if we have a new playlist ID that hasn't been processed yet
-            if (playlistId != null && playlistId != processedPlaylistId) {
+            if (playlistId != null && playlistId != processedPlaylistId && isMediaControllerReady) {
                 processedPlaylistId = playlistId
                 // Wait for navigation graph to be ready (retry with delay)
                 var success = false
