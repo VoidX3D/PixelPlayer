@@ -94,38 +94,38 @@ class GridWidget2x2 : GlanceAppWidget() {
 
         val themeColors = playerInfo.themeColors
 
-        val backgroundColor = themeColors?.let {
+        val bgColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightSurface),
-                night = Color(it.darkSurface)
+                day = Color(it.lightSurfaceContainer),
+                night = Color(it.darkSurfaceContainer)
             )
         } ?: GlanceTheme.colors.surface
 
-        val primaryContainerColor = themeColors?.let {
+        val playPauseBgColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightPrimaryContainer),
-                night = Color(it.darkPrimaryContainer)
+                day = Color(it.lightPlayPauseBackground),
+                night = Color(it.darkPlayPauseBackground)
             )
         } ?: GlanceTheme.colors.primaryContainer
 
-        val onPrimaryContainerColor = themeColors?.let {
+        val playPauseIcColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightOnPrimaryContainer),
-                night = Color(it.darkOnPrimaryContainer)
+                day = Color(it.lightPlayPauseIcon),
+                night = Color(it.darkPlayPauseIcon)
             )
         } ?: GlanceTheme.colors.onPrimaryContainer
 
-        val secondaryColor = themeColors?.let {
+        val prevNextBgColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightSecondaryContainer),
-                night = Color(it.darkSecondaryContainer)
+                day = Color(it.lightPrevNextBackground),
+                night = Color(it.darkPrevNextBackground)
             )
         } ?: GlanceTheme.colors.secondaryContainer
 
-        val onSecondaryColor = themeColors?.let {
+        val prevNextIcColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightOnSecondaryContainer),
-                night = Color(it.darkOnSecondaryContainer)
+                day = Color(it.lightPrevNextIcon),
+                night = Color(it.darkPrevNextIcon)
             )
         } ?: GlanceTheme.colors.onSecondaryContainer
 
@@ -144,7 +144,7 @@ class GridWidget2x2 : GlanceAppWidget() {
             Box(
                 modifier = GlanceModifier
                     .size(minSide)
-                    .background(backgroundColor)
+                    .background(bgColor)
                     .cornerRadius(widgetCornerRadius)
                     .padding(16.dp)
             ) {
@@ -175,8 +175,8 @@ class GridWidget2x2 : GlanceAppWidget() {
                                 .defaultWeight()
                                 .fillMaxHeight(),
                             isPlaying = isPlaying,
-                            backgroundColor = primaryContainerColor,
-                            iconColor = onPrimaryContainerColor,
+                            backgroundColor = playPauseBgColor,
+                            iconColor = playPauseIcColor,
                             cornerRadius = itemCornerRadius
                         )
                     }
@@ -194,8 +194,8 @@ class GridWidget2x2 : GlanceAppWidget() {
                             modifier = GlanceModifier
                                 .defaultWeight()
                                 .fillMaxHeight(),
-                            backgroundColor = secondaryColor,
-                            iconColor = onSecondaryColor,
+                            backgroundColor = prevNextBgColor,
+                            iconColor = prevNextIcColor,
                             cornerRadius = itemCornerRadius
                         )
 
@@ -206,8 +206,8 @@ class GridWidget2x2 : GlanceAppWidget() {
                             modifier = GlanceModifier
                                 .defaultWeight()
                                 .fillMaxHeight(),
-                            backgroundColor = secondaryColor,
-                            iconColor = onSecondaryColor,
+                            backgroundColor = prevNextBgColor,
+                            iconColor = prevNextIcColor,
                             cornerRadius = itemCornerRadius
                         )
                     }

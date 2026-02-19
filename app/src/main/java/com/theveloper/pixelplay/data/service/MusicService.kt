@@ -61,6 +61,10 @@ import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor
 import androidx.compose.ui.graphics.toArgb
 import com.theveloper.pixelplay.ui.glancewidget.BarWidget4x1
 import com.theveloper.pixelplay.ui.glancewidget.GridWidget2x2
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import com.theveloper.pixelplay.data.preferences.ThemePreference
+import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 
 import javax.inject.Inject
 
@@ -484,31 +488,40 @@ class MusicService : MediaSessionService() {
 
         val (artBytes, artUriString) = getAlbumArtForWidget(artworkData, artworkUri)
 
+        val playerTheme = withContext(Dispatchers.IO) {
+            userPreferencesRepository.playerThemePreferenceFlow.first()
+        }
+
         val paletteStyle = withContext(Dispatchers.IO) {
             AlbumArtPaletteStyle.fromStorageKey(userPreferencesRepository.albumArtPaletteStyleFlow.first().storageKey)
         }
-        val schemePair = if (artUriString != null) {
+
+        val schemePair: ColorSchemePair? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playerTheme == ThemePreference.DYNAMIC) {
+             ColorSchemePair(
+                 light = dynamicLightColorScheme(applicationContext),
+                 dark = dynamicDarkColorScheme(applicationContext)
+             )
+        } else if (artUriString != null) {
             colorSchemeProcessor.getOrGenerateColorScheme(artUriString, paletteStyle)
         } else null
 
         val widgetColors = schemePair?.let {
             WidgetThemeColors(
-                lightPrimary = it.light.primary.toArgb(),
-                lightOnPrimary = it.light.onPrimary.toArgb(),
-                lightPrimaryContainer = it.light.primaryContainer.toArgb(),
-                lightOnPrimaryContainer = it.light.onPrimaryContainer.toArgb(),
-                lightSecondaryContainer = it.light.secondaryContainer.toArgb(),
-                lightOnSecondaryContainer = it.light.onSecondaryContainer.toArgb(),
-                lightSurface = it.light.surface.toArgb(),
-                lightOnSurface = it.light.onSurface.toArgb(),
-                darkPrimary = it.dark.primary.toArgb(),
-                darkOnPrimary = it.dark.onPrimary.toArgb(),
-                darkPrimaryContainer = it.dark.primaryContainer.toArgb(),
-                darkOnPrimaryContainer = it.dark.onPrimaryContainer.toArgb(),
-                darkSecondaryContainer = it.dark.secondaryContainer.toArgb(),
-                darkOnSecondaryContainer = it.dark.onSecondaryContainer.toArgb(),
-                darkSurface = it.dark.surface.toArgb(),
-                darkOnSurface = it.dark.onSurface.toArgb()
+                lightSurfaceContainer = it.light.primaryContainer.toArgb(),
+                lightTitle = it.light.onPrimaryContainer.toArgb(),
+                lightArtist = it.light.onPrimaryContainer.copy(alpha = 0.7f).toArgb(),
+                lightPlayPauseBackground = it.light.primary.toArgb(),
+                lightPlayPauseIcon = it.light.onPrimary.toArgb(),
+                lightPrevNextBackground = it.light.onPrimary.toArgb(),
+                lightPrevNextIcon = it.light.primary.toArgb(),
+                
+                darkSurfaceContainer = it.dark.primaryContainer.toArgb(),
+                darkTitle = it.dark.onPrimaryContainer.toArgb(),
+                darkArtist = it.dark.onPrimaryContainer.copy(alpha = 0.7f).toArgb(),
+                darkPlayPauseBackground = it.dark.primary.toArgb(),
+                darkPlayPauseIcon = it.dark.onPrimary.toArgb(),
+                darkPrevNextBackground = it.dark.onPrimary.toArgb(),
+                darkPrevNextIcon = it.dark.primary.toArgb()
             )
         }
 

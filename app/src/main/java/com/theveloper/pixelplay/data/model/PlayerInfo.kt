@@ -32,22 +32,21 @@ data class QueueItem(
 
 @Serializable
 data class WidgetThemeColors(
-    val lightPrimary: Int,
-    val lightOnPrimary: Int,
-    val lightPrimaryContainer: Int,
-    val lightOnPrimaryContainer: Int,
-    val lightSecondaryContainer: Int, // secondaryContainer
-    val lightOnSecondaryContainer: Int,
-    val lightSurface: Int,
-    val lightOnSurface: Int,
-    val darkPrimary: Int,
-    val darkOnPrimary: Int,
-    val darkPrimaryContainer: Int,
-    val darkOnPrimaryContainer: Int,
-    val darkSecondaryContainer: Int,
-    val darkOnSecondaryContainer: Int,
-    val darkSurface: Int,
-    val darkOnSurface: Int
+    val lightSurfaceContainer: Int,
+    val lightTitle: Int,
+    val lightArtist: Int,
+    val lightPlayPauseBackground: Int,
+    val lightPlayPauseIcon: Int,
+    val lightPrevNextBackground: Int,
+    val lightPrevNextIcon: Int,
+
+    val darkSurfaceContainer: Int,
+    val darkTitle: Int,
+    val darkArtist: Int,
+    val darkPlayPauseBackground: Int,
+    val darkPlayPauseIcon: Int,
+    val darkPrevNextBackground: Int,
+    val darkPrevNextIcon: Int
 )
 
 @Serializable

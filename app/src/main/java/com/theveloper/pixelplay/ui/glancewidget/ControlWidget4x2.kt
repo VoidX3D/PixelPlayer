@@ -92,45 +92,52 @@ class ControlWidget4x2 : GlanceAppWidget() {
         val albumArtBitmapData = playerInfo.albumArtBitmapData
         val themeColors = playerInfo.themeColors
 
-        val backgroundColor = themeColors?.let {
+        val bgColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightSurface),
-                night = Color(it.darkSurface)
+                day = Color(it.lightSurfaceContainer),
+                night = Color(it.darkSurfaceContainer)
             )
         } ?: GlanceTheme.colors.surface
 
-        val textColor = themeColors?.let {
+        val titleColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightOnSurface),
-                night = Color(it.darkOnSurface)
+                day = Color(it.lightTitle),
+                night = Color(it.darkTitle)
             )
         } ?: GlanceTheme.colors.onSurface
 
-        val primaryContainerColor = themeColors?.let {
+        val artistColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightPrimaryContainer),
-                night = Color(it.darkPrimaryContainer)
+                day = Color(it.lightArtist),
+                night = Color(it.darkArtist)
+            )
+        } ?: GlanceTheme.colors.onSurface
+
+        val playPauseBgColor = themeColors?.let {
+            ColorProvider(
+                day = Color(it.lightPlayPauseBackground),
+                night = Color(it.darkPlayPauseBackground)
             )
         } ?: GlanceTheme.colors.primaryContainer
 
-        val onPrimaryContainerColor = themeColors?.let {
+        val playPauseIcColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightOnPrimaryContainer),
-                night = Color(it.darkOnPrimaryContainer)
+                day = Color(it.lightPlayPauseIcon),
+                night = Color(it.darkPlayPauseIcon)
             )
         } ?: GlanceTheme.colors.onPrimaryContainer
 
-        val secondaryColor = themeColors?.let {
+        val prevNextBgColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightSecondaryContainer),
-                night = Color(it.darkSecondaryContainer)
+                day = Color(it.lightPrevNextBackground),
+                night = Color(it.darkPrevNextBackground)
             )
         } ?: GlanceTheme.colors.secondaryContainer
 
-        val onSecondaryColor = themeColors?.let {
+        val prevNextIcColor = themeColors?.let {
             ColorProvider(
-                day = Color(it.lightOnSecondaryContainer),
-                night = Color(it.darkOnSecondaryContainer)
+                day = Color(it.lightPrevNextIcon),
+                night = Color(it.darkPrevNextIcon)
             )
         } ?: GlanceTheme.colors.onSecondaryContainer
 
@@ -142,7 +149,7 @@ class ControlWidget4x2 : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(backgroundColor)
+                .background(bgColor)
                 .cornerRadius(widgetCornerRadius)
                 .padding(16.dp)
                 .clickable(actionStartActivity<MainActivity>())
@@ -174,7 +181,7 @@ class ControlWidget4x2 : GlanceAppWidget() {
                             style = TextStyle(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = textColor
+                                color = titleColor
                             ),
                             maxLines = 2
                         )
@@ -183,7 +190,7 @@ class ControlWidget4x2 : GlanceAppWidget() {
                             text = artist,
                             style = TextStyle(
                                 fontSize = 14.sp,
-                                color = textColor
+                                color = artistColor
                             ),
                             maxLines = 1
                         )
@@ -206,8 +213,8 @@ class ControlWidget4x2 : GlanceAppWidget() {
                     // Shuffle Button
                     ShuffleButton(
                         modifier = buttonModifier,
-                        backgroundColor = if (isShuffleEnabled) textColor else secondaryColor,
-                        iconColor = if (isShuffleEnabled) backgroundColor else onSecondaryColor,
+                        backgroundColor = if (isShuffleEnabled) titleColor else prevNextBgColor,
+                        iconColor = if (isShuffleEnabled) bgColor else prevNextIcColor,
                         cornerRadius = controlButtonCornerRadius
                     )
 
@@ -216,8 +223,8 @@ class ControlWidget4x2 : GlanceAppWidget() {
                     // Previous Button
                     PreviousButton(
                         modifier = buttonModifier,
-                        backgroundColor = secondaryColor,
-                        iconColor = onSecondaryColor,
+                        backgroundColor = prevNextBgColor,
+                        iconColor = prevNextIcColor,
                         cornerRadius = controlButtonCornerRadius
                     )
 
@@ -227,8 +234,8 @@ class ControlWidget4x2 : GlanceAppWidget() {
                     PlayPauseButton(
                         modifier = buttonModifier,
                         isPlaying = isPlaying,
-                        backgroundColor = primaryContainerColor,
-                        iconColor = onPrimaryContainerColor,
+                        backgroundColor = playPauseBgColor,
+                        iconColor = playPauseIcColor,
                         cornerRadius = playButtonCornerRadius
                     )
 
@@ -237,8 +244,8 @@ class ControlWidget4x2 : GlanceAppWidget() {
                     // Next Button
                     NextButton(
                         modifier = buttonModifier,
-                        backgroundColor = secondaryColor,
-                        iconColor = onSecondaryColor,
+                        backgroundColor = prevNextBgColor,
+                        iconColor = prevNextIcColor,
                         cornerRadius = controlButtonCornerRadius
                     )
 
@@ -246,16 +253,16 @@ class ControlWidget4x2 : GlanceAppWidget() {
 
                     // Repeat Button
                     val buttonColor = when (repeatMode) {
-                        Player.REPEAT_MODE_OFF -> secondaryColor
-                        else -> textColor
+                        Player.REPEAT_MODE_OFF -> prevNextBgColor
+                        else -> titleColor
                     }
                     val iconRes = when (repeatMode) {
                         Player.REPEAT_MODE_ONE -> R.drawable.rounded_repeat_one_24
                         else -> R.drawable.rounded_repeat_24
                     }
                     val iconColor = when (repeatMode) {
-                        Player.REPEAT_MODE_OFF -> textColor
-                        else -> secondaryColor
+                        Player.REPEAT_MODE_OFF -> prevNextIcColor
+                        else -> bgColor
                     }
                     RepeatButton(
                         modifier = buttonModifier,
