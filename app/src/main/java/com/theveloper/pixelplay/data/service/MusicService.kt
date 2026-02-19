@@ -569,6 +569,17 @@ class MusicService : MediaSessionService() {
         return isManualShuffleEnabled
     }
 
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        try {
+            super.onUpdateNotification(session, startInForegroundRequired)
+        } catch (e: IllegalStateException) {
+            // On Android 12+, Media3's notification pipeline can asynchronously call
+            // startForegroundService() after the bitmap loads, at which point the app
+            // may no longer be in the foreground. Catching this prevents the crash.
+            Timber.tag(TAG).w(e, "onUpdateNotification suppressed: cannot start foreground from background")
+        }
+    }
+
     private fun refreshMediaSessionUi(session: MediaSession) {
         val buttons = buildMediaButtonPreferences(session)
         session.setMediaButtonPreferences(buttons)
