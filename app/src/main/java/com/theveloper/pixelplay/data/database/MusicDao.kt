@@ -642,7 +642,7 @@ interface MusicDao {
     suspend fun getAllArtistsListRaw(): List<ArtistEntity>
 
     @Query("""
-        SELECT DISTINCT artists.id, artists.name, artists.image_url,
+        SELECT DISTINCT artists.id, artists.name, artists.image_url, artists.custom_image_uri,
                (SELECT COUNT(*) FROM song_artist_cross_ref 
                 INNER JOIN songs ON song_artist_cross_ref.song_id = songs.id
                 WHERE song_artist_cross_ref.artist_id = artists.id
@@ -678,6 +678,13 @@ interface MusicDao {
 
     @Query("SELECT MAX(id) FROM artists")
     suspend fun getMaxArtistId(): Long?
+
+    // --- Artist Custom Image Operations ---
+    @Query("UPDATE artists SET custom_image_uri = :uri WHERE id = :artistId")
+    suspend fun updateArtistCustomImage(artistId: Long, uri: String?)
+
+    @Query("SELECT custom_image_uri FROM artists WHERE id = :artistId")
+    suspend fun getArtistCustomImage(artistId: Long): String?
 
     // --- Genre Queries ---
     // Example: Get all songs for a specific genre
@@ -867,7 +874,7 @@ interface MusicDao {
      * Get all artists with their song counts computed from the junction table.
      */
     @Query("""
-        SELECT artists.id, artists.name, artists.image_url,
+        SELECT artists.id, artists.name, artists.image_url, artists.custom_image_uri,
                (SELECT COUNT(*) FROM song_artist_cross_ref WHERE song_artist_cross_ref.artist_id = artists.id) AS track_count
         FROM artists
         ORDER BY artists.name ASC
@@ -878,7 +885,7 @@ interface MusicDao {
      * Get all artists with song counts, filtered by allowed directories.
      */
     @Query("""
-        SELECT DISTINCT artists.id, artists.name, artists.image_url,
+        SELECT DISTINCT artists.id, artists.name, artists.image_url, artists.custom_image_uri,
                (SELECT COUNT(*) FROM song_artist_cross_ref 
                 INNER JOIN songs ON song_artist_cross_ref.song_id = songs.id
                 WHERE song_artist_cross_ref.artist_id = artists.id

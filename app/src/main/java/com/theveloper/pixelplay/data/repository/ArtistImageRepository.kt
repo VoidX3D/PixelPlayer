@@ -1,5 +1,9 @@
 package com.theveloper.pixelplay.data.repository
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
 import android.util.LruCache
 import com.theveloper.pixelplay.data.database.MusicDao
@@ -8,6 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -165,6 +171,88 @@ class ArtistImageRepository @Inject constructor(
     fun clearCache() {
         memoryCache.evictAll()
         failedFetches.clear()
+    }
+
+    /**
+     * Returns the effective image URL for an artist:
+     * - If a custom (user-set) image exists in DB → returns that path
+     * - Otherwise falls back to the Deezer URL (fetching from API if needed)
+     */
+    suspend fun getEffectiveArtistImageUrl(artistId: Long, artistName: String): String? {
+        val customUri = withContext(Dispatchers.IO) { musicDao.getArtistCustomImage(artistId) }
+        if (!customUri.isNullOrBlank()) return customUri
+        return getArtistImageUrl(artistName, artistId)
+    }
+
+    /**
+     * Saves a user-selected image as the artist's custom image.
+     *
+     * The content URI is resolved immediately and the bitmap is written to
+     * internal storage (filesDir/artist_art_<id>.jpg). This avoids depending
+     * on a content URI that may expire once the photo-picker dismisses.
+     *
+     * @param context Application context (used for contentResolver and filesDir)
+     * @param artistId The artist's database row ID
+     * @param sourceUri URI returned by the system photo-picker
+     * @return The internal file path on success, null on failure
+     */
+    suspend fun setCustomArtistImage(context: Context, artistId: Long, sourceUri: Uri): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 1. Open and decode the bitmap from the content URI
+                val inputStream = context.contentResolver.openInputStream(sourceUri) ?: return@withContext null
+                val bitmap: Bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+
+                // 2. Write to internal storage as JPEG (lossless enough, small file)
+                val destFile = File(context.filesDir, "artist_art_${artistId}.jpg")
+                FileOutputStream(destFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                }
+                bitmap.recycle()
+
+                val internalPath = destFile.absolutePath
+
+                // 3. Persist to DB
+                musicDao.updateArtistCustomImage(artistId, internalPath)
+
+                // 4. Bust the memory cache so next call picks up the new image
+                val normalizedName = withContext(Dispatchers.IO) {
+                    // We can't easily reverse artistId → name here, so just evict via ID prefix if cached
+                    // The ViewModel will reload effectively from getEffectiveArtistImageUrl
+                    null
+                }
+
+                Log.d(TAG, "Custom artist image saved: $internalPath")
+                internalPath
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save custom artist image for id=$artistId: ${e.message}")
+                null
+            }
+        }
+    }
+
+    /**
+     * Removes the user's custom artist image, reverting to the Deezer URL.
+     *
+     * @param context Application context
+     * @param artistId The artist's database row ID
+     */
+    suspend fun clearCustomArtistImage(context: Context, artistId: Long) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Delete the internal file if it exists
+                val destFile = File(context.filesDir, "artist_art_${artistId}.jpg")
+                if (destFile.exists()) {
+                    destFile.delete()
+                    Log.d(TAG, "Deleted custom artist image file: ${destFile.absolutePath}")
+                }
+                // Clear from DB
+                musicDao.updateArtistCustomImage(artistId, null)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to clear custom artist image for id=$artistId: ${e.message}")
+            }
+        }
     }
 
     private fun upgradeToHighResDeezerUrl(url: String): String {

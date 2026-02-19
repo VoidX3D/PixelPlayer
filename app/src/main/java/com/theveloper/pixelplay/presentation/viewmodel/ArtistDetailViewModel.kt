@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
@@ -22,10 +23,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Holds the full UI state for ArtistDetailScreen.
+ *
+ * [effectiveImageUrl] is the resolved image to display (custom takes priority over Deezer).
+ * It is updated after artist data loads and again whenever the user changes the custom image.
+ */
 data class ArtistDetailUiState(
     val artist: Artist? = null,
     val songs: List<Song> = emptyList(),
     val albumSections: List<ArtistAlbumSection> = emptyList(),
+    val effectiveImageUrl: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -44,11 +52,24 @@ class ArtistDetailViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val musicRepository: MusicRepository,
     private val artistImageRepository: ArtistImageRepository,
+    val themeStateHolder: ThemeStateHolder,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArtistDetailUiState())
     val uiState: StateFlow<ArtistDetailUiState> = _uiState.asStateFlow()
+
+    /**
+     * Pre-warmed color scheme for the current artist image.
+     * This is populated synchronously (from the processor's LRU/DB cache) before [uiState]
+     * marks [ArtistDetailUiState.isLoading] = false, so the screen has the correct palette
+     * on its very first composition — no flash from system colors.
+     *
+     * Consumers should read this directly instead of calling [ThemeStateHolder.getAlbumColorSchemeFlow]
+     * in order to avoid the initial-null-emission that causes the flash.
+     */
+    private val _artistColorScheme = MutableStateFlow<ColorSchemePair?>(null)
+    val artistColorScheme: StateFlow<ColorSchemePair?> = _artistColorScheme.asStateFlow()
 
     init {
         val artistIdString: String? = savedStateHandle.get("artistId")
@@ -74,52 +95,63 @@ class ArtistDetailViewModel @Inject constructor(
 
                 combine(artistDetailsFlow, artistSongsFlow) { artist, songs ->
                     Log.d("ArtistDebug", "loadArtistData: id=$id found=${artist != null} songs=${songs.size}")
-                    if (artist != null) {
-                        val albumSections = buildAlbumSections(songs)
-                        val orderedSongs = albumSections.flatMap { it.songs }
-                        ArtistDetailUiState(
-                            artist = artist,
-                            songs = orderedSongs,
-                            albumSections = albumSections,
-                            isLoading = false
-                        )
-                    } else {
-                        ArtistDetailUiState(
-                            error = context.getString(R.string.could_not_find_artist),
-                            isLoading = false
-                        )
-                    }
+                    artist to songs
                 }
                     .catch { e ->
-                        emit(
-                            ArtistDetailUiState(
-                                error = context.getString(
-                                    R.string.error_loading_artist,
-                                    e.localizedMessage ?: ""
-                                ), isLoading = false
+                        _uiState.update {
+                            it.copy(
+                                error = context.getString(R.string.error_loading_artist, e.localizedMessage ?: ""),
+                                isLoading = false
                             )
-                        )
-                    }
-                    .collect { newState ->
-                        _uiState.value = newState
-                        
-                        // Fetch artist image from Deezer if not already cached
-                        newState.artist?.let { artist ->
-                            if (artist.imageUrl.isNullOrEmpty()) {
-                                launch {
-                                    try {
-                                        val imageUrl = artistImageRepository.getArtistImageUrl(artist.name, artist.id)
-                                        if (!imageUrl.isNullOrEmpty()) {
-                                            _uiState.update { state ->
-                                                state.copy(artist = state.artist?.copy(imageUrl = imageUrl))
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.w("ArtistDebug", "Failed to fetch artist image: ${e.message}")
-                                    }
-                                }
-                            }
                         }
+                    }
+                    .collect { (artist, songs) ->
+                        if (artist == null) {
+                            _uiState.update {
+                                it.copy(error = context.getString(R.string.could_not_find_artist), isLoading = false)
+                            }
+                            return@collect
+                        }
+
+                        val albumSections = buildAlbumSections(songs)
+                        val orderedSongs = albumSections.flatMap { it.songs }
+
+                        // 1) Resolve effective image URL (custom > Deezer, may fetch from API)
+                        val effectiveUrl = try {
+                            artistImageRepository.getEffectiveArtistImageUrl(
+                                artistId = artist.id,
+                                artistName = artist.name
+                            )
+                        } catch (e: Exception) {
+                            Log.w("ArtistDebug", "Failed to resolve effective artist image: ${e.message}")
+                            artist.effectiveImageUrl
+                        }
+
+                        // 2) Pre-warm the color scheme BEFORE emitting isLoading = false.
+                        //    getOrGenerateColorScheme checks the in-memory LRU first (≈0 ms if cached),
+                        //    then the DB cache (fast), and only generates from scratch ~on first visit.
+                        //    Either way, the scheme is ready before the screen first renders.
+                        val newScheme = if (!effectiveUrl.isNullOrBlank()) {
+                            try {
+                                themeStateHolder.getOrGenerateColorScheme(effectiveUrl)
+                            } catch (e: Exception) {
+                                Log.w("ArtistDebug", "Color scheme pre-warm failed: ${e.message}")
+                                null
+                            }
+                        } else null
+
+                        // 3) Atomically publish state + pre-warmed color scheme.
+                        //    Both flows update before the Compose frame runs, so no intermediate null frame.
+                        _artistColorScheme.value = newScheme
+                        _uiState.value = ArtistDetailUiState(
+                            artist = artist.copy(
+                                imageUrl = if (artist.customImageUri.isNullOrBlank()) effectiveUrl else artist.imageUrl
+                            ),
+                            songs = orderedSongs,
+                            albumSections = albumSections,
+                            effectiveImageUrl = effectiveUrl,
+                            isLoading = false
+                        )
                     }
 
             } catch (e: Exception) {
@@ -132,18 +164,97 @@ class ArtistDetailViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Called from the UI when the user selects a custom image from the system photo picker.
+     * Copies the image to internal storage, persists the path to DB, and triggers palette regeneration.
+     */
+    fun setCustomImage(sourceUri: Uri) {
+        val artistId = _uiState.value.artist?.id ?: return
+        viewModelScope.launch {
+            try {
+                val internalPath = artistImageRepository.setCustomArtistImage(context, artistId, sourceUri)
+                if (!internalPath.isNullOrBlank()) {
+                    val oldEffectiveUrl = _uiState.value.effectiveImageUrl
+
+                    // Regenerate palette from the new image url — invalidate old and warm-up new
+                    if (!oldEffectiveUrl.isNullOrBlank() && oldEffectiveUrl != internalPath) {
+                        themeStateHolder.forceRegenerateColorScheme(oldEffectiveUrl)
+                    }
+                    val newScheme = try {
+                        themeStateHolder.forceRegenerateColorScheme(internalPath)
+                        themeStateHolder.getOrGenerateColorScheme(internalPath)
+                    } catch (e: Exception) {
+                        Log.w("ArtistDebug", "Failed to regenerate color scheme for custom image: ${e.message}")
+                        null
+                    }
+
+                    _artistColorScheme.value = newScheme
+                    _uiState.update { state ->
+                        state.copy(
+                            effectiveImageUrl = internalPath,
+                            artist = state.artist?.copy(customImageUri = internalPath)
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ArtistDebug", "Failed to set custom image: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Called when the user wants to revert to the Deezer-sourced image.
+     */
+    fun clearCustomImage() {
+        val artist = _uiState.value.artist ?: return
+        viewModelScope.launch {
+            try {
+                val oldEffectiveUrl = _uiState.value.effectiveImageUrl
+                artistImageRepository.clearCustomArtistImage(context, artist.id)
+
+                // Fall back to Deezer URL
+                val deezerUrl = artistImageRepository.getArtistImageUrl(artist.name, artist.id)
+                val newEffectiveUrl = deezerUrl.takeIf { !it.isNullOrBlank() }
+
+                // Invalidate old custom image palette
+                if (!oldEffectiveUrl.isNullOrBlank()) {
+                    themeStateHolder.forceRegenerateColorScheme(oldEffectiveUrl)
+                }
+
+                val newScheme = if (!newEffectiveUrl.isNullOrBlank()) {
+                    try {
+                        themeStateHolder.getOrGenerateColorScheme(newEffectiveUrl)
+                    } catch (e: Exception) {
+                        Log.w("ArtistDebug", "Failed to regenerate palette after clear: ${e.message}")
+                        null
+                    }
+                } else null
+
+                _artistColorScheme.value = newScheme
+                _uiState.update { state ->
+                    state.copy(
+                        effectiveImageUrl = newEffectiveUrl,
+                        artist = state.artist?.copy(customImageUri = null, imageUrl = deezerUrl)
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e("ArtistDebug", "Failed to clear custom image: ${e.message}")
+            }
+        }
+    }
+
     fun removeSongFromAlbumSection(songId: String) {
         _uiState.update { currentState ->
             val updatedAlbumSections = currentState.albumSections.map { section ->
-                // Remove the song from this section if it exists
                 val updatedSongs = section.songs.filterNot { it.id == songId }
-                // Return updated section only if it still has songs, otherwise filter out empty sections
                 section.copy(songs = updatedSongs)
-            }.filter { it.songs.isNotEmpty() } // Remove empty album sections
+            }.filter { it.songs.isNotEmpty() }
 
             currentState.copy(
                 albumSections = updatedAlbumSections,
-                songs = currentState.songs.filterNot { it.id == songId } // Also update the main songs list
+                songs = currentState.songs.filterNot { it.id == songId }
             )
         }
     }
