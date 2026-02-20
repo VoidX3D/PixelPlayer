@@ -27,6 +27,8 @@ class TelegramChannelSearchViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    private val _resolvedUsername = MutableStateFlow<String?>(null)
+
     private val _foundChat = MutableStateFlow<TdApi.Chat?>(null)
     val foundChat = _foundChat.asStateFlow()
 
@@ -35,7 +37,7 @@ class TelegramChannelSearchViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
-    
+
     // Status message for errors or "Not Found"
     private val _statusMessage = MutableStateFlow<String?>(null)
     val statusMessage = _statusMessage.asStateFlow()
@@ -43,6 +45,18 @@ class TelegramChannelSearchViewModel @Inject constructor(
     private val _playbackRequest = kotlinx.coroutines.flow.MutableSharedFlow<Song>(extraBufferCapacity = 1)
     val playbackRequest = _playbackRequest.asSharedFlow()
 
+    private fun extractUsername(input: String): String {
+        val trimmed = input.trim()
+        return when {
+            trimmed.contains("t.me/") -> "@" + trimmed
+                .substringAfterLast("t.me/")
+                .substringBefore("?")
+                .substringBefore("/")
+                .removePrefix("@")
+            trimmed.startsWith("@") -> trimmed
+            else -> "@$trimmed"
+        }
+    }
     fun onQueryChanged(query: String) {
         _searchQuery.value = query
     }
@@ -54,12 +68,14 @@ class TelegramChannelSearchViewModel @Inject constructor(
             _statusMessage.value = null
             _foundChat.value = null
             _songs.value = emptyList()
-            
+
+            val resolvedUsername = extractUsername(query)
+            _resolvedUsername.value = resolvedUsername
+
             viewModelScope.launch {
-                // If it starts with @, remove it for consistency if needed, but TDLib handles username search usually.
-                val chat = telegramRepository.searchPublicChat(query)
+                val chat = telegramRepository.searchPublicChat(resolvedUsername)
                 _isLoading.value = false
-                
+
                 if (chat != null) {
                     _foundChat.value = chat
                     fetchSongs(chat.id)
@@ -72,14 +88,14 @@ class TelegramChannelSearchViewModel @Inject constructor(
 
     private fun fetchSongs(chatId: Long) {
         _isLoading.value = true
-        _statusMessage.value = "Syncing songs from channel..." // Improve with chat title if possible, but valid enough.
-        
+        _statusMessage.value = "Syncing songs from channel..."
+
         viewModelScope.launch {
             val fetchedSongs = telegramRepository.getAudioMessages(chatId)
-            
+
             if (fetchedSongs.isNotEmpty()) {
                 musicRepository.saveTelegramSongs(fetchedSongs)
-                
+
                 // Save Channel Entity
                 val chat = _foundChat.value
                 val currentQuery = _searchQuery.value
@@ -87,13 +103,13 @@ class TelegramChannelSearchViewModel @Inject constructor(
                     var localPhotoPath: String? = null
                     val photoFileId = chat.photo?.small?.id
                     if (photoFileId != null) {
-                         localPhotoPath = telegramRepository.downloadFileAwait(photoFileId)
+                        localPhotoPath = telegramRepository.downloadFileAwait(photoFileId)
                     }
-                    
+
                     val entity = com.theveloper.pixelplay.data.database.TelegramChannelEntity(
                         chatId = chat.id,
                         title = chat.title,
-                        username = if (currentQuery.startsWith("@")) currentQuery else null,
+                        username = _resolvedUsername.value,
                         songCount = fetchedSongs.size,
                         lastSyncTime = System.currentTimeMillis(),
                         photoPath = localPhotoPath
@@ -113,14 +129,14 @@ class TelegramChannelSearchViewModel @Inject constructor(
 
     fun downloadAndPlay(song: Song) {
         if (song.telegramFileId == null) return
-        
+
         _isLoading.value = true
         _statusMessage.value = "Downloading ${song.title}..."
-        
+
         viewModelScope.launch {
             val localPath = telegramRepository.downloadFileAwait(song.telegramFileId)
             _isLoading.value = false
-            
+
             if (localPath != null) {
                 // Create a new Song with the local path
                 val playableSong = song.copy(path = localPath, contentUriString = localPath)
@@ -131,5 +147,14 @@ class TelegramChannelSearchViewModel @Inject constructor(
                 _statusMessage.value = "Failed to download song"
             }
         }
+    }
+
+    fun resetState() {
+        _searchQuery.value = ""
+        _foundChat.value = null
+        _songs.value = emptyList()
+        _isLoading.value = false
+        _statusMessage.value = null
+        _resolvedUsername.value = null
     }
 }
