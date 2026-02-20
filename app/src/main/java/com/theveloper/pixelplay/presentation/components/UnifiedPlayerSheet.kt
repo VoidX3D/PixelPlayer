@@ -184,7 +184,7 @@ fun UnifiedPlayerSheet(
 
     val currentSheetContentState by playerViewModel.sheetState.collectAsState()
     val predictiveBackCollapseProgress by playerViewModel.predictiveBackCollapseFraction.collectAsState()
-    var predictiveBackSwipeEdge by remember { mutableStateOf<Int?>(null) }
+    val predictiveBackSwipeEdge by playerViewModel.predictiveBackSwipeEdge.collectAsState()
     val prewarmFullPlayer = rememberPrewarmFullPlayer(infrequentPlayerState.currentSong?.id)
 
     val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsState()
@@ -423,7 +423,7 @@ fun UnifiedPlayerSheet(
         sheetExpandedTargetY = sheetExpandedTargetY,
         sheetMotionController = sheetMotionController,
         animationDurationMs = ANIMATION_DURATION_MS,
-        onSwipeEdgeChanged = { predictiveBackSwipeEdge = it }
+        onSwipeEdgeChanged = { playerViewModel.updatePredictiveBackSwipeEdge(it) }
     )
 
     val sheetOverlayState = rememberSheetOverlayState(

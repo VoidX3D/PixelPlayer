@@ -323,6 +323,8 @@ class PlayerViewModel @Inject constructor(
     val bottomBarHeight: StateFlow<Int> = _bottomBarHeight.asStateFlow()
     private val _predictiveBackCollapseFraction = MutableStateFlow(0f)
     val predictiveBackCollapseFraction: StateFlow<Float> = _predictiveBackCollapseFraction.asStateFlow()
+    private val _predictiveBackSwipeEdge = MutableStateFlow<Int?>(null)
+    val predictiveBackSwipeEdge: StateFlow<Int?> = _predictiveBackSwipeEdge.asStateFlow()
 
     val playerContentExpansionFraction = Animatable(0f)
 
@@ -955,6 +957,15 @@ class PlayerViewModel @Inject constructor(
         _predictiveBackCollapseFraction.value = fraction.coerceIn(0f, 1f)
     }
 
+    fun updatePredictiveBackSwipeEdge(edge: Int?) {
+        _predictiveBackSwipeEdge.value = edge
+    }
+
+    fun resetPredictiveBackState() {
+        _predictiveBackCollapseFraction.value = 0f
+        _predictiveBackSwipeEdge.value = null
+    }
+
     // Helper to resolve stored sort keys against the allowed group
     private fun resolveSortOption(
         optionKey: String?,
@@ -1567,7 +1578,7 @@ class PlayerViewModel @Inject constructor(
                 playSongs(playbackContext, song, queueName, null)
             }
         }
-        _predictiveBackCollapseFraction.value = 0f
+        resetPredictiveBackState()
     }
 
     fun showAndPlaySong(song: Song) {
@@ -1712,23 +1723,29 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun togglePlayerSheetState() {
+    fun togglePlayerSheetState(resetPredictiveState: Boolean = true) {
         _sheetState.value = if (_sheetState.value == PlayerSheetState.COLLAPSED) {
             PlayerSheetState.EXPANDED
         } else {
             PlayerSheetState.COLLAPSED
         }
-        _predictiveBackCollapseFraction.value = 0f
+        if (resetPredictiveState) {
+            resetPredictiveBackState()
+        }
     }
 
-    fun expandPlayerSheet() {
+    fun expandPlayerSheet(resetPredictiveState: Boolean = true) {
         _sheetState.value = PlayerSheetState.EXPANDED
-        _predictiveBackCollapseFraction.value = 0f
+        if (resetPredictiveState) {
+            resetPredictiveBackState()
+        }
     }
 
-    fun collapsePlayerSheet() {
+    fun collapsePlayerSheet(resetPredictiveState: Boolean = true) {
         _sheetState.value = PlayerSheetState.COLLAPSED
-        _predictiveBackCollapseFraction.value = 0f
+        if (resetPredictiveState) {
+            resetPredictiveBackState()
+        }
     }
 
     fun triggerArtistNavigationFromPlayer(artistId: Long) {

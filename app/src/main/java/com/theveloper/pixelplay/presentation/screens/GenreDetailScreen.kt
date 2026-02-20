@@ -1,6 +1,5 @@
 package com.theveloper.pixelplay.presentation.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -60,7 +59,6 @@ import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongLis
 import com.theveloper.pixelplay.presentation.screens.QuickFillDialog
 import com.theveloper.pixelplay.presentation.viewmodel.GenreDetailViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.GroupedSongListItem
-import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
@@ -114,7 +112,6 @@ fun GenreDetailScreen(
     playlistViewModel: com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val playerSheetState by playerViewModel.sheetState.collectAsState()
     val stablePlayerState by playerViewModel.stablePlayerStateInfrequent.collectAsState()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsState()
     val playlistUiState by playlistViewModel.uiState.collectAsState()
@@ -124,10 +121,6 @@ fun GenreDetailScreen(
     val artists by playerViewModel.artistsFlow.collectAsState(initial = persistentListOf())
 
     val darkMode = LocalPixelPlayDarkTheme.current
-
-    BackHandler(enabled = playerSheetState == PlayerSheetState.EXPANDED) {
-        playerViewModel.collapsePlayerSheet()
-    }
 
     // Scroll & Collapsing Top Bar State
     val density = LocalDensity.current

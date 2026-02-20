@@ -167,7 +167,9 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     val onSeek = remember(playerViewModel) { playerViewModel::seekTo }
                     val onNext = remember(playerViewModel) { playerViewModel::nextSong }
                     val onPrevious = remember(playerViewModel) { playerViewModel::previousSong }
-                    val onCollapse = remember(playerViewModel) { playerViewModel::collapsePlayerSheet }
+                    val onCollapse = remember(playerViewModel) {
+                        { playerViewModel.collapsePlayerSheet() }
+                    }
                     val onShuffleToggle = remember(playerViewModel) {
                         { playerViewModel.toggleShuffle() }
                     }

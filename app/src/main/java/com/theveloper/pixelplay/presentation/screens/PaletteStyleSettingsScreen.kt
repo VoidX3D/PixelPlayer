@@ -1,6 +1,5 @@
 package com.theveloper.pixelplay.presentation.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -58,7 +57,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
@@ -73,14 +71,9 @@ fun PaletteStyleSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
-    val playerSheetState by playerViewModel.sheetState.collectAsState()
     val stablePlayerState by playerViewModel.stablePlayerStateInfrequent.collectAsState()
     val isDarkTheme = LocalPixelPlayDarkTheme.current
     val albumSchemePair by playerViewModel.currentAlbumArtColorSchemePair.collectAsState()
-
-    BackHandler(enabled = playerSheetState == PlayerSheetState.EXPANDED) {
-        playerViewModel.collapsePlayerSheet()
-    }
 
     val baseScheme = MaterialTheme.colorScheme
     val albumScheme = remember(albumSchemePair, isDarkTheme, baseScheme) {

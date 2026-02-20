@@ -1,7 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
@@ -105,7 +104,6 @@ import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.viewmodel.EqualizerViewModel
-import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -162,7 +160,6 @@ fun EqualizerScreen(
     equalizerViewModel: EqualizerViewModel = hiltViewModel()
 ) {
     val uiState by equalizerViewModel.uiState.collectAsState()
-    val playerSheetState by playerViewModel.sheetState.collectAsState()
     val context = LocalContext.current
     
     // Sheet States
@@ -209,10 +206,6 @@ fun EqualizerScreen(
         onReset = { equalizerViewModel.resetPinnedPresetsToDefault() },
         onDismiss = { showReorderSheet = false }
     )
-    
-    BackHandler(enabled = playerSheetState == PlayerSheetState.EXPANDED) {
-        playerViewModel.collapsePlayerSheet()
-    }
     
     // Transition animations
     val transitionState = remember { MutableTransitionState(false) }

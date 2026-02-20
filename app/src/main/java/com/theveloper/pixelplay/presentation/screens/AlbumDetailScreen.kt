@@ -2,7 +2,6 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -88,7 +87,6 @@ import com.theveloper.pixelplay.presentation.components.SongInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.AlbumDetailViewModel
-import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
@@ -110,7 +108,6 @@ fun AlbumDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val stablePlayerState by playerViewModel.stablePlayerStateInfrequent.collectAsState()
-    val playerSheetState by playerViewModel.sheetState.collectAsState()
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsState()
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsState()
@@ -136,9 +133,6 @@ fun AlbumDetailScreen(
         typography = MaterialTheme.typography,
         shapes = MaterialTheme.shapes
     ) {
-        BackHandler(enabled = playerSheetState == PlayerSheetState.EXPANDED) {
-            playerViewModel.collapsePlayerSheet()
-        }
 
         val isMiniPlayerVisible = stablePlayerState.currentSong != null
         val fabBottomPadding by animateDpAsState(
