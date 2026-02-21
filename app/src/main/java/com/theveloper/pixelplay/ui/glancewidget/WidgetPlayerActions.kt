@@ -9,9 +9,9 @@ import androidx.media3.session.MediaSessionService
 import com.theveloper.pixelplay.data.service.MusicService
 
 object WidgetPlayerActions {
-    const val PLAY_PAUSE = "com.theveloper.pixelplay.PLAY_PAUSE"
-    const val NEXT = "com.theveloper.pixelplay.NEXT"
-    const val PREVIOUS = "com.theveloper.pixelplay.PREVIOUS"
+    const val PLAY_PAUSE = PlayerActions.PLAY_PAUSE
+    const val NEXT = PlayerActions.NEXT
+    const val PREVIOUS = PlayerActions.PREVIOUS
 
     @OptIn(UnstableApi::class)
     fun playPause(context: Context): PendingIntent {

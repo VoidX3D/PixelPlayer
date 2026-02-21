@@ -70,6 +70,8 @@ class DualPlayerEngine @Inject constructor(
     private lateinit var playerA: ExoPlayer
     private lateinit var playerB: ExoPlayer
 
+    private var preAmpGain: Float = 1.0f
+
     private val onPlayerSwappedListeners = mutableListOf<(Player) -> Unit>()
     
     // Active Audio Session ID Flow
@@ -183,6 +185,14 @@ class DualPlayerEngine @Inject constructor(
     /** The master player instance that should be connected to the MediaSession. */
     val masterPlayer: Player
         get() = playerA
+
+    fun setPreAmpGain(gain: Float) {
+        preAmpGain = gain.coerceIn(0.1f, 2.0f)
+        // Re-apply current volumes with new gain
+        if (!transitionRunning) {
+            playerA.volume = preAmpGain
+        }
+    }
 
     fun isTransitionRunning(): Boolean = transitionRunning
 
@@ -649,11 +659,11 @@ class DualPlayerEngine @Inject constructor(
 
         while (elapsed <= duration) {
             val progress = (elapsed.toFloat() / duration).coerceIn(0f, 1f)
-            val volIn = envelope(progress, settings.curveIn)  // Incoming (Now A)
-            val volOut = 1f - envelope(progress, settings.curveOut) // Outgoing (Now B)
+            val volIn = envelope(progress, settings.curveIn) * preAmpGain // Incoming (Now A)
+            val volOut = (1f - envelope(progress, settings.curveOut)) * preAmpGain // Outgoing (Now B)
 
-            playerA.volume = volIn
-            playerB.volume = volOut.coerceIn(0f, 1f)
+            playerA.volume = volIn.coerceIn(0f, 2f)
+            playerB.volume = volOut.coerceIn(0f, 2f)
 
             if (elapsed - lastLog >= 250) {
                 Timber.tag("TransitionDebug").v("Loop: Progress=%.2f, VolNew=%.2f (Act: %.2f), VolOld=%.2f (Act: %.2f)",
@@ -673,7 +683,7 @@ class DualPlayerEngine @Inject constructor(
 
         Timber.tag("TransitionDebug").d("Overlap loop finished.")
         playerB.volume = 0f
-        playerA.volume = 1f
+        playerA.volume = preAmpGain
 
         // Clean up Old Player (now B)
         playerB.pause()

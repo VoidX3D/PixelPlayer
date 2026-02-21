@@ -372,6 +372,14 @@ fun EqualizerScreen(
                     onVolumeChange = { equalizerViewModel.setSystemVolume(it) }
                 )
             }
+
+            // Pre-amp (Fine Volume) Control
+            item(key = "pre_amp_control") {
+                PreAmpVolumeControlCard(
+                    gain = uiState.preAmpGain,
+                    onGainChange = { equalizerViewModel.setPreAmpGain(it) }
+                )
+            }
         }
         
         CollapsibleCommonTopBar(
@@ -1202,7 +1210,7 @@ private fun EffectControlsSection(
             EffectCard(
                 title = "Loudness",
                 value = loudnessStrength,
-                valueRange = 0f..1000f,
+                valueRange = 0f..2000f,
                 isEnabled = loudnessEnabled,
                 onValueChange = { onLoudnessStrengthChange(it) },
                 onEnabledChange = onLoudnessEnabledChange
@@ -1450,6 +1458,100 @@ private fun IndividualEffectRow(
                 )
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun PreAmpVolumeControlCard(
+    gain: Float,
+    onGainChange: (Float) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    var lastHapticValue by remember { mutableFloatStateOf(gain) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Fine Volume (Pre-amp)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+
+                TextButton(onClick = { onGainChange(1.0f) }) {
+                    Text("Reset")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.GraphicEq,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Slider(
+                        value = gain,
+                        onValueChange = { newValue ->
+                            if (kotlin.math.abs(newValue - lastHapticValue) > 0.05f) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                lastHapticValue = newValue
+                            }
+                            onGainChange(newValue)
+                        },
+                        valueRange = 0.1f..2.0f,
+                        modifier = Modifier.fillMaxWidth(),
+                        track = { sliderState ->
+                            SliderDefaults.Track(
+                                sliderState = sliderState,
+                                modifier = Modifier.height(28.dp),
+                                colors = SliderDefaults.colors(
+                                    activeTrackColor = MaterialTheme.colorScheme.tertiary,
+                                    inactiveTrackColor = MaterialTheme.colorScheme.tertiaryContainer
+                                )
+                            )
+                        }
+                    )
+                }
+
+                Text(
+                    modifier = Modifier.width(46.dp),
+                    text = "${(gain * 100).roundToInt()}%",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+
+            Text(
+                text = "Lower this if the sound is too loud at minimum volume.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
     }
 }
 

@@ -92,6 +92,37 @@ class AiStateHolder @Inject constructor(
         _aiError.value = null
     }
 
+    fun generateWidgetPlaylist() {
+        val scope = this.scope ?: return
+        val allSongs = allSongsProvider?.invoke() ?: emptyList()
+        val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
+
+        scope.launch {
+             if (allSongs.isEmpty()) return@launch
+
+             val hasApiKey = userPreferencesRepository.geminiApiKey.first().isNotBlank()
+             val candidatePool = dailyMixManager.generateYourMix(allSongs, favoriteIds, limit = 100)
+
+             val songs = if (hasApiKey) {
+                 aiPlaylistGenerator.generate(
+                     userPrompt = "Create a 'Widget Playlist' with my most listened and favorite songs, high energy and great flow.",
+                     allSongs = allSongs,
+                     minLength = 20,
+                     maxLength = 40,
+                     candidateSongs = candidatePool
+                 ).getOrDefault(candidatePool.take(30))
+             } else {
+                 candidatePool.take(30)
+             }
+
+             if (songs.isNotEmpty()) {
+                 dailyMixStateHolder.setDailyMixSongs(songs)
+                 playSongsCallback?.invoke(songs, songs.first(), "Widget Playlist")
+                 openPlayerSheetCallback?.invoke()
+             }
+        }
+    }
+
     fun generateAiPlaylist(
         prompt: String,
         minLength: Int,

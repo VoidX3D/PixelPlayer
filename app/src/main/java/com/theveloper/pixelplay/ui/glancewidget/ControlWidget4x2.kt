@@ -37,7 +37,13 @@ import kotlin.text.ifEmpty
 
 class ControlWidget4x2 : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Responsive(
+        setOf(
+            androidx.compose.ui.unit.DpSize(250.dp, 100.dp),
+            androidx.compose.ui.unit.DpSize(300.dp, 120.dp),
+            androidx.compose.ui.unit.DpSize(350.dp, 150.dp)
+        )
+    )
     override val stateDefinition = PlayerInfoStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {

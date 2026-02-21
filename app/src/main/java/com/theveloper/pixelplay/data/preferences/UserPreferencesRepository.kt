@@ -65,7 +65,8 @@ class UserPreferencesRepository
 @Inject
 constructor(
         private val dataStore: DataStore<Preferences>,
-        private val json: Json // Inyectar Json para serialización
+        private val json: Json,
+        @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) {
 
     private object PreferencesKeys {
@@ -200,10 +201,12 @@ constructor(
         // Collage Pattern
         val COLLAGE_PATTERN = stringPreferencesKey("collage_pattern")
         val COLLAGE_AUTO_ROTATE = booleanPreferencesKey("collage_auto_rotate")
+        val PRE_AMP_GAIN = androidx.datastore.preferences.core.floatPreferencesKey("pre_amp_gain")
 
         // Quick Settings / Last Playlist
         val LAST_PLAYLIST_ID = stringPreferencesKey("last_playlist_id")
         val LAST_PLAYLIST_NAME = stringPreferencesKey("last_playlist_name")
+        val LOW_RAM_MODE = booleanPreferencesKey("low_ram_mode")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -254,7 +257,7 @@ constructor(
 
     val loudnessEnhancerStrengthFlow: Flow<Int> =
         dataStore.data.map { preferences ->
-            (preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] ?: 0).coerceIn(0, 1000)
+            (preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] ?: 0).coerceIn(0, 2000)
         }
 
     suspend fun setLoudnessEnhancerEnabled(enabled: Boolean) {
@@ -263,7 +266,7 @@ constructor(
 
     suspend fun setLoudnessEnhancerStrength(strength: Int) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] = strength.coerceIn(0, 1000)
+            preferences[PreferencesKeys.LOUDNESS_ENHANCER_STRENGTH] = strength.coerceIn(0, 2000)
         }
     }
 
@@ -1961,6 +1964,16 @@ constructor(
         }
     }
 
+    val preAmpGainFlow: Flow<Float> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.PRE_AMP_GAIN] ?: 1.0f
+    }
+
+    suspend fun setPreAmpGain(gain: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PRE_AMP_GAIN] = gain.coerceIn(0.1f, 2.0f)
+        }
+    }
+
     // --- Quick Settings: Last Playlist ---
 
     val lastPlaylistIdFlow: Flow<String?> =
@@ -1974,5 +1987,13 @@ constructor(
             it[PreferencesKeys.LAST_PLAYLIST_ID] = playlistId
             it[PreferencesKeys.LAST_PLAYLIST_NAME] = playlistName
         }
+    }
+
+    val lowRamModeFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.LOW_RAM_MODE] ?: (context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).isLowRamDevice
+    }
+
+    suspend fun setLowRamMode(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.LOW_RAM_MODE] = enabled }
     }
 }

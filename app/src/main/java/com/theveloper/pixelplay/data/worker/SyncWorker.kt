@@ -455,7 +455,7 @@ constructor(
         selectionBuilder.append(
                 "((${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= ?) "
         )
-        selectionArgsList.add("10000")
+        selectionArgsList.add("2000")
 
         selectionBuilder.append("OR ${MediaStore.Audio.Media.DATA} LIKE '%.m4a' ")
         selectionBuilder.append("OR ${MediaStore.Audio.Media.DATA} LIKE '%.flac' ")

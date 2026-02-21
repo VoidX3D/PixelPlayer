@@ -35,7 +35,14 @@ import kotlin.text.ifEmpty
 
 class BarWidget4x1 : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Responsive(
+        setOf(
+            androidx.compose.ui.unit.DpSize(100.dp, 40.dp),
+            androidx.compose.ui.unit.DpSize(150.dp, 50.dp),
+            androidx.compose.ui.unit.DpSize(250.dp, 60.dp),
+            androidx.compose.ui.unit.DpSize(300.dp, 80.dp)
+        )
+    )
     override val stateDefinition = PlayerInfoStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {

@@ -33,7 +33,13 @@ import com.theveloper.pixelplay.data.model.PlayerInfo
 
 class GridWidget2x2 : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Responsive(
+        setOf(
+            androidx.compose.ui.unit.DpSize(100.dp, 100.dp),
+            androidx.compose.ui.unit.DpSize(150.dp, 150.dp),
+            androidx.compose.ui.unit.DpSize(200.dp, 200.dp)
+        )
+    )
     override val stateDefinition = PlayerInfoStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {

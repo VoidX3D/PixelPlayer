@@ -83,7 +83,8 @@ data class SettingsUiState(
     val backupValidationErrors: List<ValidationError> = emptyList(),
     val isInspectingBackup: Boolean = false,
     val collagePattern: CollagePattern = CollagePattern.default,
-    val collageAutoRotate: Boolean = false
+    val collageAutoRotate: Boolean = false,
+    val currentLanguageCode: String = "default"
 )
 
 data class FailedSongInfo(
@@ -210,6 +211,9 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(collageAutoRotate = autoRotate) }
             }
         }
+
+        // Initialize language state
+        _uiState.update { it.copy(currentLanguageCode = getCurrentLanguageCode()) }
     }
 
     private val _dataTransferProgress = MutableStateFlow<BackupTransferProgressUpdate?>(null)
@@ -878,5 +882,22 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             backupManager.removeBackupHistoryEntry(entry.uri)
         }
+    }
+
+    fun setLanguage(languageCode: String) {
+        viewModelScope.launch {
+            val appLocale: androidx.core.os.LocaleListCompat = if (languageCode == "default") {
+                androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+            } else {
+                androidx.core.os.LocaleListCompat.forLanguageTags(languageCode)
+            }
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
+            _uiState.update { it.copy(currentLanguageCode = languageCode) }
+        }
+    }
+
+    private fun getCurrentLanguageCode(): String {
+        val locales = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+        return if (locales.isEmpty) "default" else locales.toLanguageTags()
     }
 }

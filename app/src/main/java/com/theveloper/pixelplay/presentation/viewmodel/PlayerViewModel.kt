@@ -3322,6 +3322,10 @@ class PlayerViewModel @Inject constructor(
         aiStateHolder.regenerateDailyMixWithPrompt(prompt)
     }
 
+    fun playWidgetPlaylist() {
+        aiStateHolder.generateWidgetPlaylist()
+    }
+
     fun clearQueueExceptCurrent() {
         mediaController?.let { controller ->
             val currentSongIndex = controller.currentMediaItemIndex
@@ -3675,6 +3679,8 @@ class PlayerViewModel @Inject constructor(
         newTitle: String,
         newArtist: String,
         newAlbum: String,
+        newAlbumArtist: String,
+        newYear: Int,
         newGenre: String,
         newLyrics: String,
         newTrackNumber: Int,
@@ -3690,6 +3696,8 @@ class PlayerViewModel @Inject constructor(
                 newTitle = newTitle,
                 newArtist = newArtist,
                 newAlbum = newAlbum,
+                newAlbumArtist = newAlbumArtist,
+                newYear = newYear,
                 newGenre = newGenre,
                 newLyrics = newLyrics,
                 newTrackNumber = newTrackNumber,
@@ -3936,6 +3944,8 @@ class PlayerViewModel @Inject constructor(
                     newTitle = song.title,
                     newArtist = song.artist,
                     newAlbum = song.album,
+                    newAlbumArtist = song.albumArtist ?: "",
+                    newYear = song.year,
                     newGenre = newGenre,
                     newLyrics = (song.lyrics ?: ""), // Ensure lyrics are string
                     newTrackNumber = song.trackNumber,

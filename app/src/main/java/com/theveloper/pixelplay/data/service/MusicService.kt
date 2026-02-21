@@ -65,6 +65,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
+import com.theveloper.pixelplay.ui.glancewidget.CompactWidget2x1
+import com.theveloper.pixelplay.ui.glancewidget.LargeWidget4x3
 
 import javax.inject.Inject
 
@@ -87,6 +89,10 @@ class MusicService : MediaSessionService() {
     lateinit var equalizerManager: EqualizerManager
     @Inject
     lateinit var colorSchemeProcessor: ColorSchemeProcessor
+    @Inject
+    lateinit var dailyMixManager: com.theveloper.pixelplay.data.DailyMixManager
+    @Inject
+    lateinit var aiPlaylistGenerator: com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 
     private var favoriteSongIds = emptySet<String>()
     private var mediaSession: MediaSession? = null
@@ -174,6 +180,12 @@ class MusicService : MediaSessionService() {
         serviceScope.launch {
             userPreferencesRepository.persistentShuffleEnabledFlow.collect { enabled ->
                 persistentShuffleEnabled = enabled
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.preAmpGainFlow.collect { gain ->
+                engine.setPreAmpGain(gain)
             }
         }
 
@@ -319,7 +331,42 @@ class MusicService : MediaSessionService() {
         intent?.action?.let { action ->
             val player = mediaSession?.player ?: return@let
             when (action) {
-                PlayerActions.PLAY_PAUSE -> player.playWhenReady = !player.playWhenReady
+                PlayerActions.PLAY_PAUSE -> {
+                    if (player.currentMediaItem == null && player.mediaItemCount == 0) {
+                        // Queue is empty, generate Widget Playlist
+                        serviceScope.launch {
+                             val allSongs = musicRepository.getAllSongsOnce()
+                             if (allSongs.isNotEmpty()) {
+                                 val favoriteIds = userPreferencesRepository.favoriteSongIdsFlow.first()
+                                 val hasApiKey = userPreferencesRepository.geminiApiKey.first().isNotBlank()
+
+                                 val songs = if (hasApiKey) {
+                                     val candidatePool = dailyMixManager.generateYourMix(allSongs, favoriteIds, limit = 100)
+                                     aiPlaylistGenerator.generate(
+                                         userPrompt = "Create a 'Widget Playlist' with my most listened and favorite songs, high energy and great flow.",
+                                         allSongs = allSongs,
+                                         minLength = 20,
+                                         maxLength = 40,
+                                         candidateSongs = candidatePool
+                                     ).getOrDefault(candidatePool.take(30))
+                                 } else {
+                                     dailyMixManager.generateYourMix(allSongs, favoriteIds, limit = 30)
+                                 }
+
+                                 if (songs.isNotEmpty()) {
+                                     withContext(Dispatchers.Main) {
+                                         val mediaItems = songs.map { com.theveloper.pixelplay.utils.MediaItemBuilder.build(it) }
+                                         player.setMediaItems(mediaItems)
+                                         player.prepare()
+                                         player.play()
+                                     }
+                                 }
+                             }
+                        }
+                    } else {
+                        player.playWhenReady = !player.playWhenReady
+                    }
+                }
                 PlayerActions.NEXT -> player.seekToNext()
                 PlayerActions.PREVIOUS -> player.seekToPrevious()
                 PlayerActions.PLAY_FROM_QUEUE -> {
@@ -622,8 +669,20 @@ class MusicService : MediaSessionService() {
                 updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
                 GridWidget2x2().update(applicationContext, id)
             }
+
+            val compactGlanceIds = glanceManager.getGlanceIds(CompactWidget2x1::class.java)
+            compactGlanceIds.forEach { id ->
+                updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
+                CompactWidget2x1().update(applicationContext, id)
+            }
+
+            val largeGlanceIds = glanceManager.getGlanceIds(LargeWidget4x3::class.java)
+            largeGlanceIds.forEach { id ->
+                updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
+                LargeWidget4x3().update(applicationContext, id)
+            }
             
-            if (glanceIds.isNotEmpty() || barGlanceIds.isNotEmpty() || controlGlanceIds.isNotEmpty() || gridGlanceIds.isNotEmpty()) {
+            if (glanceIds.isNotEmpty() || barGlanceIds.isNotEmpty() || controlGlanceIds.isNotEmpty() || gridGlanceIds.isNotEmpty() || compactGlanceIds.isNotEmpty() || largeGlanceIds.isNotEmpty()) {
                  Log.d(TAG, "Widgets actualizados: ${playerInfo.songTitle} (Original: ${glanceIds.size}, Bar: ${barGlanceIds.size}, Control: ${controlGlanceIds.size})")
             } else {
                 Log.w(TAG, "No se encontraron widgets para actualizar")

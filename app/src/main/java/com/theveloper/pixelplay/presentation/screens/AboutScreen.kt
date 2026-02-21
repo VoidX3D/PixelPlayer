@@ -162,6 +162,15 @@ private val PinnedCommunityMembers = listOf(
         iconRes = R.drawable.round_newspaper_24,
         githubUrl = "https://github.com/ColbyCabrera",
     ),
+    Contributor(
+        id = "voidx3d",
+        displayName = "@VoidX3D",
+        role = "Key Contributor",
+        detail = "Owner of the repository and active supporter of the project.",
+        badge = "Main Contributor",
+        iconRes = R.drawable.rounded_person_24,
+        githubUrl = "https://github.com/VoidX3D",
+    ),
 )
 
 private val PinnedAliases = mapOf(
