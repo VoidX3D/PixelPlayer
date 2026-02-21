@@ -90,7 +90,7 @@ fun PlayerSeekBar(
                 .fillMaxWidth()
                 .padding(horizontal = 0.dp),
                 //.weight(0.8f),
-            value = seekFraction,
+            value = { seekFraction },
             onValueChange = { newFraction ->
                 isUserSeeking = true
                 seekFraction = newFraction

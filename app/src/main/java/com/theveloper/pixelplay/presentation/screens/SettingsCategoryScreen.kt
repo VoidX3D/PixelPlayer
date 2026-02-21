@@ -61,6 +61,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
@@ -460,24 +461,52 @@ fun SettingsCategoryScreen(
                             val useSmoothCorners by settingsViewModel.useSmoothCorners.collectAsState()
 
                             SettingsSubsection(title = "Global Theme") {
-                                ThemeSelectorItem(
-                                    label = "App Theme",
-                                    description = "Switch between light, dark, or follow system appearance.",
-                                    options = mapOf(
+                                val customThemes by settingsViewModel.customThemes.collectAsState(initial = emptyList())
+                                val themeOptions = remember(customThemes) {
+                                    val base = mutableMapOf(
                                         AppThemeMode.LIGHT to "Light Theme",
                                         AppThemeMode.DARK to "Dark Theme",
+                                        AppThemeMode.AMOLED to "AMOLED (Pure Black)",
                                         AppThemeMode.FOLLOW_SYSTEM to "Follow System"
-                                    ),
+                                    )
+                                    if (customThemes.isNotEmpty()) {
+                                        base[AppThemeMode.CUSTOM] = "Custom Theme"
+                                    }
+                                    base
+                                }
+
+                                ThemeSelectorItem(
+                                    label = "App Theme",
+                                    description = "Switch between light, dark, follow system, or your custom AI themes.",
+                                    options = themeOptions,
                                     selectedKey = uiState.appThemeMode,
                                     onSelectionChanged = { settingsViewModel.setAppThemeMode(it) },
                                     leadingIcon = { Icon(Icons.Outlined.LightMode, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+
+                                if (uiState.appThemeMode == AppThemeMode.CUSTOM && customThemes.isNotEmpty()) {
+                                    ThemeSelectorItem(
+                                        label = "Select Custom Theme",
+                                        description = "Choose one of your saved AI themes.",
+                                        options = customThemes.associate { it.id to it.name },
+                                        selectedKey = uiState.activeCustomThemeId ?: "",
+                                        onSelectionChanged = { settingsViewModel.setActiveCustomTheme(it) },
+                                        leadingIcon = { Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.tertiary) }
+                                    )
+                                }
                                 SwitchSettingItem(
                                     title = "Use Smooth Corners",
                                     subtitle = "Use complex shaped corners effectively improving aesthetics but may affect performance on low-end devices",
                                     checked = useSmoothCorners,
                                     onCheckedChange = settingsViewModel::setUseSmoothCorners,
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_rounded_corner_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SettingsItem(
+                                    title = "AI Theme Studio",
+                                    subtitle = "Generate custom themes with Gemini and save your favorites.",
+                                    leadingIcon = { Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    onClick = { navController.navigateSafely(Screen.AiThemeStudio.route) }
                                 )
                             }
 

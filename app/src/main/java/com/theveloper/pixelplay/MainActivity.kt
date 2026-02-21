@@ -187,11 +187,20 @@ class MainActivity : ComponentActivity() {
             val mainViewModel: MainViewModel = hiltViewModel()
             val systemDarkTheme = isSystemInDarkTheme()
             val appThemeMode by userPreferencesRepository.appThemeModeFlow.collectAsState(initial = AppThemeMode.FOLLOW_SYSTEM)
+            val customThemes by userPreferencesRepository.customThemesFlow.collectAsState(initial = emptyList())
+            val activeCustomThemeId by userPreferencesRepository.activeCustomThemeIdFlow.collectAsState(initial = null)
+
+            val activeCustomTheme = remember(customThemes, activeCustomThemeId) {
+                customThemes.find { it.id == activeCustomThemeId }
+            }
+
             val useDarkTheme = when (appThemeMode) {
-                AppThemeMode.DARK -> true
+                AppThemeMode.DARK, AppThemeMode.AMOLED -> true
                 AppThemeMode.LIGHT -> false
+                AppThemeMode.CUSTOM -> activeCustomTheme?.isDark ?: systemDarkTheme
                 else -> systemDarkTheme
             }
+            val isAmoled = appThemeMode == AppThemeMode.AMOLED || (appThemeMode == AppThemeMode.CUSTOM && activeCustomTheme?.isAmoled == true)
             val isSetupComplete by mainViewModel.isSetupComplete.collectAsState()
             var showSetupScreen by remember { mutableStateOf<Boolean?>(null) }
             
@@ -242,7 +251,9 @@ class MainActivity : ComponentActivity() {
             }
 
             PixelPlayTheme(
-                darkTheme = useDarkTheme
+                darkTheme = useDarkTheme,
+                isAmoled = isAmoled,
+                customColorScheme = if (appThemeMode == AppThemeMode.CUSTOM) activeCustomTheme?.colors?.toColorScheme() else null
             ) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     if (showSetupScreen != null) {

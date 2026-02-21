@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun WavySliderExpressive(
-    value: Float,
+    value: () -> Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -77,17 +77,15 @@ fun WavySliderExpressive(
         Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
     }
 
-    val normalizedValue = if (valueRange.endInclusive == valueRange.start) 0f
-        else ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+    val normalizedValueProvider = remember(value, valueRange) {
+        {
+            val v = value()
+            if (valueRange.endInclusive == valueRange.start) 0f
+            else ((v - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+        }
+    }
 
-    val clampedValue = value.coerceIn(valueRange.start, valueRange.endInclusive)
     val safeSemanticsStep = semanticsProgressStep.coerceIn(0.005f, 0.25f)
-    val semanticNormalizedValue = remember(normalizedValue, safeSemanticsStep) {
-        ((normalizedValue / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
-    }
-    val semanticSliderValue = remember(semanticNormalizedValue, valueRange) {
-        valueRange.start + semanticNormalizedValue * (valueRange.endInclusive - valueRange.start)
-    }
     val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isDragged by resolvedInteractionSource.collectIsDraggedAsState()
     val isPressed by resolvedInteractionSource.collectIsPressedAsState()
@@ -113,7 +111,7 @@ fun WavySliderExpressive(
         contentAlignment = Alignment.Center
     ) {
         Slider(
-            value = clampedValue,
+            value = value().coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,6 +119,10 @@ fun WavySliderExpressive(
                 // Keep slider accessible, but quantize semantic progress updates to reduce
                 // high-frequency semantics churn while visuals remain smooth.
                 .clearAndSetSemantics {
+                    val normalizedValue = normalizedValueProvider()
+                    val semanticNormalizedValue = ((normalizedValue / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
+                    val semanticSliderValue = valueRange.start + semanticNormalizedValue * (valueRange.endInclusive - valueRange.start)
+
                     if (!semanticsLabel.isNullOrBlank()) {
                         contentDescription = semanticsLabel
                     }
@@ -153,7 +155,7 @@ fun WavySliderExpressive(
         )
 
         LinearWavyProgressIndicator(
-            progress = { normalizedValue },
+            progress = normalizedValueProvider,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = trackEdgePadding.coerceAtLeast(0.dp))
@@ -183,6 +185,7 @@ fun WavySliderExpressive(
 
             val currentWidth = lerp(thumbRadiusPx * 2f, strokeWidthPx * 1.2f, thumbInteractionFraction)
             val currentHeight = lerp(thumbRadiusPx * 2f, thumbLineHeightPx, thumbInteractionFraction)
+            val normalizedValue = normalizedValueProvider()
             val rawThumbX = trackStart + (trackWidth * normalizedValue)
             val minThumbCenter = (currentWidth / 2f).coerceAtMost(size.width / 2f)
             val maxThumbCenter = (size.width - currentWidth / 2f).coerceAtLeast(minThumbCenter)

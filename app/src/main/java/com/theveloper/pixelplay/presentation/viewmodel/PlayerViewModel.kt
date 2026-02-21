@@ -1284,6 +1284,7 @@ class PlayerViewModel @Inject constructor(
             favoriteSongIdsProvider = { favoriteSongIds.value },
             toastEmitter = { msg -> viewModelScope.launch { _toastEvents.emit(msg) } },
             playSongsCallback = { songs, startSong, queueName -> playSongs(songs, startSong, queueName) },
+            updateQueueCallback = { newQueue -> updateQueue(newQueue) },
             openPlayerSheetCallback = { _isSheetVisible.value = true }
         )
 
@@ -3318,6 +3319,15 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
+    fun aiShuffle() {
+        aiStateHolder.aiShuffle(_playerUiState.value.currentPlaybackQueue.toList())
+    }
+
+    private fun updateQueue(newQueue: List<Song>) {
+        _playerUiState.update { it.copy(currentPlaybackQueue = newQueue.toImmutableList()) }
+        playbackStateHolder.updateQueue(newQueue)
+    }
+
     fun regenerateDailyMixWithPrompt(prompt: String) {
         aiStateHolder.regenerateDailyMixWithPrompt(prompt)
     }
@@ -3811,6 +3821,21 @@ class PlayerViewModel @Inject constructor(
 
     suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
         return aiStateHolder.generateAiMetadata(song, fields)
+    }
+
+    fun translateLyricsForCurrentSong(targetLanguage: String) {
+        val currentLyrics = stablePlayerState.value.lyrics ?: return
+        val currentSong = stablePlayerState.value.currentSong ?: return
+
+        viewModelScope.launch {
+            val result = aiStateHolder.translateLyrics(currentLyrics, targetLanguage)
+            result.onSuccess { translatedLyrics ->
+                updateSongInStates(currentSong, translatedLyrics)
+                _toastEvents.emit("Lyrics translated to $targetLanguage")
+            }.onFailure { error ->
+                _toastEvents.emit("Translation failed: ${error.message}")
+            }
+        }
     }
 
     private fun updateSongInStates(updatedSong: Song, newLyrics: Lyrics? = null) {

@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -303,8 +304,8 @@ fun BubblesLine(
     nextTime: Int,
     modifier: Modifier = Modifier,
 ) {
-    val position by positionFlow.collectAsState(initial = 0L)
-    val isCurrent = position in time until nextTime
+    val positionState = positionFlow.collectAsState(initial = 0L)
+    val isCurrent = remember { derivedStateOf { positionState.value in time until nextTime } }.value
     val transition = rememberInfiniteTransition(label = "bubbles_transition")
 
     // Animación ralentizada para apreciar mejor el efecto.

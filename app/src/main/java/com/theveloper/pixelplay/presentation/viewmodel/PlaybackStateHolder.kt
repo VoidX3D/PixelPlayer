@@ -195,6 +195,25 @@ class PlaybackStateHolder @Inject constructor(
         }
     }
 
+    fun updateQueue(newQueue: List<Song>) {
+        val controller = mediaController ?: return
+        val wasPlaying = controller.isPlaying
+        val currentPosition = controller.currentPosition
+        val currentSongId = _stablePlayerState.value.currentSong?.id
+        val targetIndex = if (currentSongId != null) {
+            newQueue.indexOfFirst { it.id == currentSongId }.takeIf { it != -1 } ?: 0
+        } else 0
+
+        dualPlayerEngine.masterPlayer.setMediaItems(
+            newQueue.map { MediaItemBuilder.build(it) },
+            targetIndex,
+            currentPosition
+        )
+        if (wasPlaying && !controller.isPlaying) {
+            controller.play()
+        }
+    }
+
     fun setRepeatMode(mode: Int) {
         val castSession = castStateHolder.castSession.value
         val remoteMediaClient = castSession?.remoteMediaClient

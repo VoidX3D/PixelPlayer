@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="lyrics">歌词</string>
+    <string name="loading_lyrics">正在加载歌词…</string>
+    <string name="search">搜索</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="settings_language_title">语言</string>
+    <string name="settings_language_subtitle">更改应用语言</string>
+    <string name="language_default">系统默认</string>
+    <string name="language_en">英语</string>
+    <string name="language_es">西班牙语</string>
+    <string name="language_fr">法语</string>
+    <string name="language_de">德语</string>
+    <string name="language_zh">中文</string>
+</resources>

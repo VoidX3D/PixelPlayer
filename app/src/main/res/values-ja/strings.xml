@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="lyrics">歌詞</string>
+    <string name="loading_lyrics">歌詞を読み込み中…</string>
+    <string name="search">検索</string>
+    <string name="ok">OK</string>
+    <string name="cancel">キャンセル</string>
+    <string name="settings_language_title">言語</string>
+    <string name="settings_language_subtitle">アプリの言語を変更する</string>
+    <string name="language_default">システムデフォルト</string>
+    <string name="language_en">英語</string>
+    <string name="language_es">スペイン語</string>
+    <string name="language_fr">フランス語</string>
+    <string name="language_de">ドイツ語</string>
+    <string name="language_ja">日本語</string>
+</resources>

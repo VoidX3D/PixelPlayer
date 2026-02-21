@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="lyrics">Testi</string>
+    <string name="loading_lyrics">Caricamento testi…</string>
+    <string name="search">Cerca</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Annulla</string>
+    <string name="settings_language_title">Lingua</string>
+    <string name="settings_language_subtitle">Cambia la lingua dell\'app</string>
+    <string name="language_default">Predefinito di sistema</string>
+    <string name="language_en">Inglese</string>
+    <string name="language_es">Spagnolo</string>
+    <string name="language_fr">Francese</string>
+    <string name="language_de">Tedesco</string>
+    <string name="language_it">Italiano</string>
+</resources>

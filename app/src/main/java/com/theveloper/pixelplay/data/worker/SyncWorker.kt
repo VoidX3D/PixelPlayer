@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.media.MediaScannerConnection
+import android.os.Build
 import android.os.Environment
 import android.os.Trace // Import Trace
 import android.provider.MediaStore
@@ -835,22 +836,26 @@ constructor(
         val albumArtByAlbumId = if (!deepScan) fetchAlbumArtUrisByAlbumId() else emptyMap()
         val genreMap = fetchGenreMap() // Load genres upfront
 
-        val projection =
-                arrayOf(
-                        MediaStore.Audio.Media._ID,
-                        MediaStore.Audio.Media.TITLE,
-                        MediaStore.Audio.Media.ARTIST,
-                        MediaStore.Audio.Media.ARTIST_ID,
-                        MediaStore.Audio.Media.ALBUM,
-                        MediaStore.Audio.Media.ALBUM_ID,
-                        MediaStore.Audio.Media.ALBUM_ARTIST,
-                        MediaStore.Audio.Media.DURATION,
-                        MediaStore.Audio.Media.DATA,
-                        MediaStore.Audio.Media.MIME_TYPE,
-                        MediaStore.Audio.Media.TRACK,
-                        MediaStore.Audio.Media.YEAR,
-                        MediaStore.Audio.Media.DATE_MODIFIED
-                )
+        val baseProjection = mutableListOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ARTIST_ID,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.MIME_TYPE,
+            MediaStore.Audio.Media.TRACK,
+            MediaStore.Audio.Media.YEAR,
+            MediaStore.Audio.Media.DATE_MODIFIED
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            baseProjection.add(MediaStore.Audio.Media.ALBUM_ARTIST)
+        }
+
+        val projection = baseProjection.toTypedArray()
 
         val (baseSelection, baseArgs) = getBaseSelection()
         val selectionBuilder = StringBuilder(baseSelection)
@@ -888,7 +893,9 @@ constructor(
                     val artistIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST_ID)
                     val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                     val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-                    val albumArtistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ARTIST)
+                    val albumArtistCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ARTIST)
+                    } else -1
                     val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                     val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
                     val mimeTypeCol = cursor.getColumnIndex(MediaStore.Audio.Media.MIME_TYPE)

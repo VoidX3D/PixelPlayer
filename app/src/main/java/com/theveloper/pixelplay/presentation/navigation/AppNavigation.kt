@@ -523,6 +523,20 @@ fun AppNavigation(
                     )
                 }
             }
+            composable(
+                Screen.AiThemeStudio.route,
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    com.theveloper.pixelplay.presentation.screens.AiThemeStudioScreen(
+                        navController = navController,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+            }
         }
     }
 }
