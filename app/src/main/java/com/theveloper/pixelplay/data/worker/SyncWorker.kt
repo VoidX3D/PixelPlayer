@@ -29,6 +29,7 @@ import com.theveloper.pixelplay.utils.AlbumArtCacheManager
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.AudioMetaUtils.getAudioMetadata
 import com.theveloper.pixelplay.utils.DirectoryRuleResolver
+import com.theveloper.pixelplay.utils.LowRamOptimizer
 import com.theveloper.pixelplay.utils.normalizeMetadataTextOrEmpty
 import com.theveloper.pixelplay.utils.splitArtistsByDelimiters
 import dagger.assisted.Assisted
@@ -66,7 +67,8 @@ constructor(
         private val userPreferencesRepository: UserPreferencesRepository,
         private val lyricsRepository: LyricsRepository,
         private val telegramDao: TelegramDao,
-        private val neteaseDao: NeteaseDao
+        private val neteaseDao: NeteaseDao,
+        private val lowRamOptimizer: LowRamOptimizer
 ) : CoroutineWorker(appContext, workerParams) {
 
     private val contentResolver: ContentResolver = appContext.contentResolver
@@ -171,7 +173,9 @@ constructor(
                         .i("Fetching music from MediaStore (since: $fetchTimestamp seconds)...")
 
                     // Update every 50 songs or ~5% of library
-                    val progressBatchSize = 50
+                    // Reduce batch size for low RAM devices to prevent OOM during parallel processing
+                    val progressBatchSize = if (lowRamOptimizer.isLowRamDevice) 25 else 50
+                    val concurrencyLimit = if (lowRamOptimizer.isLowRamDevice) 2 else 8
 
                     val mediaStoreSongs =
                             fetchMusicFromMediaStore(
@@ -179,7 +183,8 @@ constructor(
                                     forceMetadata,
                                     directoryResolver,
                                     localSongsMap,
-                                    progressBatchSize
+                                    progressBatchSize,
+                                    concurrencyLimit
                             ) { current, total, phaseOrdinal ->
                                 setProgress(
                                         workDataOf(
@@ -392,6 +397,9 @@ constructor(
                         // Sync cloud songs (Telegram + Netease)
                         syncTelegramData()
                         syncNeteaseData()
+
+                        // Schedule AI tasks
+                        scheduleAiTasks(applicationContext)
 
                         // Recalculate total after cloud sync
                         val finalTotalSongs = musicDao.getSongCount().first()
@@ -818,6 +826,7 @@ constructor(
             directoryResolver: DirectoryRuleResolver,
             existingSongsById: Map<Long, SongEntity>,
             progressBatchSize: Int,
+            concurrencyLimit: Int = 8,
             onProgress: suspend (current: Int, total: Int, phaseOrdinal: Int) -> Unit
     ): List<SongEntity> {
         Trace.beginSection("SyncWorker.fetchMusicFromMediaStore")
@@ -960,7 +969,6 @@ constructor(
         // Phase 2: Parallel processing of songs
         onProgress(0, totalCount, SyncProgress.SyncPhase.PROCESSING_FILES.ordinal)
         val processedCount = AtomicInteger(0)
-        val concurrencyLimit = 8 // Limit parallel operations to prevent resource exhaustion
         val semaphore = Semaphore(concurrencyLimit)
 
         val songs = coroutineScope {
@@ -1682,5 +1690,21 @@ constructor(
 
     private fun toUnifiedNeteaseArtistId(artistName: String): Long {
         return -(NETEASE_ARTIST_ID_OFFSET + artistName.lowercase().hashCode().toLong().absoluteValue)
+    }
+
+    private fun scheduleAiTasks(context: Context) {
+        val workManager = androidx.work.WorkManager.getInstance(context)
+
+        // Schedule Widget Playlist pre-curation
+        val widgetWork = androidx.work.OneTimeWorkRequestBuilder<WidgetPlaylistWorker>()
+            .addTag("AI_WIDGET_PLAYLIST")
+            .build()
+        workManager.enqueueUniqueWork("AI_WIDGET_PLAYLIST", androidx.work.ExistingWorkPolicy.REPLACE, widgetWork)
+
+        // Schedule Metadata Repair
+        val repairWork = androidx.work.OneTimeWorkRequestBuilder<MetadataRepairWorker>()
+            .addTag("AI_METADATA_REPAIR")
+            .build()
+        workManager.enqueueUniqueWork("AI_METADATA_REPAIR", androidx.work.ExistingWorkPolicy.KEEP, repairWork)
     }
 }

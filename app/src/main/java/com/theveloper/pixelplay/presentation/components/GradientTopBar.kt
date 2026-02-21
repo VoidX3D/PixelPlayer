@@ -94,7 +94,7 @@ fun GenreGradientTopBar(
 fun HomeGradientTopBar(
     onNavigationIconClick: () -> Unit,
     onMoreOptionsClick: () -> Unit,
-    onBetaClick: () -> Unit,
+    onAlphaClick: () -> Unit,
     onTelegramClick: () -> Unit,
     onMenuClick: () -> Unit = {},
 ) {
@@ -138,7 +138,7 @@ fun HomeGradientTopBar(
 //                    )
 //                }
                 
-                // Beta button
+                // Alpha button
                 FilledTonalButton(
                     modifier = Modifier.padding(start = 4.dp),
                     shape = CircleShape,
@@ -147,19 +147,19 @@ fun HomeGradientTopBar(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    onClick = onBetaClick
+                    onClick = onAlphaClick
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "β",
+                            text = "α",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = "Beta",
+                            text = "Alpha",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )

@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +49,8 @@ fun CustomPresetsSheet(
     onPinToggled: (EqualizerPreset) -> Unit,
     onRename: (EqualizerPreset) -> Unit,
     onDelete: (EqualizerPreset) -> Unit,
+    onExport: (EqualizerPreset) -> Unit,
+    onImport: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -61,13 +65,28 @@ fun CustomPresetsSheet(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
         ) {
-            Text(
-                text = "Saved Presets",
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = GoogleSansRounded,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Saved Presets",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold
+                )
+
+                IconButton(onClick = onImport) {
+                    Icon(
+                        imageVector = Icons.Outlined.FileUpload,
+                        contentDescription = "Import Preset (.pxp)",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             if (presets.isEmpty()) {
                 Box(
@@ -94,7 +113,8 @@ fun CustomPresetsSheet(
                             },
                             onPinClick = { onPinToggled(preset) },
                             onRenameClick = { onRename(preset) },
-                            onDeleteClick = { onDelete(preset) }
+                            onDeleteClick = { onDelete(preset) },
+                            onExportClick = { onExport(preset) }
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(start = 72.dp),
@@ -115,7 +135,8 @@ private fun CustomPresetItem(
     onClick: () -> Unit,
     onPinClick: () -> Unit,
     onRenameClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onExportClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -165,6 +186,13 @@ private fun CustomPresetItem(
                 Icon(
                     imageVector = Icons.Outlined.Edit,
                     contentDescription = "Rename",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onExportClick) {
+                Icon(
+                    imageVector = Icons.Outlined.FileDownload,
+                    contentDescription = "Export",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

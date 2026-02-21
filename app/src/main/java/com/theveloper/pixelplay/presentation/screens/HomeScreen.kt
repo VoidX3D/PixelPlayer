@@ -68,7 +68,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
-import com.theveloper.pixelplay.presentation.components.BetaInfoBottomSheet
+import com.theveloper.pixelplay.presentation.components.AlphaInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.ChangelogBottomSheet
 import com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardViewModel
 import com.theveloper.pixelplay.presentation.components.DailyMixSection
@@ -161,10 +161,10 @@ fun HomeScreen(
 
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
     var showChangelogBottomSheet by remember { mutableStateOf(false) }
-    var showBetaInfoBottomSheet by remember { mutableStateOf(false) }
+    var showAlphaInfoBottomSheet by remember { mutableStateOf(false) }
     var showStreamingProviderSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
-    val betaSheetState = rememberModalBottomSheetState()
+    val alphaSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     LocalContext.current
 
@@ -186,8 +186,8 @@ fun HomeScreen(
                     onMoreOptionsClick = {
                         showChangelogBottomSheet = true
                     },
-                    onBetaClick = {
-                        showBetaInfoBottomSheet = true
+                    onAlphaClick = {
+                        showAlphaInfoBottomSheet = true
                     },
                     onTelegramClick = {
                          showStreamingProviderSheet = true
@@ -345,13 +345,13 @@ fun HomeScreen(
             ChangelogBottomSheet()
         }
     }
-    if (showBetaInfoBottomSheet) {
+    if (showAlphaInfoBottomSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showBetaInfoBottomSheet = false },
-            sheetState = betaSheetState,
+            onDismissRequest = { showAlphaInfoBottomSheet = false },
+            sheetState = alphaSheetState,
             //contentWindowInsets = { WindowInsets.statusBars.only(WindowInsets.statusBars) }
         ) {
-            BetaInfoBottomSheet()
+            AlphaInfoBottomSheet()
         }
     }
     if (showStreamingProviderSheet) {

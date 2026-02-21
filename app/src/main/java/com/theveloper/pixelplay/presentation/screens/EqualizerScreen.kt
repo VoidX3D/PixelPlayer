@@ -142,6 +142,8 @@ import com.theveloper.pixelplay.presentation.components.ReorderPresetsSheet
 import com.theveloper.pixelplay.presentation.components.SavePresetDialog
 import com.theveloper.pixelplay.presentation.components.RenamePresetDialog
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository.EqualizerViewMode
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.rounded.ViewQuilt
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.navigationBars
@@ -161,6 +163,30 @@ fun EqualizerScreen(
     val uiState by equalizerViewModel.uiState.collectAsState()
     val context = LocalContext.current
     
+    // Activity Launchers
+    var presetToExport by remember { mutableStateOf<EqualizerPreset?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+        onResult = { uri ->
+            uri?.let {
+                presetToExport?.let { preset ->
+                    equalizerViewModel.exportPreset(preset, it)
+                }
+            }
+            presetToExport = null
+        }
+    )
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                equalizerViewModel.importPreset(it)
+            }
+        }
+    )
+
     // Sheet States
     var showCustomPresetsSheet by remember { mutableStateOf(false) }
     var showReorderSheet by remember { mutableStateOf(false) }
@@ -193,6 +219,11 @@ fun EqualizerScreen(
             onPinToggled = { equalizerViewModel.togglePinPreset(it.name) },
             onRename = { renameTarget = it },
             onDelete = { equalizerViewModel.deleteCustomPreset(it) },
+            onExport = {
+                presetToExport = it
+                exportLauncher.launch("${it.displayName}.pxp")
+            },
+            onImport = { importLauncher.launch("*/*") },
             onDismiss = { showCustomPresetsSheet = false }
         )
     }
@@ -1488,7 +1519,7 @@ private fun PreAmpVolumeControlCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Fine Volume (Pre-amp)",
+                    text = "Sub-Zero Volume Stage",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -1520,7 +1551,7 @@ private fun PreAmpVolumeControlCard(
                             }
                             onGainChange(newValue)
                         },
-                        valueRange = 0.1f..2.0f,
+                        valueRange = 0.01f..2.0f,
                         modifier = Modifier.fillMaxWidth(),
                         track = { sliderState ->
                             SliderDefaults.Track(

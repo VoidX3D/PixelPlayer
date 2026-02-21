@@ -167,8 +167,8 @@ constructor(
         // val IS_GRAPH_VIEW = booleanPreferencesKey("is_graph_view") // Deprecated
         val VIEW_MODE = stringPreferencesKey("equalizer_view_mode")
 
-        // Custom Presets
-        val CUSTOM_PRESETS = stringPreferencesKey("custom_presets_json") // List<EqualizerPreset>
+        // Custom Presets (Deprecated in favor of Room database)
+        // val CUSTOM_PRESETS = stringPreferencesKey("custom_presets_json")
         val PINNED_PRESETS = stringPreferencesKey("pinned_presets_json") // List<String> (names)
         
         // Library Sync
@@ -207,6 +207,7 @@ constructor(
         val LAST_PLAYLIST_ID = stringPreferencesKey("last_playlist_id")
         val LAST_PLAYLIST_NAME = stringPreferencesKey("last_playlist_name")
         val LOW_RAM_MODE = booleanPreferencesKey("low_ram_mode")
+        val APP_LANGUAGE = stringPreferencesKey("app_language")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -1662,86 +1663,6 @@ constructor(
     }
 
     // ===== End Equalizer Settings =====
-    // ===== Custom Presets Persistence =====
-
-    val customPresetsFlow: Flow<List<EqualizerPreset>> =
-        dataStore.data.map { preferences ->
-            val jsonString = preferences[PreferencesKeys.CUSTOM_PRESETS]
-            if (jsonString != null) {
-                try {
-                    json.decodeFromString<List<EqualizerPreset>>(jsonString)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } else {
-                emptyList()
-            }
-        }
-        
-    suspend fun saveCustomPreset(preset: EqualizerPreset) {
-        val current = customPresetsFlow.first().toMutableList()
-        // Remove existing if overwriting (by name)
-        current.removeAll { it.name == preset.name }
-        current.add(preset)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-    }
-    
-    suspend fun deleteCustomPreset(presetName: String) {
-        val current = customPresetsFlow.first().toMutableList()
-        current.removeAll { it.name == presetName }
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-        
-        // Also remove from pinned if present
-        val pinned = pinnedPresetsFlow.first().toMutableList()
-        if (pinned.remove(presetName)) {
-            setPinnedPresets(pinned)
-        }
-    }
-    
-    suspend fun renameCustomPreset(oldName: String, newName: String) {
-        val current = customPresetsFlow.first().toMutableList()
-        val index = current.indexOfFirst { it.name == oldName }
-        if (index == -1) return
-        
-        current[index] = current[index].copy(name = newName, displayName = newName)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-        
-        val pinned = pinnedPresetsFlow.first().toMutableList()
-        val pinnedIndex = pinned.indexOf(oldName)
-        if (pinnedIndex != -1) {
-            pinned[pinnedIndex] = newName
-            setPinnedPresets(pinned)
-        }
-        
-        val activePreset = dataStore.data.first()[PreferencesKeys.EQUALIZER_PRESET]
-        if (activePreset == oldName) {
-            dataStore.edit { preferences ->
-                preferences[PreferencesKeys.EQUALIZER_PRESET] = newName
-            }
-        }
-    }
-    
-    suspend fun updateCustomPresetBands(presetName: String, bandLevels: List<Int>) {
-        val current = customPresetsFlow.first().toMutableList()
-        val index = current.indexOfFirst { it.name == presetName }
-        if (index == -1) return
-        
-        current[index] = current[index].copy(bandLevels = bandLevels)
-        
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CUSTOM_PRESETS] = json.encodeToString(current)
-        }
-    }
-    
     // ===== Pinned Presets Persistence =====
     
     val pinnedPresetsFlow: Flow<List<String>> =
@@ -1995,5 +1916,27 @@ constructor(
 
     suspend fun setLowRamMode(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.LOW_RAM_MODE] = enabled }
+    }
+
+    val appLanguageFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.APP_LANGUAGE] ?: "default"
+    }
+
+    suspend fun setAppLanguage(languageCode: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APP_LANGUAGE] = languageCode
+        }
+    }
+
+    // --- Legacy Migration Helpers ---
+
+    suspend fun getLegacyCustomPresetsJson(): String? {
+        val legacyKey = stringPreferencesKey("custom_presets_json")
+        return dataStore.data.map { it[legacyKey] }.first()
+    }
+
+    suspend fun clearLegacyCustomPresetsJson() {
+        val legacyKey = stringPreferencesKey("custom_presets_json")
+        dataStore.edit { it.remove(legacyKey) }
     }
 }

@@ -555,12 +555,12 @@ fun WelcomePage() {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "β",
+                    text = "α",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Beta",
+                    text = "Alpha",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )

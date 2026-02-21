@@ -187,7 +187,7 @@ class DualPlayerEngine @Inject constructor(
         get() = playerA
 
     fun setPreAmpGain(gain: Float) {
-        preAmpGain = gain.coerceIn(0.1f, 2.0f)
+        preAmpGain = gain.coerceIn(0.01f, 2.0f)
         // Re-apply current volumes with new gain
         if (!transitionRunning) {
             playerA.volume = preAmpGain

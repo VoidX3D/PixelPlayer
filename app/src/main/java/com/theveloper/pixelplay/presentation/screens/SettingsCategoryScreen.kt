@@ -925,13 +925,7 @@ fun SettingsCategoryScreen(
                                 ThemeSelectorItem(
                                     label = "Language",
                                     description = "Choose the app's display language.",
-                                    options = mapOf(
-                                        "default" to "System Default",
-                                        "en" to "English",
-                                        "es" to "Spanish",
-                                        "fr" to "French",
-                                        "de" to "German"
-                                    ),
+                                    options = settingsViewModel.getSupportedLanguages(),
                                     selectedKey = uiState.currentLanguageCode,
                                     onSelectionChanged = { settingsViewModel.setLanguage(it) },
                                     leadingIcon = { Icon(Icons.Rounded.Language, null, tint = MaterialTheme.colorScheme.secondary) }
