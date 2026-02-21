@@ -37,6 +37,7 @@ import androidx.navigation.navArgument
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.presentation.screens.AlbumDetailScreen
+import com.theveloper.pixelplay.presentation.screens.AccountsScreen
 import com.theveloper.pixelplay.presentation.screens.ArtistDetailScreen
 import com.theveloper.pixelplay.presentation.screens.ArtistSettingsScreen
 import com.theveloper.pixelplay.presentation.screens.DailyMixScreen
@@ -214,6 +215,22 @@ fun AppNavigation(
                         playerViewModel = playerViewModel,
                         onNavigationIconClick = {
                             navController.popBackStack()
+                        }
+                    )
+                }
+            }
+            composable(
+                Screen.Accounts.route,
+                enterTransition = { enterTransition() },
+                exitTransition = { exitTransition() },
+                popEnterTransition = { popEnterTransition() },
+                popExitTransition = { popExitTransition() },
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
+                    AccountsScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOpenNeteaseDashboard = {
+                            navController.navigateSafely(Screen.NeteaseDashboard.route)
                         }
                     )
                 }

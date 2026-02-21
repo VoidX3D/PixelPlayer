@@ -52,6 +52,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.drinkless.tdlib.TdApi
 import androidx.compose.runtime.getValue
 import androidx.annotation.OptIn
+import androidx.compose.material.icons.rounded.Dialpad
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.presentation.telegram.dashboard.TelegramDashboardScreen
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -127,7 +128,7 @@ fun TelegramLoginScreen(
                             onClick = onFinish,
                             modifier = Modifier.padding(start = 8.dp),
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f),
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                 contentColor = MaterialTheme.colorScheme.onSurface
                             )
                         ) {
@@ -261,7 +262,7 @@ private fun TelegramBrandingHeader() {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(R.drawable.rounded_send_24),
+                painter = painterResource(R.drawable.telegram),
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
@@ -377,7 +378,7 @@ fun ExpressivePhoneNumberInput(
             placeholder = { Text("+1 234 567 8900") },
             leadingIcon = { 
                 Icon(
-                    Icons.Rounded.Phone, 
+                    Icons.Rounded.Dialpad,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 ) 
@@ -388,7 +389,7 @@ fun ExpressivePhoneNumberInput(
             shape = inputShape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color.Transparent
             )
@@ -530,8 +531,9 @@ private fun AuthStepHeader(
     title: String,
     subtitle: String
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         Box(
             modifier = Modifier
@@ -547,26 +549,30 @@ private fun AuthStepHeader(
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontFamily = GoogleSansRounded,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            fontFamily = GoogleSansRounded,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = GoogleSansRounded,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Start
+            )
+        }
     }
 }
 

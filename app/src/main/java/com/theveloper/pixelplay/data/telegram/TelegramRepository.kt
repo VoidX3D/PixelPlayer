@@ -67,6 +67,10 @@ class TelegramRepository @Inject constructor(
         clientManager.checkAuthenticationPassword(password)
     }
 
+    fun logout() {
+        clientManager.logout()
+    }
+
     suspend fun searchPublicChat(username: String): TdApi.Chat? {
         return try {
             clientManager.sendRequest(TdApi.SearchPublicChat(username))
