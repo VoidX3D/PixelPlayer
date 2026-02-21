@@ -108,10 +108,9 @@ internal fun rememberSheetActionHandlers(
 
     val onNavigateToEqualizer = remember(scope, navController) {
         {
-            scope.launch {
-                 sheetMotionControllerState.value.snapCollapsed(sheetCollapsedTargetYState.value)
-            }
-            playerViewModelState.value.collapsePlayerSheet()
+            // Removed collapsePlayerSheet() to keep player open "on top" (navigation happens behind or replaces content)
+            // The user wants it to open "on top of the menu" and go back to main player.
+            // By NOT collapsing, we navigate while the sheet is open.
             queueSheetControllerState.value.animate(false)
             sheetModalOverlayControllerState.value.updateSelectedSongForInfo(null)
             navController.navigateSafely(Screen.Equalizer.route)

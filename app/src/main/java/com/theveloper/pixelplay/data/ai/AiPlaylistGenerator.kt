@@ -62,21 +62,13 @@ class AiPlaylistGenerator @Inject constructor(
             }
 
             // To optimize cost, cap the context size and shuffle it a bit for diversity
-            val sampleSize = max(minLength, 80).coerceAtMost(200)
+            // Reduced max sample size for faster processing
+            val sampleSize = max(minLength, 60).coerceAtMost(120)
             val songSample = samplingPool.shuffled().take(sampleSize)
 
             val availableSongsJson = songSample.joinToString(separator = ",\n") { song ->
-                // Calculate score for each song. This might be slow if it's a real-time calculation.
-                val score = dailyMixManager.getScore(song.id)
-                """
-                {
-                    "id": "${song.id}",
-                    "title": "${song.title.replace("\"", "'")}",
-                    "artist": "${song.displayArtist.replace("\"", "'")}",
-                    "genre": "${song.genre?.replace("\"", "'") ?: "unknown"}",
-                    "relevance_score": $score
-                }
-                """.trimIndent()
+                // Compact JSON to reduce token usage and improve speed
+                """{"id":"${song.id}","t":"${song.title.take(30).replace("\"", "'")}","a":"${song.displayArtist.take(20).replace("\"", "'")}","g":"${song.genre?.take(15)?.replace("\"", "'") ?: "u"}"}"""
             }
 
             // Get the custom system prompt from user preferences
@@ -88,11 +80,10 @@ class AiPlaylistGenerator @Inject constructor(
             You will be given a user's request, a desired playlist length range, and a list of available songs with their metadata.
 
             Instructions:
-            1. Analyze the user's prompt to understand the desired mood, genre, or theme. This is the MOST IMPORTANT factor.
-            2. Select songs from the provided list that best match the user's request.
-            3. The `relevance_score` is a secondary factor. Use it to break ties or to choose between songs that equally match the prompt. Do NOT prioritize it over the prompt match.
-            4. The final playlist should have a number of songs between `min_length` and `max_length`. It does not have to be the maximum.
-            5. Your response MUST be ONLY a valid JSON array of song IDs. Do not include any other text, explanations, or markdown formatting.
+            1. Analyze prompt mood/genre/theme.
+            2. Select matching songs from list.
+            3. Min length: $minLength, Max length: $maxLength.
+            4. Response MUST be ONLY a valid JSON array of song IDs. No markdown, no explanations.
 
             Example response for a playlist of 3 songs:
             ["song_id_1", "song_id_2", "song_id_3"]

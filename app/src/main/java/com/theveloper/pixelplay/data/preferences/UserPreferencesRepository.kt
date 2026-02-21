@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.media3.common.Player
 import com.theveloper.pixelplay.data.model.Playlist
+import com.theveloper.pixelplay.data.model.CustomTheme
 import com.theveloper.pixelplay.data.model.SortOption // Added import
 import com.theveloper.pixelplay.data.model.FolderSource
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
@@ -43,6 +44,8 @@ object AppThemeMode {
     const val FOLLOW_SYSTEM = "follow_system"
     const val LIGHT = "light"
     const val DARK = "dark"
+    const val AMOLED = "amoled"
+    const val CUSTOM = "custom"
 }
 
 /**
@@ -209,6 +212,8 @@ constructor(
         val LOW_RAM_MODE = booleanPreferencesKey("low_ram_mode")
         val APP_LANGUAGE = stringPreferencesKey("app_language")
         val HEADPHONE_OPTIMIZATION = booleanPreferencesKey("headphone_optimization")
+        val CUSTOM_THEMES = stringPreferencesKey("custom_themes_json_v1")
+        val ACTIVE_CUSTOM_THEME_ID = stringPreferencesKey("active_custom_theme_id")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -1936,6 +1941,67 @@ constructor(
     suspend fun setHeadphoneOptimization(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HEADPHONE_OPTIMIZATION] = enabled
+        }
+    }
+
+    // --- Custom Themes ---
+
+    val customThemesFlow: Flow<List<CustomTheme>> = dataStore.data.map { preferences ->
+        val jsonString = preferences[PreferencesKeys.CUSTOM_THEMES]
+        if (jsonString != null) {
+            try {
+                json.decodeFromString<List<CustomTheme>>(jsonString)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    val activeCustomThemeIdFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.ACTIVE_CUSTOM_THEME_ID]
+    }
+
+    suspend fun addCustomTheme(theme: CustomTheme) {
+        dataStore.edit { preferences ->
+            val currentThemes = preferences[PreferencesKeys.CUSTOM_THEMES]?.let {
+                try {
+                    json.decodeFromString<List<CustomTheme>>(it).toMutableList()
+                } catch (e: Exception) {
+                    mutableListOf()
+                }
+            } ?: mutableListOf()
+
+            currentThemes.add(theme)
+            preferences[PreferencesKeys.CUSTOM_THEMES] = json.encodeToString(currentThemes)
+        }
+    }
+
+    suspend fun deleteCustomTheme(themeId: String) {
+        dataStore.edit { preferences ->
+            val currentThemes = preferences[PreferencesKeys.CUSTOM_THEMES]?.let {
+                try {
+                    json.decodeFromString<List<CustomTheme>>(it).toMutableList()
+                } catch (e: Exception) {
+                    mutableListOf()
+                }
+            } ?: return@edit
+
+            currentThemes.removeAll { it.id == themeId }
+            preferences[PreferencesKeys.CUSTOM_THEMES] = json.encodeToString(currentThemes)
+
+            if (preferences[PreferencesKeys.ACTIVE_CUSTOM_THEME_ID] == themeId) {
+                preferences.remove(PreferencesKeys.ACTIVE_CUSTOM_THEME_ID)
+                preferences[PreferencesKeys.APP_THEME_MODE] = AppThemeMode.FOLLOW_SYSTEM
+            }
+        }
+    }
+
+    suspend fun setActiveCustomTheme(themeId: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ACTIVE_CUSTOM_THEME_ID] = themeId
+            preferences[PreferencesKeys.APP_THEME_MODE] = AppThemeMode.CUSTOM
         }
     }
 

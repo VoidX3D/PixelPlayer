@@ -12,4 +12,6 @@
     <string name="language_es">Español</string>
     <string name="language_fr">Francés</string>
     <string name="language_de">Alemán</string>
+    <string name="translate_ai">Traducir (IA)</string>
+    <string name="translate_to">Traducir a…</string>
 </resources>

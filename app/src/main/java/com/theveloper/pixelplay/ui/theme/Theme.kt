@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
@@ -67,11 +68,14 @@ val LightColorScheme = lightColorScheme(
 @Composable
 fun PixelPlayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    isAmoled: Boolean = false,
     colorSchemePairOverride: ColorSchemePair? = null,
+    customColorScheme: ColorScheme? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val finalColorScheme = when {
+    val baseColorScheme = when {
+        customColorScheme != null -> customColorScheme
         colorSchemePairOverride == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             // Tema dinámico del sistema como prioridad si no hay override
             try {
@@ -88,6 +92,21 @@ fun PixelPlayTheme(
         // Fallback final a los defaults si no hay override ni dynamic colors aplicables
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    val finalColorScheme = if (darkTheme && isAmoled) {
+        baseColorScheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceContainer = Color.Black,
+            surfaceContainerHigh = Color(0xFF0F0F0F),
+            surfaceContainerHighest = Color(0xFF1A1A1A),
+            surfaceContainerLow = Color(0xFF080808),
+            surfaceContainerLowest = Color.Black,
+            surfaceVariant = Color(0xFF121212)
+        )
+    } else {
+        baseColorScheme
     }
 
     val view = LocalView.current

@@ -3,9 +3,11 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
+import com.theveloper.pixelplay.data.ai.AiLyricsTranslator
 import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
+import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,9 +28,11 @@ class AiStateHolder @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiPlaylistGenerator: AiPlaylistGenerator,
     private val aiMetadataGenerator: AiMetadataGenerator,
+    private val aiLyricsTranslator: AiLyricsTranslator,
     private val dailyMixManager: DailyMixManager,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val dailyMixStateHolder: DailyMixStateHolder
+    private val dailyMixStateHolder: DailyMixStateHolder,
+    private val json: kotlinx.serialization.json.Json
 ) {
     // State
     private val _showAiPlaylistSheet = MutableStateFlow(false)
@@ -50,6 +54,7 @@ class AiStateHolder @Inject constructor(
     // Callbacks to interact with PlayerViewModel/UI
     private var toastEmitter: ((String) -> Unit)? = null
     private var playSongsCallback: ((List<Song>, Song, String) -> Unit)? = null // songs, startSong, queueName
+    private var updateQueueCallback: ((List<Song>) -> Unit)? = null
     private var openPlayerSheetCallback: (() -> Unit)? = null
 
     private val titleStopWords = setOf(
@@ -68,6 +73,7 @@ class AiStateHolder @Inject constructor(
         favoriteSongIdsProvider: () -> Set<String>,
         toastEmitter: (String) -> Unit,
         playSongsCallback: (List<Song>, Song, String) -> Unit,
+        updateQueueCallback: (List<Song>) -> Unit,
         openPlayerSheetCallback: () -> Unit
     ) {
         this.scope = scope
@@ -75,6 +81,7 @@ class AiStateHolder @Inject constructor(
         this.favoriteSongIdsProvider = favoriteSongIdsProvider
         this.toastEmitter = toastEmitter
         this.playSongsCallback = playSongsCallback
+        this.updateQueueCallback = updateQueueCallback
         this.openPlayerSheetCallback = openPlayerSheetCallback
     }
 
@@ -198,6 +205,56 @@ class AiStateHolder @Inject constructor(
         }
     }
 
+    fun aiShuffle(currentQueue: List<Song>) {
+        val scope = this.scope ?: return
+        if (currentQueue.isEmpty()) return
+
+        scope.launch {
+            _isGeneratingAiPlaylist.value = true
+            try {
+                val apiKey = userPreferencesRepository.geminiApiKey.first()
+                if (apiKey.isBlank()) {
+                    toastEmitter?.invoke("Gemini API Key not set.")
+                    return@launch
+                }
+
+                val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
+                    modelName = userPreferencesRepository.geminiModel.first().ifBlank { "gemini-1.5-flash" },
+                    apiKey = apiKey
+                )
+
+                val prompt = """
+                    You are a professional DJ. Reorder the following list of songs to create the best possible flow and transition between tracks.
+                    Keep the first song if possible, or pick the best starter.
+                    Songs:
+                    ${currentQueue.joinToString("\n") { "${it.id}: ${it.title} by ${it.displayArtist}" }}
+
+                    Respond ONLY with a JSON array of song IDs in the new order. No text, no markdown.
+                """.trimIndent()
+
+                val response = generativeModel.generateContent(prompt)
+                val responseText = response.text ?: return@launch
+
+                val jsonStart = responseText.indexOf("[")
+                val jsonEnd = responseText.lastIndexOf("]") + 1
+                if (jsonStart == -1 || jsonEnd == 0) return@launch
+
+                val ids = json.decodeFromString<List<String>>(responseText.substring(jsonStart, jsonEnd))
+                val songMap = currentQueue.associateBy { it.id }
+                val newQueue = ids.mapNotNull { songMap[it] }
+
+                if (newQueue.isNotEmpty()) {
+                    updateQueueCallback?.invoke(newQueue)
+                    toastEmitter?.invoke("AI Shuffle applied!")
+                }
+            } catch (e: Exception) {
+                toastEmitter?.invoke("AI Shuffle failed: ${e.message}")
+            } finally {
+                _isGeneratingAiPlaylist.value = false
+            }
+        }
+    }
+
     fun regenerateDailyMixWithPrompt(prompt: String) {
         val scope = this.scope ?: return
         val allSongs = allSongsProvider?.invoke() ?: emptyList()
@@ -253,6 +310,15 @@ class AiStateHolder @Inject constructor(
         _isGeneratingMetadata.value = true
         return try {
             aiMetadataGenerator.generate(song, fields)
+        } finally {
+            _isGeneratingMetadata.value = false
+        }
+    }
+
+    suspend fun translateLyrics(lyrics: Lyrics, targetLanguage: String): Result<Lyrics> {
+        _isGeneratingMetadata.value = true // Re-using for general AI progress
+        return try {
+            aiLyricsTranslator.translate(lyrics, targetLanguage)
         } finally {
             _isGeneratingMetadata.value = false
         }

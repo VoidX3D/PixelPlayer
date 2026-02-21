@@ -231,7 +231,7 @@ fun FullPlayerContent(
     val totalDurationValue = totalDurationProvider()
 
     val stableControlAnimationSpec = remember {
-        tween<Float>(durationMillis = 240, easing = FastOutSlowInEasing)
+        tween<Float>(durationMillis = 160, easing = FastOutSlowInEasing)
     }
 
     val playerOnBaseColor = LocalMaterialTheme.current.onPrimaryContainer
@@ -853,8 +853,8 @@ fun FullPlayerContent(
                                         )
                                     )
                                     .widthIn(
-                                        min = 50.dp,
-                                        max = if (showCastLabel) 190.dp else 58.dp
+                                        min = 42.dp,
+                                        max = if (showCastLabel) 120.dp else 50.dp
                                     )
                                     .clip(
                                         RoundedCornerShape(
@@ -984,6 +984,7 @@ fun FullPlayerContent(
                 playerViewModel.resetLyricsForCurrentSong()
             },
             onSearchLyrics = { forcePick -> playerViewModel.fetchLyricsForCurrentSong(forcePick) },
+            onTranslateLyrics = { targetLang -> playerViewModel.translateLyricsForCurrentSong(targetLang) },
             onPickResult = { playerViewModel.acceptLyricsSearchResultForCurrentSong(it) },
             onManualSearch = { title, artist -> playerViewModel.searchLyricsManually(title, artist) },
             onImportLyrics = { filePickerLauncher.launch("*/*") },
@@ -1416,8 +1417,9 @@ private fun EfficientSlider(
     isPlaying: Boolean,
     trackEdgePadding: Dp
 ) {
+    val valueProvider = remember(valueState) { { valueState.value } }
     WavySliderExpressive(
-        value = valueState.value,
+        value = valueProvider,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         activeTrackColor = activeTrackColor,
@@ -1607,18 +1609,18 @@ private fun DelayedContent(
     val contentBlendAlpha by animateFloatAsState(
         targetValue = if (isDelayGateOpen) 1f else 0f,
         animationSpec = if (isDelayGateOpen) {
-            tween(durationMillis = 260, easing = FastOutSlowInEasing)
+            tween(durationMillis = 180, easing = FastOutSlowInEasing)
         } else {
-            tween(durationMillis = 140, easing = FastOutSlowInEasing)
+            tween(durationMillis = 100, easing = FastOutSlowInEasing)
         },
         label = "DelayedContentBlendAlpha"
     )
     val placeholderBlendAlpha by animateFloatAsState(
         targetValue = if (isDelayGateOpen) 0f else 1f,
         animationSpec = if (isDelayGateOpen) {
-            tween(durationMillis = 360, easing = FastOutSlowInEasing)
+            tween(durationMillis = 240, easing = FastOutSlowInEasing)
         } else {
-            tween(durationMillis = 140, easing = FastOutSlowInEasing)
+            tween(durationMillis = 100, easing = FastOutSlowInEasing)
         },
         label = "DelayedPlaceholderBlendAlpha"
     )

@@ -242,16 +242,6 @@ fun SettingsScreen(
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Language Category (Standalone)
-                ExpressiveCategoryItem(
-                    category = SettingsCategory.LANGUAGE,
-                    customColors = getCategoryColors(SettingsCategory.LANGUAGE, isDark),
-                    onClick = { navController.navigateSafely(Screen.SettingsCategory.createRoute(SettingsCategory.LANGUAGE.id)) },
-                    shape = RoundedCornerShape(24.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 // Equalizer Category (Standalone)
                 ExpressiveCategoryItem(
                     category = SettingsCategory.EQUALIZER,

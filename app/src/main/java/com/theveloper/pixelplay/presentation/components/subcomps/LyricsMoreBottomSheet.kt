@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Tune
@@ -57,6 +60,7 @@ fun LyricsMoreBottomSheet(
     isSyncControlsVisible: Boolean,
     onSaveLyricsAsLrc: () -> Unit,
     onResetImportedLyrics: () -> Unit,
+    onTranslateLyrics: (String) -> Unit,
     onToggleSyncControls: () -> Unit,
     isImmersiveTemporarilyDisabled: Boolean,
     onSetImmersiveTemporarilyDisabled: (Boolean) -> Unit,
@@ -77,6 +81,7 @@ fun LyricsMoreBottomSheet(
 ) {
     val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var showResetDialog by remember { mutableStateOf(false) }
+    var showTranslateMenu by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -162,6 +167,67 @@ fun LyricsMoreBottomSheet(
                         leadingIconColor = contentColor
                     )
                 )
+
+                // Translate Lyrics (AI)
+                if (lyrics != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.translate_ai)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.gemini_ai),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(itemBackgroundColor)
+                            .clickable {
+                                showTranslateMenu = true
+                            },
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent,
+                            headlineColor = contentColor,
+                            leadingIconColor = accentColor
+                        )
+                    )
+                }
+            }
+
+            if (showTranslateMenu) {
+                val languages = listOf("English", "Spanish", "French", "German", "Italian", "Portuguese", "Russian", "Chinese", "Japanese", "Korean")
+                ModalBottomSheet(
+                    onDismissRequest = { showTranslateMenu = false },
+                    containerColor = containerColor,
+                    contentColor = contentColor
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = navigationBarsPadding + 24.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.translate_to),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(16.dp),
+                            color = accentColor
+                        )
+                        LazyColumn {
+                            items(languages) { lang ->
+                                ListItem(
+                                    headlineContent = { Text(lang) },
+                                    modifier = Modifier.clickable {
+                                        showTranslateMenu = false
+                                        onDismissRequest()
+                                        onTranslateLyrics(lang)
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             if (showResetDialog) {

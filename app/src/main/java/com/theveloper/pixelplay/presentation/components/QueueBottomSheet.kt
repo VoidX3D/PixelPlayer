@@ -53,6 +53,7 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DoneAll
@@ -886,7 +887,8 @@ fun QueueBottomSheet(
                         isTimerActive = isTimerActiveDerived,
                         onToggleShuffle = onToggleShuffle,
                         onToggleRepeat = onToggleRepeat,
-                        onTimerClick = { showTimerOptions = true }
+                        onTimerClick = { showTimerOptions = true },
+                        onAiShuffle = { viewModel.aiShuffle() }
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1206,6 +1208,7 @@ private fun QueueControlsToolbar(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onTimerClick: () -> Unit,
+    onAiShuffle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val activeColors = IconButtonDefaults.filledIconButtonColors(
@@ -1245,6 +1248,18 @@ private fun QueueControlsToolbar(
                 Icon(
                     imageVector = Icons.Rounded.Shuffle,
                     contentDescription = "Toggle Shuffle",
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            FilledTonalIconButton(
+                onClick = onAiShuffle,
+                colors = inactiveColors,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "AI Shuffle",
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))

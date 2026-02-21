@@ -85,7 +85,9 @@ data class SettingsUiState(
     val isInspectingBackup: Boolean = false,
     val collagePattern: CollagePattern = CollagePattern.default,
     val collageAutoRotate: Boolean = false,
-    val currentLanguageCode: String = "default"
+    val currentLanguageCode: String = "default",
+    val customThemes: List<com.theveloper.pixelplay.data.model.CustomTheme> = emptyList(),
+    val activeCustomThemeId: String? = null
 )
 
 data class FailedSongInfo(
@@ -121,7 +123,9 @@ private sealed interface SettingsUiUpdate {
         val libraryNavigationMode: String,
         val carouselStyle: String,
         val launchTab: String,
-        val showPlayerFileInfo: Boolean
+        val showPlayerFileInfo: Boolean,
+        val customThemes: List<com.theveloper.pixelplay.data.model.CustomTheme>,
+        val activeCustomThemeId: String?
     ) : SettingsUiUpdate
     
     data class Group2(
@@ -243,7 +247,9 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.libraryNavigationModeFlow,
                 userPreferencesRepository.carouselStyleFlow,
                 userPreferencesRepository.launchTabFlow,
-                userPreferencesRepository.showPlayerFileInfoFlow
+                userPreferencesRepository.showPlayerFileInfoFlow,
+                userPreferencesRepository.customThemesFlow,
+                userPreferencesRepository.activeCustomThemeIdFlow
             ) { values ->
                 SettingsUiUpdate.Group1(
                     appRebrandDialogShown = values[0] as Boolean,
@@ -256,7 +262,9 @@ class SettingsViewModel @Inject constructor(
                     libraryNavigationMode = values[7] as String,
                     carouselStyle = values[8] as String,
                     launchTab = values[9] as String,
-                    showPlayerFileInfo = values[10] as Boolean
+                    showPlayerFileInfo = values[10] as Boolean,
+                    customThemes = @Suppress("UNCHECKED_CAST") (values[11] as List<com.theveloper.pixelplay.data.model.CustomTheme>),
+                    activeCustomThemeId = values[12] as String?
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -271,7 +279,9 @@ class SettingsViewModel @Inject constructor(
                         libraryNavigationMode = update.libraryNavigationMode,
                         carouselStyle = update.carouselStyle,
                         launchTab = update.launchTab,
-                        showPlayerFileInfo = update.showPlayerFileInfo
+                        showPlayerFileInfo = update.showPlayerFileInfo,
+                        customThemes = update.customThemes,
+                        activeCustomThemeId = update.activeCustomThemeId
                     )
                 }
             }
@@ -898,4 +908,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun getSupportedLanguages() = languageManager.supportedLanguages
+
+    val customThemes: Flow<List<com.theveloper.pixelplay.data.model.CustomTheme>> = userPreferencesRepository.customThemesFlow
+
+    fun setActiveCustomTheme(themeId: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setActiveCustomTheme(themeId)
+        }
+    }
 }

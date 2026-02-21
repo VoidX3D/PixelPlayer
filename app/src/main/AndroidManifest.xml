@@ -69,6 +69,11 @@
             android:label="Netease Login"
             android:theme="@style/Theme.PixelPlay" />
 
+        <activity
+            android:name=".presentation.gdrive.auth.GDriveLoginActivity"
+            android:exported="false"
+            android:label="Google Drive Login"
+            android:theme="@style/Theme.PixelPlay" />
 
         <activity
             android:name=".ExternalPlayerActivity"

@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="lyrics">Тексты песен</string>
+    <string name="loading_lyrics">Загрузка текстов…</string>
+    <string name="search">Поиск</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
+    <string name="settings_language_title">Язык</string>
+    <string name="settings_language_subtitle">Изменить язык приложения</string>
+    <string name="language_default">Системный по умолчанию</string>
+    <string name="language_en">Английский</string>
+    <string name="language_es">Испанский</string>
+    <string name="language_fr">Французский</string>
+    <string name="language_de">Немецкий</string>
+    <string name="language_ru">Русский</string>
+</resources>
