@@ -208,6 +208,7 @@ constructor(
         val LAST_PLAYLIST_NAME = stringPreferencesKey("last_playlist_name")
         val LOW_RAM_MODE = booleanPreferencesKey("low_ram_mode")
         val APP_LANGUAGE = stringPreferencesKey("app_language")
+        val HEADPHONE_OPTIMIZATION = booleanPreferencesKey("headphone_optimization")
     }
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
@@ -1925,6 +1926,16 @@ constructor(
     suspend fun setAppLanguage(languageCode: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LANGUAGE] = languageCode
+        }
+    }
+
+    val headphoneOptimizationFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.HEADPHONE_OPTIMIZATION] ?: false
+    }
+
+    suspend fun setHeadphoneOptimization(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HEADPHONE_OPTIMIZATION] = enabled
         }
     }
 

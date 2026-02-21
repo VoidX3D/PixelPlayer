@@ -180,6 +180,28 @@
                 android:resource="@xml/large_widget_4x3_info" />
         </receiver>
 
+        <receiver
+            android:name=".ui.glancewidget.TinyWidget1x1Receiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tiny_widget_1x1_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.glancewidget.UltraWidget4x4Receiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ultra_widget_4x4_info" />
+        </receiver>
+
         <receiver android:name=".data.service.SleepTimerReceiver" android:exported="false" />
 
         <!-- Media Button Receiver for external media controls (headphones, car, etc.) -->
