@@ -1197,6 +1197,7 @@ private fun PlayerProgressBarSection(
     loadingTweaks: FullPlayerLoadingTweaks? = null,
     modifier: Modifier = Modifier
 ) {
+    val progressSectionHorizontalInset = 0.dp
     val expansionFraction = expansionFractionProvider()
     val isVisible = expansionFraction > 0.01f
     val isExpanded = currentSheetState == PlayerSheetState.EXPANDED && expansionFraction >= 0.995f
@@ -1357,7 +1358,8 @@ private fun PlayerProgressBarSection(
                 activeTrackColor = activeTrackColor,
                 inactiveTrackColor = inactiveTrackColor,
                 interactionSource = interactionSource,
-                isPlaying = shouldAnimateWavyProgress
+                isPlaying = shouldAnimateWavyProgress,
+                trackEdgePadding = progressSectionHorizontalInset
             )
 
             // Isolated Time Labels
@@ -1366,7 +1368,8 @@ private fun PlayerProgressBarSection(
                 duration = displayDurationValue,
                 isVisible = isVisible,
                 textColor = timeTextColor,
-                audioMetaLabel = displayAudioMetaLabel
+                audioMetaLabel = displayAudioMetaLabel,
+                horizontalTrackInset = progressSectionHorizontalInset
             )
         }
     }
@@ -1381,7 +1384,8 @@ private fun EfficientSlider(
     activeTrackColor: Color,
     inactiveTrackColor: Color,
     interactionSource: MutableInteractionSource,
-    isPlaying: Boolean // Added parameter
+    isPlaying: Boolean,
+    trackEdgePadding: Dp
 ) {
     WavySliderExpressive(
         value = valueState.value,
@@ -1391,6 +1395,7 @@ private fun EfficientSlider(
         inactiveTrackColor = inactiveTrackColor,
         thumbColor = thumbColor,
         isPlaying = isPlaying,
+        trackEdgePadding = trackEdgePadding,
         semanticsLabel = "Playback position",
         modifier = Modifier
             .fillMaxWidth()
@@ -1404,7 +1409,8 @@ private fun EfficientTimeLabels(
     duration: Long,
     isVisible: Boolean,
     textColor: Color,
-    audioMetaLabel: String?
+    audioMetaLabel: String?,
+    horizontalTrackInset: Dp
 ) {
     val coarsePositionMs by remember(isVisible, positionState) {
         derivedStateOf {
@@ -1422,7 +1428,7 @@ private fun EfficientTimeLabels(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp)
+            .padding(horizontal = horizontalTrackInset)
     ) {
         Row(
             modifier = Modifier
@@ -1882,7 +1888,7 @@ private fun ProgressPlaceholder(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp)
+                .padding(horizontal = 0.dp)
         ) {
             Row(
                 modifier = Modifier

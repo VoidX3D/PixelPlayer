@@ -91,6 +91,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import com.theveloper.pixelplay.utils.resolvePlaylistCoverContentColor
 import kotlin.collections.set
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlaylistContainer(
@@ -278,7 +279,7 @@ fun PlaylistItems(
         else 
             bottomBarHeight + 16.dp
 
-        com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar(
+        ExpressiveScrollBar(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),

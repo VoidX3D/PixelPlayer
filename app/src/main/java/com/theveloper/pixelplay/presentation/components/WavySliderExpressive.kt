@@ -58,6 +58,7 @@ fun WavySliderExpressive(
     isPlaying: Boolean = true,
     strokeWidth: Dp = 5.dp,
     thumbRadius: Dp = 8.dp,
+    trackEdgePadding: Dp = thumbRadius,
     wavelength: Dp = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
     waveSpeed: Dp = WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2f, // Slower wave as requested
 
@@ -69,6 +70,7 @@ fun WavySliderExpressive(
     val density = LocalDensity.current
     val strokeWidthPx = with(density) { strokeWidth.toPx() }
     val thumbRadiusPx = with(density) { thumbRadius.toPx() }
+    val trackEdgePaddingPx = with(density) { trackEdgePadding.coerceAtLeast(0.dp).toPx() }
     val thumbLineHeightPx = with(density) { thumbLineHeightWhenInteracting.toPx() }
 
     val stroke = remember(strokeWidthPx) {
@@ -154,7 +156,7 @@ fun WavySliderExpressive(
             progress = { normalizedValue },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = thumbRadius)
+                .padding(horizontal = trackEdgePadding.coerceAtLeast(0.dp))
                 // Decorative layer: avoid duplicate semantics updates from the visual track.
                 .clearAndSetSemantics { },
             color = activeTrackColor,
@@ -169,10 +171,10 @@ fun WavySliderExpressive(
         )
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val trackStart = thumbRadiusPx
-            val trackEnd = size.width - thumbRadiusPx
+            val edgePaddingPx = trackEdgePaddingPx.coerceIn(0f, size.width / 2f)
+            val trackStart = edgePaddingPx
+            val trackEnd = size.width - edgePaddingPx
             val trackWidth = (trackEnd - trackStart).coerceAtLeast(0f)
-            val thumbX = trackStart + (trackWidth * normalizedValue)
             val thumbY = size.height / 2
 
             fun lerp(start: Float, stop: Float, fraction: Float): Float {
@@ -181,6 +183,10 @@ fun WavySliderExpressive(
 
             val currentWidth = lerp(thumbRadiusPx * 2f, strokeWidthPx * 1.2f, thumbInteractionFraction)
             val currentHeight = lerp(thumbRadiusPx * 2f, thumbLineHeightPx, thumbInteractionFraction)
+            val rawThumbX = trackStart + (trackWidth * normalizedValue)
+            val minThumbCenter = (currentWidth / 2f).coerceAtMost(size.width / 2f)
+            val maxThumbCenter = (size.width - currentWidth / 2f).coerceAtLeast(minThumbCenter)
+            val thumbX = rawThumbX.coerceIn(minThumbCenter, maxThumbCenter)
             
             drawRoundRect(
                 color = thumbColor,
