@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.equalizer.EqualizerManager
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
+import com.theveloper.pixelplay.data.equalizer.EqualizerPresetRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,6 +66,7 @@ data class EqualizerUiState(
 class EqualizerViewModel @Inject constructor(
     private val equalizerManager: EqualizerManager,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val equalizerPresetRepository: EqualizerPresetRepository,
     private val dualPlayerEngine: DualPlayerEngine,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -94,6 +96,7 @@ class EqualizerViewModel @Inject constructor(
     private var persistPreAmpJob: Job? = null
     
     init {
+        migrateLegacyPresets()
         initializeEqualizer()
         observeEqualizerState()
         loadSystemVolume()
@@ -122,6 +125,27 @@ class EqualizerViewModel @Inject constructor(
         }
     }
     
+    private fun migrateLegacyPresets() {
+        viewModelScope.launch {
+            try {
+                val legacyJson = userPreferencesRepository.getLegacyCustomPresetsJson()
+
+                if (!legacyJson.isNullOrBlank()) {
+                    Timber.tag(TAG).d("Found legacy presets for migration")
+                    val legacyPresets = json.decodeFromString<List<EqualizerPreset>>(legacyJson)
+                    legacyPresets.forEach { preset ->
+                        equalizerPresetRepository.savePreset(preset)
+                    }
+                    // Clear legacy data after successful migration
+                    userPreferencesRepository.clearLegacyCustomPresetsJson()
+                    Timber.tag(TAG).i("Migrated ${legacyPresets.size} legacy presets to Room")
+                }
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Failed to migrate legacy presets")
+            }
+        }
+    }
+
     private fun initializeEqualizer() {
         viewModelScope.launch {
             Timber.tag(TAG).d("Initializing equalizer...")
@@ -190,8 +214,8 @@ class EqualizerViewModel @Inject constructor(
                 userPreferencesRepository.virtualizerDismissedFlow,
                 userPreferencesRepository.loudnessDismissedFlow,
                 userPreferencesRepository.equalizerViewModeFlow,
-                userPreferencesRepository.customPresetsFlow, // Added
-                userPreferencesRepository.pinnedPresetsFlow // Added
+                equalizerPresetRepository.customPresets,
+                userPreferencesRepository.pinnedPresetsFlow
             ) { values -> // Too many args for standard destructuring, use array/list access
                  val enabled = values[0] as Boolean
                  val presetName = values[1] as String
@@ -209,7 +233,7 @@ class EqualizerViewModel @Inject constructor(
                  val vDismissed = values[11] as Boolean
                  val lDismissed = values[12] as Boolean
                  val viewMode = values[13] as UserPreferencesRepository.EqualizerViewMode
-                 val customPresets = (values[14] as? List<*>)?.filterIsInstance<EqualizerPreset>() ?: emptyList()
+                 val customPresets = values[14] as List<EqualizerPreset>
                  val pinnedPresets = (values[15] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 val currentPreset = if (presetName == "custom") {
@@ -323,7 +347,7 @@ class EqualizerViewModel @Inject constructor(
             // Create preset from current custom bands
             val bands = equalizerManager.bandLevels.value
             val preset = EqualizerPreset(name, name, bands, true)
-            userPreferencesRepository.saveCustomPreset(preset)
+            equalizerPresetRepository.savePreset(preset)
             
             // Also pin it automatically
             togglePinPreset(name)
@@ -335,7 +359,14 @@ class EqualizerViewModel @Inject constructor(
     
     fun deleteCustomPreset(preset: EqualizerPreset) {
         viewModelScope.launch {
-            userPreferencesRepository.deleteCustomPreset(preset.name)
+            equalizerPresetRepository.deletePreset(preset)
+
+            // Remove from pinned list
+            val currentPinned = _uiState.value.pinnedPresetsNames.toMutableList()
+            if (currentPinned.remove(preset.name)) {
+                userPreferencesRepository.setPinnedPresets(currentPinned)
+            }
+
             // If deleting current, revert to Flat
             if (_uiState.value.currentPreset.name == preset.name) {
                 selectPreset(EqualizerPreset.FLAT)
@@ -346,15 +377,52 @@ class EqualizerViewModel @Inject constructor(
     fun renameCustomPreset(oldName: String, newName: String) {
         if (newName.isBlank() || oldName == newName) return
         viewModelScope.launch {
-            userPreferencesRepository.renameCustomPreset(oldName, newName)
+            val oldPreset = equalizerPresetRepository.getPresetByName(oldName)
+            if (oldPreset != null) {
+                equalizerPresetRepository.deletePreset(oldPreset)
+                val newPreset = oldPreset.copy(name = newName, displayName = newName)
+                equalizerPresetRepository.savePreset(newPreset)
+
+                // Update pinned state if necessary
+                val pinned = _uiState.value.pinnedPresetsNames.toMutableList()
+                val idx = pinned.indexOf(oldName)
+                if (idx != -1) {
+                    pinned[idx] = newName
+                    userPreferencesRepository.setPinnedPresets(pinned)
+                }
+
+                if (_uiState.value.currentPreset.name == oldName) {
+                    selectPreset(newPreset)
+                }
+            }
         }
     }
     
     fun updateCustomPresetBands(presetName: String) {
         viewModelScope.launch {
             val bands = equalizerManager.bandLevels.value
-            userPreferencesRepository.updateCustomPresetBands(presetName, bands)
-            selectPreset(EqualizerPreset(presetName, presetName, bands, true))
+            val preset = EqualizerPreset(presetName, presetName, bands, true)
+            equalizerPresetRepository.savePreset(preset)
+            selectPreset(preset)
+        }
+    }
+
+    fun exportPreset(preset: EqualizerPreset, uri: android.net.Uri) {
+        viewModelScope.launch {
+            val success = equalizerPresetRepository.exportPreset(preset, uri)
+            if (success) {
+                 // Show toast?
+            }
+        }
+    }
+
+    fun importPreset(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val preset = equalizerPresetRepository.importPreset(uri)
+            if (preset != null) {
+                equalizerPresetRepository.savePreset(preset)
+                selectPreset(preset)
+            }
         }
     }
 

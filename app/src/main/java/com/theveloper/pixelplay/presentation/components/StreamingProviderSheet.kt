@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.netease.NeteaseRepository
+import com.theveloper.pixelplay.presentation.gdrive.auth.GDriveLoginActivity
 import com.theveloper.pixelplay.presentation.netease.auth.NeteaseLoginActivity
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -72,7 +73,7 @@ fun StreamingProviderSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Cloud Streaming",
+                text = "Alpha Cloud",
                 style = MaterialTheme.typography.titleLarge,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
@@ -82,7 +83,7 @@ fun StreamingProviderSheet(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "Stream music from your cloud accounts",
+                text = "Next-generation cloud music integration",
                 style = MaterialTheme.typography.bodyMedium,
                 fontFamily = GoogleSansRounded,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -109,18 +110,21 @@ fun StreamingProviderSheet(
 
             Spacer(Modifier.height(12.dp))
 
-            // Google Drive Provider (coming soon)
+            // Google Drive Provider
             ProviderCard(
                 icon = Icons.Rounded.CloudQueue,
                 iconPainter = painterResource(R.drawable.rounded_drive_export_24),
                 title = "Google Drive",
-                subtitle = "Coming soon",
+                subtitle = "Native drive support with low-latency streaming",
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                iconColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                iconColor = MaterialTheme.colorScheme.primary,
                 shape = cardShape,
-                enabled = false,
-                onClick = { }
+                enabled = true,
+                onClick = {
+                    context.startActivity(Intent(context, GDriveLoginActivity::class.java))
+                    onDismissRequest()
+                }
             )
 
             Spacer(Modifier.height(12.dp))

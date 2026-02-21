@@ -2,30 +2,12 @@
     <string name="app_name">PixelPlayer</string>
     <string name="lyrics">Paroles</string>
     <string name="loading_lyrics">Chargement des paroles…</string>
-    <string name="cant_find_lyrics">Impossible de trouver les paroles de cette chanson.</string>
-    <string name="lyrics_not_found">Paroles non trouvées</string>
     <string name="search">Rechercher</string>
-    <string name="searching_lyrics">Recherche de paroles…</string>
-    <string name="error">Erreur</string>
     <string name="ok">OK</string>
     <string name="cancel">Annuler</string>
-    <string name="previous_track">Piste précédente</string>
-    <string name="next_track">Piste suivante</string>
-    <string name="pause_playback">Pause</string>
-    <string name="play_playback">Lecture</string>
-
-    <!-- Widgets -->
-    <string name="glance_widget_description">Widget réactif qui s\'adapte à sa taille</string>
-    <string name="widget_bar_4x1_desc">Barre de lecture compacte</string>
-    <string name="widget_control_4x2_desc">Contrôles complets avec lecture aléatoire et répétition</string>
-    <string name="widget_grid_2x2_desc">Lecteur carré minimaliste</string>
-    <string name="compact_widget_description">Contrôles essentiels dans une disposition 2x1 compacte</string>
-    <string name="large_widget_description">Lecteur complet avec aperçu de la file d\'attente (4x3)</string>
-
-    <!-- Language Settings -->
     <string name="settings_language_title">Langue</string>
     <string name="settings_language_subtitle">Changer la langue de l\'application</string>
-    <string name="language_default">Par défaut du système</string>
+    <string name="language_default">Par défaut</string>
     <string name="language_en">Anglais</string>
     <string name="language_es">Espagnol</string>
     <string name="language_fr">Français</string>

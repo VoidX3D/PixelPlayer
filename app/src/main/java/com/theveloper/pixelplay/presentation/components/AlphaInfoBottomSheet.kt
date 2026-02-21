@@ -48,7 +48,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
+fun AlphaInfoBottomSheet(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val issuesUrl = "https://github.com/theovilardo/PixelPlay/issues"
     val reportUrl = "https://github.com/theovilardo/PixelPlay/issues/new/choose"
@@ -69,7 +69,7 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
             item(key = "header") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Beta 0.6.0",
+                        text = "Alpha 6.0",
                         fontFamily = GoogleSansRounded,
                         style = ExpTitleTypography.displaySmall,
                         color = MaterialTheme.colorScheme.onSurface
@@ -129,7 +129,7 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "β",
+                                text = "α",
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black
@@ -139,12 +139,12 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "Welcome to the first 0.6.0 beta!",
+                                text = "Welcome to the 6.0 Alpha!",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "This huge update brings a complete UI overhaul, 10-band Equalizer, and AI powers.",
+                                text = "This version evolves PixelPlayer into Alpha stage with massive improvements in Audio, UI, and AI.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -183,7 +183,7 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "What to expect",
+                                text = "Alpha Stage Evolution",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -194,17 +194,17 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "New 10-band Equalizer with effects, plus AI integration for smarter playlists.",
+                            text = "Advanced Audio Engine with Sub-Zero volume and persistent EQ presets.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Rebuilt Library Sync for reliability and linear progress reporting.",
+                            text = "Rebuilt Library Sync with robust file-header analysis for 100% indexing accuracy.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Major fixes for Casting, Queue stability, and lyrics synchronization.",
+                            text = "Alpha Cloud with native Google Drive integration and background sync.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -6,11 +6,17 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -197,10 +203,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.Settings.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     SettingsScreen(
@@ -215,10 +221,10 @@ fun AppNavigation(
             composable(
                 route = Screen.SettingsCategory.route,
                 arguments = listOf(navArgument("categoryId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) { backStackEntry ->
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     val categoryId = backStackEntry.arguments?.getString("categoryId")
@@ -234,10 +240,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.PaletteStyle.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     PaletteStyleSettingsScreen(
@@ -248,10 +254,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.Experimental.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     ExperimentalSettingsScreen(
@@ -263,10 +269,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.DailyMixScreen.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     DailyMixScreen(
@@ -277,10 +283,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.RecentlyPlayed.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     RecentlyPlayedScreen(
@@ -291,10 +297,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.Stats.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     StatsScreen(
@@ -305,10 +311,10 @@ fun AppNavigation(
             composable(
                 route = Screen.PlaylistDetail.route,
                 arguments = listOf(navArgument("playlistId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) { backStackEntry ->
                 val playlistId = backStackEntry.arguments?.getString("playlistId")
                 val playlistViewModel: PlaylistViewModel = hiltViewModel()
@@ -328,10 +334,10 @@ fun AppNavigation(
 
             composable(
                 Screen.DJSpace.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     MashupScreen()
@@ -340,10 +346,10 @@ fun AppNavigation(
             composable(
                 route = Screen.GenreDetail.route,
                 arguments = listOf(navArgument("genreId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) { backStackEntry ->
                 val genreId = backStackEntry.arguments?.getString("genreId")
                 if (genreId != null) {
@@ -361,10 +367,10 @@ fun AppNavigation(
             composable(
                 route = Screen.AlbumDetail.route,
                 arguments = listOf(navArgument("albumId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) { backStackEntry ->
                 val albumId = backStackEntry.arguments?.getString("albumId")
                 if (albumId != null) {
@@ -380,10 +386,10 @@ fun AppNavigation(
             composable(
                 route = Screen.ArtistDetail.route,
                 arguments = listOf(navArgument("artistId") { type = NavType.StringType }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) { backStackEntry ->
                 val artistId = backStackEntry.arguments?.getString("artistId")
                 if (artistId != null) {
@@ -398,10 +404,10 @@ fun AppNavigation(
             }
             composable(
                 "nav_bar_corner_radius",
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     NavBarCornerRadiusScreen(navController)
@@ -413,10 +419,10 @@ fun AppNavigation(
                     type = NavType.StringType
                     nullable = true
                 }),
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     EditTransitionScreen(navController = navController)
@@ -424,10 +430,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.About.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     AboutScreen(
@@ -439,10 +445,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.ArtistSettings.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     ArtistSettingsScreen(navController = navController)
@@ -450,10 +456,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.DelimiterConfig.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     DelimiterConfigScreen(navController = navController)
@@ -461,10 +467,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.Equalizer.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     EqualizerScreen(
@@ -475,10 +481,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.DeviceCapabilities.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     com.theveloper.pixelplay.presentation.screens.DeviceCapabilitiesScreen(
@@ -489,10 +495,10 @@ fun AppNavigation(
             }
             composable(
                 Screen.NeteaseDashboard.route,
-                enterTransition = { enterTransition() },
-                exitTransition = { exitTransition() },
-                popEnterTransition = { popEnterTransition() },
-                popExitTransition = { popExitTransition() },
+                enterTransition = { expressiveEnterTransition() },
+                exitTransition = { expressiveExitTransition() },
+                popEnterTransition = { expressiveEnterTransition() },
+                popExitTransition = { expressiveExitTransition() },
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel) {
                     com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardScreen(
@@ -556,6 +562,22 @@ private fun mainRootEnterTransition(
         ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
     }
     null -> fallback
+}
+
+private fun expressiveEnterTransition(): EnterTransition {
+    return slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow)
+    ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+    scaleIn(initialScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
+}
+
+private fun expressiveExitTransition(): ExitTransition {
+    return slideOutVertically(
+        targetOffsetY = { it / 6 },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
+    ) + fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
+    scaleOut(targetScale = 0.92f, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow))
 }
 
 private fun mainRootExitTransition(

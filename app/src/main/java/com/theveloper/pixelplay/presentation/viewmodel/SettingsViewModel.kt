@@ -39,6 +39,7 @@ import com.theveloper.pixelplay.data.ai.GeminiModelService
 import com.theveloper.pixelplay.data.ai.GeminiModel
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.utils.LanguageManager
 import java.io.File
 
 data class SettingsUiState(
@@ -148,6 +149,7 @@ class SettingsViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
+    private val languageManager: LanguageManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -213,7 +215,12 @@ class SettingsViewModel @Inject constructor(
         }
 
         // Initialize language state
-        _uiState.update { it.copy(currentLanguageCode = getCurrentLanguageCode()) }
+        viewModelScope.launch {
+            userPreferencesRepository.appLanguageFlow.collect { language ->
+                _uiState.update { it.copy(currentLanguageCode = language) }
+                languageManager.applyLanguage(language)
+            }
+        }
     }
 
     private val _dataTransferProgress = MutableStateFlow<BackupTransferProgressUpdate?>(null)
@@ -354,7 +361,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
 
-        // Beta Features Collectors
+        // Alpha Features Collectors
         viewModelScope.launch {
             userPreferencesRepository.albumArtQualityFlow.collect { quality ->
                 _uiState.update { it.copy(albumArtQuality = quality) }
@@ -886,18 +893,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setLanguage(languageCode: String) {
         viewModelScope.launch {
-            val appLocale: androidx.core.os.LocaleListCompat = if (languageCode == "default") {
-                androidx.core.os.LocaleListCompat.getEmptyLocaleList()
-            } else {
-                androidx.core.os.LocaleListCompat.forLanguageTags(languageCode)
-            }
-            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
-            _uiState.update { it.copy(currentLanguageCode = languageCode) }
+            userPreferencesRepository.setAppLanguage(languageCode)
         }
     }
 
-    private fun getCurrentLanguageCode(): String {
-        val locales = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
-        return if (locales.isEmpty) "default" else locales.toLanguageTags()
-    }
+    fun getSupportedLanguages() = languageManager.supportedLanguages
 }

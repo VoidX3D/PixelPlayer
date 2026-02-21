@@ -45,7 +45,7 @@ enum class SettingsCategory(
     ),
     AI_INTEGRATION(
         id = "ai",
-        title = "AI Integration (Beta)",
+        title = "AI Integration",
         subtitle = "Gemini API key and AI features",
         iconRes = R.drawable.gemini_ai
     ),

@@ -130,6 +130,7 @@ import java.util.Locale
 import kotlin.math.roundToLong
 import com.theveloper.pixelplay.presentation.components.WavySliderExpressive
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
+import com.theveloper.pixelplay.utils.shapes.BridgeShape
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -749,43 +750,64 @@ fun FullPlayerContent(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Lyrics Button
-                            Box(
+                            // Cohesive Cluster: [Lyrics] - [Equalizer] - [Lyrics Search]
+                            Row(
                                 modifier = Modifier
-                                    .size(height = 42.dp, width = 50.dp)
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 50.dp,
-                                            topEnd = 6.dp,
-                                            bottomStart = 50.dp,
-                                            bottomEnd = 6.dp
-                                        )
+                                    .height(42.dp)
+                                    .background(
+                                        color = playerOnAccentColor.copy(alpha = 0.7f),
+                                        shape = BridgeShape()
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Synced Lyrics Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(height = 42.dp, width = 46.dp)
+                                        .clickable { onLyricsClick() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.rounded_lyrics_24),
+                                        contentDescription = "Lyrics",
+                                        tint = playerAccentColor,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    .background(playerOnAccentColor.copy(alpha = 0.7f))
-                                    .clickable { onLyricsClick() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.rounded_lyrics_24),
-                                    contentDescription = "Lyrics",
-                                    tint = playerAccentColor
-                                )
-                            }
+                                }
 
-                            // Equalizer Button
-                            Box(
-                                modifier = Modifier
-                                    .size(height = 42.dp, width = 50.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(playerOnAccentColor.copy(alpha = 0.7f))
-                                    .clickable { onEqualizerClick() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.GraphicEq,
-                                    contentDescription = "Equalizer",
-                                    tint = playerAccentColor
-                                )
+                                // Bridge Shortcut: Equalizer
+                                Box(
+                                    modifier = Modifier
+                                        .size(height = 32.dp, width = 42.dp)
+                                        .background(
+                                            color = playerAccentColor.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable { onEqualizerClick() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.GraphicEq,
+                                        contentDescription = "Equalizer",
+                                        tint = playerAccentColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                // Secondary Lyrics/Search Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(height = 42.dp, width = 46.dp)
+                                        .clickable { showFetchLyricsDialog = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.rounded_search_24),
+                                        contentDescription = "Search Lyrics",
+                                        tint = playerAccentColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
 
                             val showCastLabel = isCastConnecting || (isRemotePlaybackActive && selectedRouteName != null)

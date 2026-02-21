@@ -22,9 +22,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NeteaseSongEntity::class,
         NeteasePlaylistEntity::class,
         GDriveSongEntity::class,
-        GDriveFolderEntity::class
+        GDriveFolderEntity::class,
+        EqualizerPresetEntity::class
     ],
-    version = 23, // Incremented for artist custom image support
+    version = 24, // Incremented for equalizer presets support
 
     exportSchema = false
 )
@@ -39,6 +40,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun lyricsDao(): LyricsDao
     abstract fun neteaseDao(): NeteaseDao
     abstract fun gdriveDao(): GDriveDao
+    abstract fun equalizerDao(): EqualizerDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -444,6 +446,20 @@ abstract class PixelPlayDatabase : RoomDatabase() {
         val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE artists ADD COLUMN custom_image_uri TEXT DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS equalizer_presets (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        displayName TEXT NOT NULL,
+                        bandLevels TEXT NOT NULL,
+                        isCustom INTEGER NOT NULL DEFAULT 1,
+                        timestamp INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
     }

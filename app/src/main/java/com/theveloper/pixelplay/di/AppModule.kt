@@ -13,6 +13,7 @@ import coil.memory.MemoryCache
 import com.theveloper.pixelplay.PixelPlayApplication
 import com.theveloper.pixelplay.data.database.AlbumArtThemeDao
 import com.theveloper.pixelplay.data.database.EngagementDao
+import com.theveloper.pixelplay.data.database.EqualizerDao
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
@@ -36,6 +37,7 @@ import com.theveloper.pixelplay.data.repository.SongRepository
 import com.theveloper.pixelplay.data.repository.TransitionRepository
 import com.theveloper.pixelplay.data.repository.TransitionRepositoryImpl
 import com.theveloper.pixelplay.data.repository.FolderTreeBuilder
+import com.theveloper.pixelplay.utils.LowRamOptimizer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -119,7 +121,8 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_19_20,
             PixelPlayDatabase.MIGRATION_20_21,
             PixelPlayDatabase.MIGRATION_21_22,
-            PixelPlayDatabase.MIGRATION_22_23
+            PixelPlayDatabase.MIGRATION_22_23,
+            PixelPlayDatabase.MIGRATION_23_24
         )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
@@ -173,14 +176,19 @@ object AppModule {
         return database.gdriveDao()
     }
 
+    @Singleton
+    @Provides
+    fun provideEqualizerDao(database: PixelPlayDatabase): EqualizerDao {
+        return database.equalizerDao()
+    }
+
     @Provides
     @Singleton
     fun provideImageLoader(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        lowRamOptimizer: LowRamOptimizer
     ): ImageLoader {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
-        val isLowRam = activityManager?.isLowRamDevice == true
-        val memoryCachePercent = if (isLowRam) 0.10 else 0.15
+        val memoryCachePercent = if (lowRamOptimizer.isLowRamDevice) 0.08 else 0.15
 
         return ImageLoader.Builder(context)
             .dispatcher(Dispatchers.Default) // Use CPU-bound dispatcher for decoding
