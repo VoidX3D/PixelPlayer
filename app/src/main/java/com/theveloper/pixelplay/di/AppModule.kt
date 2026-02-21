@@ -178,12 +178,16 @@ object AppModule {
     fun provideImageLoader(
         @ApplicationContext context: Context
     ): ImageLoader {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        val isLowRam = activityManager?.isLowRamDevice == true
+        val memoryCachePercent = if (isLowRam) 0.10 else 0.15
+
         return ImageLoader.Builder(context)
             .dispatcher(Dispatchers.Default) // Use CPU-bound dispatcher for decoding
             .allowHardware(true) // Re-enable hardware bitmaps for better performance
             .memoryCache {
                 MemoryCache.Builder(context)
-                    .maxSizePercent(0.20) // Use 20% of app memory for image cache
+                    .maxSizePercent(memoryCachePercent) // Optimized for device RAM
                     .build()
             }
             .diskCache {

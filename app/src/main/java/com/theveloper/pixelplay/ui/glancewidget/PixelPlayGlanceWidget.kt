@@ -94,7 +94,18 @@ class PixelPlayGlanceWidget : GlanceAppWidget() {
         }
     }
 
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Responsive(
+        setOf(
+            SMALL_HORIZONTAL_LAYOUT_SIZE,
+            ONE_BY_ONE_LAYOUT_SIZE,
+            SMALL_LAYOUT_SIZE,
+            MEDIUM_LAYOUT_SIZE,
+            LARGE_LAYOUT_SIZE,
+            EXTRA_LARGE_LAYOUT_SIZE,
+            EXTRA_LARGE_PLUS_LAYOUT_SIZE,
+            HUGE_LAYOUT_SIZE
+        )
+    )
     override val stateDefinition = PlayerInfoStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {

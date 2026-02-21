@@ -277,28 +277,74 @@ class GDriveRepository @Inject constructor(
 
     // --- Sync ---
 
-    suspend fun syncFolderSongs(folderId: String): Result<Int> {
+    suspend fun syncFolderSongs(folderId: String, recursive: Boolean = true): Result<Int> {
         return withContext(Dispatchers.IO) {
             try {
                 ensureValidToken()
                 val allEntities = mutableListOf<GDriveSongEntity>()
-                var pageToken: String? = null
 
-                do {
-                    val raw = api.listAudioFiles(folderId, pageToken)
-                    val root = JSONObject(raw)
-                    val files = root.optJSONArray("files")
+                if (recursive) {
+                    val folderIds = mutableListOf(folderId)
+                    val processedFolders = mutableSetOf<String>()
+                    val allVisitedFolders = mutableListOf<String>()
 
-                    if (files != null) {
-                        for (i in 0 until files.length()) {
-                            val file = files.optJSONObject(i) ?: continue
-                            allEntities.add(parseFileToEntity(file, folderId))
-                        }
+                    while (folderIds.isNotEmpty()) {
+                        val currentId = folderIds.removeAt(0)
+                        if (currentId in processedFolders) continue
+                        processedFolders.add(currentId)
+                        allVisitedFolders.add(currentId)
+
+                        // List songs in current folder
+                        var songPageToken: String? = null
+                        do {
+                            val raw = api.listAudioFiles(currentId, songPageToken)
+                            val root = JSONObject(raw)
+                            val files = root.optJSONArray("files")
+                            if (files != null) {
+                                for (i in 0 until files.length()) {
+                                    val file = files.optJSONObject(i) ?: continue
+                                    allEntities.add(parseFileToEntity(file, currentId))
+                                }
+                            }
+                            songPageToken = root.optString("nextPageToken").takeIf { it.isNotBlank() }
+                        } while (songPageToken != null)
+
+                        // List subfolders
+                        var folderPageToken: String? = null
+                        do {
+                            val raw = api.listFolders(currentId, folderPageToken)
+                            val root = JSONObject(raw)
+                            val files = root.optJSONArray("files")
+                            if (files != null) {
+                                for (i in 0 until files.length()) {
+                                    val file = files.optJSONObject(i) ?: continue
+                                    val subfolderId = file.optString("id")
+                                    if (subfolderId.isNotBlank()) folderIds.add(subfolderId)
+                                }
+                            }
+                            folderPageToken = root.optString("nextPageToken").takeIf { it.isNotBlank() }
+                        } while (folderPageToken != null)
                     }
-                    pageToken = root.optString("nextPageToken").takeIf { it.isNotBlank() }
-                } while (pageToken != null)
-
+                    dao.deleteSongsByFolders(allVisitedFolders)
+                } else {
+                    var pageToken: String? = null
+                    do {
+                        val raw = api.listAudioFiles(folderId, pageToken)
+                        val root = JSONObject(raw)
+                        val files = root.optJSONArray("files")
+                        if (files != null) {
+                            for (i in 0 until files.length()) {
+                                val file = files.optJSONObject(i) ?: continue
+                                allEntities.add(parseFileToEntity(file, folderId))
+                            }
+                        }
+                        pageToken = root.optString("nextPageToken").takeIf { it.isNotBlank() }
+                    } while (pageToken != null)
                 dao.deleteSongsByFolder(folderId)
+                }
+                // Wait, if I delete by folderId, it only deletes those with folderId = current root.
+                // But parseFileToEntity uses the actual folder they were found in.
+
                 dao.insertSongs(allEntities)
 
                 // Update folder with song count
@@ -313,7 +359,7 @@ class GDriveRepository @Inject constructor(
 
                 syncUnifiedLibrarySongsFromGDrive()
 
-                Timber.d("Synced ${allEntities.size} songs for folder $folderId")
+                Timber.d("Synced ${allEntities.size} songs for folder $folderId (recursive=$recursive)")
                 Result.success(allEntities.size)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to sync folder $folderId")

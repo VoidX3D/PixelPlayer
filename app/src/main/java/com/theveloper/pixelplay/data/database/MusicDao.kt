@@ -38,8 +38,10 @@ interface MusicDao {
         if (songs.isEmpty()) return
         val insertResults = insertSongsIgnoreConflicts(songs)
         val songsToUpdate = mutableListOf<SongEntity>()
-        insertResults.forEachIndexed { index, rowId ->
-            if (rowId == -1L) songsToUpdate.add(songs[index])
+        for (i in insertResults.indices) {
+            if (insertResults[i] == -1L) {
+                songsToUpdate.add(songs[i])
+            }
         }
         if (songsToUpdate.isNotEmpty()) {
             updateSongs(songsToUpdate)
@@ -51,8 +53,10 @@ interface MusicDao {
         if (albums.isEmpty()) return
         val insertResults = insertAlbumsIgnoreConflicts(albums)
         val albumsToUpdate = mutableListOf<AlbumEntity>()
-        insertResults.forEachIndexed { index, rowId ->
-            if (rowId == -1L) albumsToUpdate.add(albums[index])
+        for (i in insertResults.indices) {
+            if (insertResults[i] == -1L) {
+                albumsToUpdate.add(albums[i])
+            }
         }
         if (albumsToUpdate.isNotEmpty()) {
             updateAlbums(albumsToUpdate)
@@ -64,8 +68,10 @@ interface MusicDao {
         if (artists.isEmpty()) return
         val insertResults = insertArtistsIgnoreConflicts(artists)
         val artistsToUpdate = mutableListOf<ArtistEntity>()
-        insertResults.forEachIndexed { index, rowId ->
-            if (rowId == -1L) artistsToUpdate.add(artists[index])
+        for (i in insertResults.indices) {
+            if (insertResults[i] == -1L) {
+                artistsToUpdate.add(artists[i])
+            }
         }
         if (artistsToUpdate.isNotEmpty()) {
             updateArtists(artistsToUpdate)

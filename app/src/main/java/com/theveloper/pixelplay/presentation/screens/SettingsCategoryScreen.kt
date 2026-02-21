@@ -64,6 +64,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Science
@@ -916,6 +917,24 @@ fun SettingsCategoryScreen(
                                     subtitle = "Simulate a crash to test the crash reporting system.",
                                     leadingIcon = { Icon(Icons.Outlined.Warning, null, tint = MaterialTheme.colorScheme.error) },
                                     onClick = { settingsViewModel.triggerTestCrash() }
+                                )
+                            }
+                        }
+                        SettingsCategory.LANGUAGE -> {
+                            SettingsSubsection(title = "App Language", addBottomSpace = false) {
+                                ThemeSelectorItem(
+                                    label = "Language",
+                                    description = "Choose the app's display language.",
+                                    options = mapOf(
+                                        "default" to "System Default",
+                                        "en" to "English",
+                                        "es" to "Spanish",
+                                        "fr" to "French",
+                                        "de" to "German"
+                                    ),
+                                    selectedKey = uiState.currentLanguageCode,
+                                    onSelectionChanged = { settingsViewModel.setLanguage(it) },
+                                    leadingIcon = { Icon(Icons.Rounded.Language, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
                         }

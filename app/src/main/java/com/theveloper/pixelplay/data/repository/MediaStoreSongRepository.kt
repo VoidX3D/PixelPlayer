@@ -49,7 +49,8 @@ class MediaStoreSongRepository @Inject constructor(
     private fun getBaseSelection(): String {
         // Relaxed filter: Remove IS_MUSIC to include all audio strings (WhatsApp, Recs, etc.)
         // We filter by duration to skip extremely short clips (likely UI sounds).
-        return "${MediaStore.Audio.Media.DURATION} >= 10000 AND ${MediaStore.Audio.Media.TITLE} != ''"
+        // Reduced from 10s to 2s to recognize shorter tracks.
+        return "${MediaStore.Audio.Media.DURATION} >= 2000 AND ${MediaStore.Audio.Media.TITLE} != ''"
     }
 
     private suspend fun getFavoriteIds(): Set<Long> {

@@ -158,6 +158,28 @@
                 android:resource="@xml/grid_widget_2x2_info" />
         </receiver>
 
+        <receiver
+            android:name=".ui.glancewidget.CompactWidget2x1Receiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/compact_widget_2x1_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.glancewidget.LargeWidget4x3Receiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/large_widget_4x3_info" />
+        </receiver>
+
         <receiver android:name=".data.service.SleepTimerReceiver" android:exported="false" />
 
         <!-- Media Button Receiver for external media controls (headphones, car, etc.) -->
@@ -183,7 +205,7 @@
         </provider>
 
         <receiver android:name=".ui.glancewidget.WidgetUpdateReceiver" android:exported="true"> <intent-filter>
-            <action android:name="com.example.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE" />
+            <action android:name="com.theveloper.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE" />
         </intent-filter>
         </receiver>
 

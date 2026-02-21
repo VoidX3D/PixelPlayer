@@ -25,7 +25,7 @@ class EqualizerManager @Inject constructor() {
         private const val NUM_BANDS = 10
         private const val MIN_LEVEL = -15
         private const val MAX_LEVEL = 15
-        private const val MAX_LOUDNESS_GAIN_MB = 1000
+        private const val MAX_LOUDNESS_GAIN_MB = 2000
     }
     
     private var equalizer: Equalizer? = null

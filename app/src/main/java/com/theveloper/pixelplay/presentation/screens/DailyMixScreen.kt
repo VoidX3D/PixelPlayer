@@ -192,8 +192,8 @@ fun DailyMixScreen(
                 // TODO: Implement navigation to artist screen. Might require finding artist by name.
                 showSongInfoSheet = false
             },
-            onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, coverArtUpdate ->
-                playerViewModel.editSongMetadata(song, newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, coverArtUpdate)
+            onEditSong = { newTitle, newArtist, newAlbum, newAlbumArtist, newYear, newGenre, newLyrics, newTrackNumber, coverArtUpdate ->
+                playerViewModel.editSongMetadata(song, newTitle, newArtist, newAlbum, newAlbumArtist, newYear, newGenre, newLyrics, newTrackNumber, coverArtUpdate)
             },
             generateAiMetadata = { fields ->
                 playerViewModel.generateAiMetadata(song, fields)

@@ -91,7 +91,7 @@ fun SongInfoBottomSheet(
     onDeleteFromDevice: (activity: Activity, song: Song, onResult: (Boolean) -> Unit) -> Unit,
     onNavigateToAlbum: () -> Unit,
     onNavigateToArtist: () -> Unit,
-    onEditSong: (title: String, artist: String, album: String, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
+    onEditSong: (title: String, artist: String, album: String, albumArtist: String, year: Int, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
     generateAiMetadata: suspend (List<String>) -> Result<SongMetadata>,
     removeFromListTrigger: () -> Unit
 ) {
@@ -470,6 +470,22 @@ fun SongInfoBottomSheet(
                                         leadingContent = { Icon(Icons.Rounded.AudioFile, contentDescription = "File icon") }
                                     )
                                 }
+
+                                if (song.bitrate != null && song.bitrate > 0) {
+                                    item {
+                                        ListItem(
+                                            modifier = Modifier.clip(shape = listItemShape),
+                                            headlineContent = { Text("Quality") },
+                                            supportingContent = {
+                                                val kbps = song.bitrate / 1000
+                                                val freq = if (song.sampleRate != null) " • ${song.sampleRate / 1000.0} kHz" else ""
+                                                val type = if (song.mimeType != null) " • ${song.mimeType.substringAfterLast("/")}" else ""
+                                                Text("$kbps kbps$freq$type")
+                                            },
+                                            leadingContent = { Icon(Icons.Rounded.Info, contentDescription = "Quality icon") }
+                                        )
+                                    }
+                                }
                                 item {
                                     Spacer(Modifier.height(80.dp))
                                 }
@@ -553,8 +569,8 @@ fun SongInfoBottomSheet(
         visible = showEditSheet,
         song = song,
         onDismiss = { showEditSheet = false },
-        onSave = { title, artist, album, genre, lyrics, trackNumber, coverArt ->
-            onEditSong(title, artist, album, genre, lyrics, trackNumber, coverArt)
+        onSave = { title, artist, album, albumArtist, year, genre, lyrics, trackNumber, coverArt ->
+            onEditSong(title, artist, album, albumArtist, year, genre, lyrics, trackNumber, coverArt)
             showEditSheet = false
         },
         generateAiMetadata = generateAiMetadata

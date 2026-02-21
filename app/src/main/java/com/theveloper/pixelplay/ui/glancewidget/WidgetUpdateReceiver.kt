@@ -13,7 +13,7 @@ import timber.log.Timber
 class WidgetUpdateReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != "com.example.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE") return
+        if (intent.action != "com.theveloper.pixelplay.ACTION_WIDGET_UPDATE_PLAYBACK_STATE") return
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
@@ -38,6 +38,16 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
                 val gridGlanceIds = glanceAppWidgetManager.getGlanceIds(GridWidget2x2::class.java)
                 gridGlanceIds.forEach { glanceId ->
                     GridWidget2x2().update(context, glanceId)
+                }
+
+                val compactGlanceIds = glanceAppWidgetManager.getGlanceIds(CompactWidget2x1::class.java)
+                compactGlanceIds.forEach { glanceId ->
+                    CompactWidget2x1().update(context, glanceId)
+                }
+
+                val largeGlanceIds = glanceAppWidgetManager.getGlanceIds(LargeWidget4x3::class.java)
+                largeGlanceIds.forEach { glanceId ->
+                    LargeWidget4x3().update(context, glanceId)
                 }
             } catch (e: Exception) {
                 Timber.tag("WidgetUpdateReceiver").e(e, "Error updating widgets")

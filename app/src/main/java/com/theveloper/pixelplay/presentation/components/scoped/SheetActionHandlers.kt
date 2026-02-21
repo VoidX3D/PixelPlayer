@@ -23,7 +23,8 @@ internal data class SheetActionHandlers(
     val onSelectedSongForInfoChange: (Song?) -> Unit,
     val onLaunchSaveQueueOverlay: (List<Song>, String, (String, Set<String>) -> Unit) -> Unit,
     val onNavigateToAlbum: (Song) -> Unit,
-    val onNavigateToArtist: (Song) -> Unit
+    val onNavigateToArtist: (Song) -> Unit,
+    val onNavigateToEqualizer: () -> Unit
 )
 
 @OptIn(UnstableApi::class)
@@ -44,10 +45,16 @@ internal fun rememberSheetActionHandlers(
     val playerViewModelState = rememberUpdatedState(playerViewModel)
 
     val openQueueSheet = remember {
-        { queueSheetControllerState.value.animate(true) }
+        {
+            queueSheetControllerState.value.animate(true)
+            Unit
+        }
     }
     val animateQueueSheet = remember {
-        { expanded: Boolean -> queueSheetControllerState.value.animate(expanded) }
+        { expanded: Boolean ->
+            queueSheetControllerState.value.animate(expanded)
+            Unit
+        }
     }
     val beginQueueDrag = remember {
         { queueSheetControllerState.value.beginDrag() }
@@ -99,6 +106,19 @@ internal fun rememberSheetActionHandlers(
         }
     }
 
+    val onNavigateToEqualizer = remember(scope, navController) {
+        {
+            scope.launch {
+                 sheetMotionControllerState.value.snapCollapsed(sheetCollapsedTargetYState.value)
+            }
+            playerViewModelState.value.collapsePlayerSheet()
+            queueSheetControllerState.value.animate(false)
+            sheetModalOverlayControllerState.value.updateSelectedSongForInfo(null)
+            navController.navigateSafely(Screen.Equalizer.route)
+            Unit
+        }
+    }
+
     return SheetActionHandlers(
         openQueueSheet = openQueueSheet,
         animateQueueSheet = animateQueueSheet,
@@ -108,6 +128,7 @@ internal fun rememberSheetActionHandlers(
         onSelectedSongForInfoChange = onSelectedSongForInfoChange,
         onLaunchSaveQueueOverlay = onLaunchSaveQueueOverlay,
         onNavigateToAlbum = onNavigateToAlbum,
-        onNavigateToArtist = onNavigateToArtist
+        onNavigateToArtist = onNavigateToArtist,
+        onNavigateToEqualizer = onNavigateToEqualizer
     )
 }

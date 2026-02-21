@@ -99,6 +99,8 @@ class SongMetadataEditor(
         newTitle: String,
         newArtist: String,
         newAlbum: String,
+        newAlbumArtist: String,
+        newYear: Int,
         newGenre: String,
         newLyrics: String,
         newTrackNumber: Int,
@@ -178,6 +180,8 @@ class SongMetadataEditor(
                     newTitle = newTitle,
                     newArtist = newArtist,
                     newAlbum = newAlbum,
+                    newAlbumArtist = newAlbumArtist,
+                    newYear = newYear,
                     newGenre = trimmedGenre,
                     newLyrics = trimmedLyrics,
                     newTrackNumber = newTrackNumber,
@@ -225,6 +229,8 @@ class SongMetadataEditor(
                     title = newTitle,
                     artist = newArtist,
                     album = newAlbum,
+                    albumArtist = newAlbumArtist,
+                    year = newYear,
                     genre = trimmedGenre,
                     trackNumber = newTrackNumber
                 )
@@ -376,6 +382,8 @@ class SongMetadataEditor(
         newTitle: String,
         newArtist: String,
         newAlbum: String,
+        newAlbumArtist: String,
+        newYear: Int,
         newGenre: String,
         newLyrics: String,
         newTrackNumber: Int,
@@ -417,7 +425,12 @@ class SongMetadataEditor(
                 propertyMap.upsertOrRemove("GENRE", newGenre)
                 propertyMap.upsertOrRemove("LYRICS", newLyrics)
                 propertyMap["TRACKNUMBER"] = arrayOf(newTrackNumber.toString())
-                propertyMap["ALBUMARTIST"] = arrayOf(newArtist)
+                propertyMap["ALBUMARTIST"] = arrayOf(newAlbumArtist)
+                if (newYear > 0) {
+                    propertyMap["DATE"] = arrayOf(newYear.toString())
+                } else {
+                    propertyMap.remove("DATE")
+                }
                 Log.e(TAG, "TAGLIB: Updated property map, saving...")
 
                 // Save metadata
@@ -582,6 +595,8 @@ class SongMetadataEditor(
         title: String,
         artist: String,
         album: String,
+        albumArtist: String,
+        year: Int,
         genre: String,
         trackNumber: Int
     ): Boolean {
@@ -596,7 +611,10 @@ class SongMetadataEditor(
                 put(MediaStore.Audio.Media.TRACK, trackNumber)
                 put(MediaStore.Audio.Media.DISPLAY_NAME, title)
                 put(MediaStore.Audio.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000)
-                put(MediaStore.Audio.Media.ALBUM_ARTIST, artist)
+                put(MediaStore.Audio.Media.ALBUM_ARTIST, albumArtist)
+                if (year > 0) {
+                    put(MediaStore.Audio.Media.YEAR, year)
+                }
             }
 
             val rowsUpdated = context.contentResolver.update(uri, values, null, null)

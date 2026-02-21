@@ -92,7 +92,7 @@ fun EditSongSheet(
     visible: Boolean,
     song: Song,
     onDismiss: () -> Unit,
-    onSave: (title: String, artist: String, album: String, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
+    onSave: (title: String, artist: String, album: String, albumArtist: String, year: Int, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
     generateAiMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>
 ) {
     val transitionState = remember { MutableTransitionState(false) }
@@ -127,12 +127,14 @@ fun EditSongSheet(
 private fun EditSongContent(
     song: Song,
     onDismiss: () -> Unit,
-    onSave: (title: String, artist: String, album: String, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
+    onSave: (title: String, artist: String, album: String, albumArtist: String, year: Int, genre: String, lyrics: String, trackNumber: Int, coverArtUpdate: CoverArtUpdate?) -> Unit,
     generateAiMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>
 ) {
     var title by remember { mutableStateOf(song.title) }
     var artist by remember { mutableStateOf(song.displayArtist) }
     var album by remember { mutableStateOf(song.album) }
+    var albumArtist by remember { mutableStateOf(song.albumArtist ?: "") }
+    var year by remember { mutableStateOf(song.year.toString()) }
     var genre by remember { mutableStateOf(song.genre ?: "") }
     var lyrics by remember { mutableStateOf(song.lyrics ?: "") }
     var trackNumber by remember { mutableStateOf(song.trackNumber.toString()) }
@@ -157,6 +159,8 @@ private fun EditSongContent(
         title = song.title
         artist = song.displayArtist
         album = song.album
+        albumArtist = song.albumArtist ?: ""
+        year = song.year.toString()
         genre = song.genre ?: ""
         lyrics = song.lyrics ?: ""
         trackNumber = song.trackNumber.toString()
@@ -373,6 +377,55 @@ private fun EditSongContent(
                 }
             }
 
+            // --- Campo de Artista del Álbum ---
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        modifier = Modifier.padding(start = 4.dp),
+                        text = "Album Artist",
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    OutlinedTextField(
+                        value = albumArtist,
+                        colors = textFieldColors,
+                        shape = textFieldShape,
+                        onValueChange = { albumArtist = it },
+                        placeholder = { Text("Album Artist") },
+                        leadingIcon = { Icon(Icons.Rounded.Person, tint = MaterialTheme.colorScheme.secondary, contentDescription = "Album Artist Icon") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            }
+
+            // --- Campo de Año ---
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        modifier = Modifier.padding(start = 4.dp),
+                        text = "Year",
+                        color = MaterialTheme.colorScheme.tertiary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    OutlinedTextField(
+                        value = year,
+                        colors = textFieldColors,
+                        shape = textFieldShape,
+                        onValueChange = { year = it },
+                        placeholder = { Text("Year") },
+                        leadingIcon = { Icon(painterResource(R.drawable.rounded_calendar_view_week_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Year Icon") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            }
+
             item {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -547,10 +600,13 @@ private fun EditSongContent(
                         Button(
                             onClick = {
                                 val resolvedTrackNumber = trackNumber.toIntOrNull() ?: song.trackNumber
+                                val resolvedYear = year.toIntOrNull() ?: song.year
                                 onSave(
                                     title.trim(),
                                     artist.trim(),
                                     album.trim(),
+                                    albumArtist.trim(),
+                                    resolvedYear,
                                     genre.trim(),
                                     lyrics,
                                     resolvedTrackNumber,

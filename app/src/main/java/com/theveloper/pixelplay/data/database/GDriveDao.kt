@@ -35,6 +35,9 @@ interface GDriveDao {
     @Query("DELETE FROM gdrive_songs WHERE folder_id = :folderId")
     suspend fun deleteSongsByFolder(folderId: String)
 
+    @Query("DELETE FROM gdrive_songs WHERE folder_id IN (:folderIds)")
+    suspend fun deleteSongsByFolders(folderIds: List<String>)
+
     // --- Folders ---
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

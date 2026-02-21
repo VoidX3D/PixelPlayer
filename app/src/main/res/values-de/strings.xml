@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">PixelPlayer</string>
+    <string name="lyrics">Liedtext</string>
+    <string name="loading_lyrics">Liedtext wird geladen…</string>
+    <string name="cant_find_lyrics">Kein Liedtext für diesen Song gefunden.</string>
+    <string name="lyrics_not_found">Liedtext nicht gefunden</string>
+    <string name="search">Suche</string>
+    <string name="searching_lyrics">Liedtext wird gesucht…</string>
+    <string name="error">Fehler</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="previous_track">Vorheriger Titel</string>
+    <string name="next_track">Nächster Titel</string>
+    <string name="pause_playback">Pause</string>
+    <string name="play_playback">Abspielen</string>
+
+    <!-- Widgets -->
+    <string name="glance_widget_description">Reaktionsfähiges Widget, das sich an seine Größe anpasst</string>
+    <string name="widget_bar_4x1_desc">Kompakte Player-Leiste</string>
+    <string name="widget_control_4x2_desc">Vollständige Steuerung mit Shuffle und Wiederholung</string>
+    <string name="widget_grid_2x2_desc">Minimalistischer quadratischer Player</string>
+    <string name="compact_widget_description">Wesentliche Steuerung in einem kompakten 2x1-Layout</string>
+    <string name="large_widget_description">Voll funktionsfähiger Player mit Warteschlangenvorschau (4x3)</string>
+
+    <!-- Language Settings -->
+    <string name="settings_language_title">Sprache</string>
+    <string name="settings_language_subtitle">App-Sprache ändern</string>
+    <string name="language_default">Systemstandard</string>
+    <string name="language_en">Englisch</string>
+    <string name="language_es">Spanisch</string>
+    <string name="language_fr">Französisch</string>
+    <string name="language_de">Deutsch</string>
+</resources>

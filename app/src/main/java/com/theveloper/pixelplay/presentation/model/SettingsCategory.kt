@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.model
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeveloperBoard
 import androidx.compose.material.icons.rounded.DeveloperMode
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -59,6 +60,12 @@ enum class SettingsCategory(
         title = "Developer Options",
         subtitle = "Experimental features and debugging",
         icon = Icons.Rounded.DeveloperMode
+    ),
+    LANGUAGE(
+        id = "language",
+        title = "Language",
+        subtitle = "Change the app's language",
+        icon = Icons.Rounded.Language
     ),
     EQUALIZER(
         id = "equalizer",

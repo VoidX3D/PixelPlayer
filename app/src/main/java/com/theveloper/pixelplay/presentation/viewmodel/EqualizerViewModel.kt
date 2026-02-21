@@ -34,6 +34,7 @@ data class EqualizerUiState(
     val virtualizerStrength: Float = 0f, // Changed to Float
     val loudnessEnhancerEnabled: Boolean = false,
     val loudnessEnhancerStrength: Float = 0f, // Changed to Float
+    val preAmpGain: Float = 1.0f,
     val isBassBoostSupported: Boolean = true,
     val isVirtualizerSupported: Boolean = true,
     val isLoudnessEnhancerSupported: Boolean = true,
@@ -90,6 +91,7 @@ class EqualizerViewModel @Inject constructor(
     private var persistBassBoostJob: Job? = null
     private var persistVirtualizerJob: Job? = null
     private var persistLoudnessJob: Job? = null
+    private var persistPreAmpJob: Job? = null
     
     init {
         initializeEqualizer()
@@ -183,6 +185,7 @@ class EqualizerViewModel @Inject constructor(
                 userPreferencesRepository.virtualizerStrengthFlow,
                 userPreferencesRepository.loudnessEnhancerEnabledFlow,
                 userPreferencesRepository.loudnessEnhancerStrengthFlow,
+                userPreferencesRepository.preAmpGainFlow,
                 userPreferencesRepository.bassBoostDismissedFlow,
                 userPreferencesRepository.virtualizerDismissedFlow,
                 userPreferencesRepository.loudnessDismissedFlow,
@@ -201,12 +204,13 @@ class EqualizerViewModel @Inject constructor(
                  val vStrength = values[6] as Int
                  val lEnabled = values[7] as Boolean
                  val lStrength = values[8] as Int
-                 val bbDismissed = values[9] as Boolean
-                 val vDismissed = values[10] as Boolean
-                 val lDismissed = values[11] as Boolean
-                 val viewMode = values[12] as UserPreferencesRepository.EqualizerViewMode
-                 val customPresets = (values[13] as? List<*>)?.filterIsInstance<EqualizerPreset>() ?: emptyList()
-                 val pinnedPresets = (values[14] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                 val preAmp = values[9] as Float
+                 val bbDismissed = values[10] as Boolean
+                 val vDismissed = values[11] as Boolean
+                 val lDismissed = values[12] as Boolean
+                 val viewMode = values[13] as UserPreferencesRepository.EqualizerViewMode
+                 val customPresets = (values[14] as? List<*>)?.filterIsInstance<EqualizerPreset>() ?: emptyList()
+                 val pinnedPresets = (values[15] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 val currentPreset = if (presetName == "custom") {
                     EqualizerPreset.custom(customBands)
@@ -227,6 +231,7 @@ class EqualizerViewModel @Inject constructor(
                     virtualizerStrength = vStrength.toFloat(), // Raw 0-1000
                     loudnessEnhancerEnabled = lEnabled,
                     loudnessEnhancerStrength = lStrength.toFloat(), // Raw 0-1000
+                    preAmpGain = preAmp,
                     isBassBoostDismissed = bbDismissed,
                     isVirtualizerDismissed = vDismissed,
                     isLoudnessDismissed = lDismissed,
@@ -412,7 +417,7 @@ class EqualizerViewModel @Inject constructor(
     }
 
     fun setLoudnessEnhancerStrength(strength: Int) {
-        val clampedStrength = strength.coerceIn(0, 1000)
+        val clampedStrength = strength.coerceIn(0, 2000)
         equalizerManager.setLoudnessEnhancerStrength(clampedStrength)
         _uiState.update { current ->
             current.copy(loudnessEnhancerStrength = clampedStrength.toFloat())
@@ -422,6 +427,20 @@ class EqualizerViewModel @Inject constructor(
         persistLoudnessJob = viewModelScope.launch {
             delay(SLIDER_PERSIST_DEBOUNCE_MS)
             userPreferencesRepository.setLoudnessEnhancerStrength(clampedStrength)
+        }
+    }
+
+    fun setPreAmpGain(gain: Float) {
+        val clampedGain = gain.coerceIn(0.1f, 2.0f)
+        _uiState.update { current ->
+            current.copy(preAmpGain = clampedGain)
+        }
+        dualPlayerEngine.setPreAmpGain(clampedGain)
+
+        persistPreAmpJob?.cancel()
+        persistPreAmpJob = viewModelScope.launch {
+            delay(SLIDER_PERSIST_DEBOUNCE_MS)
+            userPreferencesRepository.setPreAmpGain(clampedGain)
         }
     }
 
@@ -494,7 +513,8 @@ class EqualizerViewModel @Inject constructor(
                 userPreferencesRepository.setVirtualizerEnabled(latest.virtualizerEnabled)
                 userPreferencesRepository.setVirtualizerStrength(latest.virtualizerStrength.toInt().coerceIn(0, 1000))
                 userPreferencesRepository.setLoudnessEnhancerEnabled(latest.loudnessEnhancerEnabled)
-                userPreferencesRepository.setLoudnessEnhancerStrength(latest.loudnessEnhancerStrength.toInt().coerceIn(0, 1000))
+                userPreferencesRepository.setLoudnessEnhancerStrength(latest.loudnessEnhancerStrength.toInt().coerceIn(0, 2000))
+                userPreferencesRepository.setPreAmpGain(latest.preAmpGain)
             }
         }.onFailure { error ->
             Timber.tag(TAG).w(error, "Failed to flush equalizer state during onCleared")

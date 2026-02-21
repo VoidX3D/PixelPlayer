@@ -66,7 +66,8 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     onQueueDragStart: () -> Unit,
     onQueueDrag: (Float) -> Unit,
     onQueueRelease: (Float, Float) -> Unit,
-    onShowCastClicked: () -> Unit
+    onShowCastClicked: () -> Unit,
+    onEqualizerClick: () -> Unit
 ) {
     currentSong?.let { currentSongNonNull ->
         miniPlayerScheme?.let { readyScheme ->
@@ -208,6 +209,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         onQueueDrag = onQueueDrag,
                         onQueueRelease = onQueueRelease,
                         onShowCastClicked = onShowCastClicked,
+                        onEqualizerClick = onEqualizerClick,
                         onShuffleToggle = onShuffleToggle,
                         onRepeatToggle = onRepeatToggle,
                         onFavoriteToggle = onFavoriteToggle
@@ -237,7 +239,8 @@ internal fun UnifiedPlayerPrewarmLayer(
     onShowQueueClicked: () -> Unit,
     onQueueDragStart: () -> Unit,
     onQueueDrag: (Float) -> Unit,
-    onQueueRelease: (Float, Float) -> Unit
+    onQueueRelease: (Float, Float) -> Unit,
+    onEqualizerClick: () -> Unit
 ) {
     if (prewarmFullPlayer && currentSong != null) {
         CompositionLocalProvider(
@@ -281,6 +284,7 @@ internal fun UnifiedPlayerPrewarmLayer(
                     onPrevious = playerViewModel::previousSong,
                     onCollapse = {},
                     onShowCastClicked = {},
+                    onEqualizerClick = onEqualizerClick,
                     onShuffleToggle = { playerViewModel.toggleShuffle() },
                     onRepeatToggle = playerViewModel::cycleRepeatMode,
                     onFavoriteToggle = playerViewModel::toggleFavorite

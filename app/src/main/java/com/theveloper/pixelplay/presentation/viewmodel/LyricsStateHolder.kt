@@ -336,6 +336,8 @@ class LyricsStateHolder @Inject constructor(
                     newTitle = song.title,
                     newArtist = song.artist,
                     newAlbum = song.album,
+                    newAlbumArtist = song.albumArtist ?: "",
+                    newYear = song.year,
                     newGenre = song.genre ?: "",
                     newLyrics = normalizedLyrics,
                     newTrackNumber = song.trackNumber,
