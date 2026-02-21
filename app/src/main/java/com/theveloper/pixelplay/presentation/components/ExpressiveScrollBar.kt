@@ -23,7 +23,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -40,6 +43,8 @@ fun ExpressiveScrollBar(
     minHeight: Dp = 48.dp,
     thickness: Dp = 8.dp,
     indicatorExpandedWidth: Dp = 24.dp,
+    indicatorExpandedWidthBoost: Dp = 4.dp,
+    indicatorRightCornerRadius: Dp = 6.dp,
     paddingEnd: Dp = 4.dp,
     trackGap: Dp = 8.dp
 ) {
@@ -52,11 +57,13 @@ fun ExpressiveScrollBar(
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariantColor = MaterialTheme.colorScheme.secondaryContainer
     val innerIcon = Icons.Rounded.UnfoldMore
+    val expandedIndicatorWidth = (indicatorExpandedWidth + indicatorExpandedWidthBoost).coerceAtLeast(thickness)
+    val indicatorRightCornerRadiusPx = with(LocalDensity.current) { indicatorRightCornerRadius.toPx() }
 
     val isInteracting = isPressed || isDragging
     
     val animatedWidth by animateDpAsState(
-        targetValue = if (isInteracting) indicatorExpandedWidth else thickness,
+        targetValue = if (isInteracting) expandedIndicatorWidth else thickness,
         animationSpec = tween(durationMillis = 200),
         label = "WidthAnimation"
     )
@@ -70,7 +77,7 @@ fun ExpressiveScrollBar(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxHeight()
-            .width(indicatorExpandedWidth + paddingEnd)
+            .width(expandedIndicatorWidth + paddingEnd)
     ) {
         val density = LocalDensity.current
         val constraintsMaxWidth = maxWidth
@@ -140,6 +147,8 @@ fun ExpressiveScrollBar(
                     }
                 }
         }
+
+        val indicatorPath = remember { Path() }
 
         Box(
             modifier = Modifier
@@ -211,7 +220,10 @@ fun ExpressiveScrollBar(
                 val trackStrokeWidth = thickness.toPx()
                 val indicatorWidthPx = animatedWidth.toPx()
                 val gapPx = trackGap.toPx()
-                val indicatorCornerRadius = indicatorWidthPx / 2
+                val indicatorLeftCornerRadius = indicatorWidthPx / 2f
+                val maxAllowedRightCornerRadius = minOf(indicatorWidthPx / 2f, handleHeightPx / 2f)
+                val resolvedRightCornerRadius = indicatorRightCornerRadiusPx
+                    .coerceIn(0f, maxAllowedRightCornerRadius)
 
                 val currentIndicatorX = rightAnchorX - indicatorWidthPx
 
@@ -235,11 +247,22 @@ fun ExpressiveScrollBar(
                     )
                 }
 
-                drawRoundRect(
-                    color = primaryColor,
-                    topLeft = Offset(currentIndicatorX, handleY),
-                    size = Size(indicatorWidthPx, handleHeightPx),
-                    cornerRadius = CornerRadius(indicatorCornerRadius, indicatorCornerRadius)
+                indicatorPath.reset()
+                indicatorPath.addRoundRect(
+                    RoundRect(
+                        rect = Rect(
+                            offset = Offset(currentIndicatorX, handleY),
+                            size = Size(indicatorWidthPx, handleHeightPx)
+                        ),
+                        topLeft = CornerRadius(indicatorLeftCornerRadius, indicatorLeftCornerRadius),
+                        topRight = CornerRadius(resolvedRightCornerRadius, resolvedRightCornerRadius),
+                        bottomRight = CornerRadius(resolvedRightCornerRadius, resolvedRightCornerRadius),
+                        bottomLeft = CornerRadius(indicatorLeftCornerRadius, indicatorLeftCornerRadius)
+                    )
+                )
+                drawPath(
+                    path = indicatorPath,
+                    color = primaryColor
                 )
             }
             

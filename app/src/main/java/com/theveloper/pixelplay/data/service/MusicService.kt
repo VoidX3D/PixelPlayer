@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.service
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -750,6 +751,8 @@ class MusicService : MediaSessionService() {
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
         try {
             super.onUpdateNotification(session, startInForegroundRequired)
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            Timber.tag(TAG).w(e, "onUpdateNotification suppressed: foreground service start not allowed")
         } catch (e: IllegalStateException) {
             // On Android 12+, Media3's notification pipeline can asynchronously call
             // startForegroundService() after the bitmap loads, at which point the app
