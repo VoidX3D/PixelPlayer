@@ -45,6 +45,7 @@ data class EqualizerUiState(
     val isLoudnessDismissed: Boolean = false,
     val customPresets: List<EqualizerPreset> = emptyList(), // Added
     val pinnedPresetsNames: List<String> = emptyList(), // Added
+    val isHeadphoneOptimizationEnabled: Boolean = false,
 ) {
     // Computed property for accessible presets (Pinned)
     val accessiblePresets: List<EqualizerPreset>
@@ -215,7 +216,8 @@ class EqualizerViewModel @Inject constructor(
                 userPreferencesRepository.loudnessDismissedFlow,
                 userPreferencesRepository.equalizerViewModeFlow,
                 equalizerPresetRepository.customPresets,
-                userPreferencesRepository.pinnedPresetsFlow
+                userPreferencesRepository.pinnedPresetsFlow,
+                userPreferencesRepository.headphoneOptimizationFlow
             ) { values -> // Too many args for standard destructuring, use array/list access
                  val enabled = values[0] as Boolean
                  val presetName = values[1] as String
@@ -235,6 +237,7 @@ class EqualizerViewModel @Inject constructor(
                  val viewMode = values[13] as UserPreferencesRepository.EqualizerViewMode
                  val customPresets = values[14] as List<EqualizerPreset>
                  val pinnedPresets = (values[15] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                 val headphoneOpt = values[16] as Boolean
 
                 val currentPreset = if (presetName == "custom") {
                     EqualizerPreset.custom(customBands)
@@ -263,6 +266,7 @@ class EqualizerViewModel @Inject constructor(
                     // New State
                     customPresets = customPresets,
                     pinnedPresetsNames = pinnedPresets,
+                    isHeadphoneOptimizationEnabled = headphoneOpt,
                     // Capabilities (Keep existing values)
                     isBassBoostSupported = _uiState.value.isBassBoostSupported,
                     isVirtualizerSupported = _uiState.value.isVirtualizerSupported,
@@ -544,6 +548,19 @@ class EqualizerViewModel @Inject constructor(
         }
     }
     
+    fun setHeadphoneOptimization(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setHeadphoneOptimization(enabled)
+            if (enabled) {
+                // Auto-tune for headphones
+                setVirtualizerEnabled(true)
+                setVirtualizerStrength(600)
+                setBassBoostEnabled(true)
+                setBassBoostStrength(200)
+            }
+        }
+    }
+
     fun togglePinPreset(presetName: String) {
         viewModelScope.launch {
             val currentPinned = _uiState.value.pinnedPresetsNames.toMutableList()

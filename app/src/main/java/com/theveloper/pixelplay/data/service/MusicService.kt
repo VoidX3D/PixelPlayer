@@ -67,6 +67,8 @@ import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
 import com.theveloper.pixelplay.ui.glancewidget.CompactWidget2x1
 import com.theveloper.pixelplay.ui.glancewidget.LargeWidget4x3
+import com.theveloper.pixelplay.ui.glancewidget.TinyWidget1x1
+import com.theveloper.pixelplay.ui.glancewidget.UltraWidget4x4
 
 import javax.inject.Inject
 
@@ -94,6 +96,9 @@ class MusicService : MediaSessionService() {
     @Inject
     lateinit var aiPlaylistGenerator: com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 
+    @Inject
+    lateinit var headsetReceiver: HeadsetReceiver
+
     private var favoriteSongIds = emptySet<String>()
     private var mediaSession: MediaSession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -115,6 +120,13 @@ class MusicService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Register HeadsetReceiver
+        val filter = android.content.IntentFilter().apply {
+            addAction(android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+            addAction(android.content.Intent.ACTION_HEADSET_PLUG)
+        }
+        registerReceiver(headsetReceiver, filter)
         
         // Ensure engine is ready (re-initialize if service was restarted)
         engine.initialize()
@@ -476,6 +488,7 @@ class MusicService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
+        unregisterReceiver(headsetReceiver)
         mediaSession?.run {
             release()
             mediaSession = null
@@ -529,6 +542,7 @@ class MusicService : MediaSessionService() {
 
         val title = currentItem?.mediaMetadata?.title?.toString().orEmpty()
         val artist = currentItem?.mediaMetadata?.artist?.toString().orEmpty()
+        val album = currentItem?.mediaMetadata?.albumTitle?.toString().orEmpty()
         val mediaId = currentItem?.mediaId
         val artworkUri = currentItem?.mediaMetadata?.artworkUri
         val artworkData = currentItem?.mediaMetadata?.artworkData
@@ -610,6 +624,7 @@ class MusicService : MediaSessionService() {
         return PlayerInfo(
             songTitle = title,
             artistName = artist,
+            albumName = album,
             isPlaying = isPlaying,
             albumArtUri = artUriString,
             albumArtBitmapData = artBytes,
@@ -681,8 +696,20 @@ class MusicService : MediaSessionService() {
                 updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
                 LargeWidget4x3().update(applicationContext, id)
             }
+
+            val tinyGlanceIds = glanceManager.getGlanceIds(TinyWidget1x1::class.java)
+            tinyGlanceIds.forEach { id ->
+                updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
+                TinyWidget1x1().update(applicationContext, id)
+            }
+
+            val ultraGlanceIds = glanceManager.getGlanceIds(UltraWidget4x4::class.java)
+            ultraGlanceIds.forEach { id ->
+                updateAppWidgetState(applicationContext, PlayerInfoStateDefinition, id) { playerInfo }
+                UltraWidget4x4().update(applicationContext, id)
+            }
             
-            if (glanceIds.isNotEmpty() || barGlanceIds.isNotEmpty() || controlGlanceIds.isNotEmpty() || gridGlanceIds.isNotEmpty() || compactGlanceIds.isNotEmpty() || largeGlanceIds.isNotEmpty()) {
+            if (glanceIds.isNotEmpty() || barGlanceIds.isNotEmpty() || controlGlanceIds.isNotEmpty() || gridGlanceIds.isNotEmpty() || compactGlanceIds.isNotEmpty() || largeGlanceIds.isNotEmpty() || tinyGlanceIds.isNotEmpty() || ultraGlanceIds.isNotEmpty()) {
                  Log.d(TAG, "Widgets actualizados: ${playerInfo.songTitle} (Original: ${glanceIds.size}, Bar: ${barGlanceIds.size}, Control: ${controlGlanceIds.size})")
             } else {
                 Log.w(TAG, "No se encontraron widgets para actualizar")

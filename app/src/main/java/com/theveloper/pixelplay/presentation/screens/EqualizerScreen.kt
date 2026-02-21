@@ -394,6 +394,14 @@ fun EqualizerScreen(
                 )
             }
             
+            // Headphone Optimization Toggle
+            item(key = "headphone_optimization") {
+                HeadphoneOptimizationCard(
+                    isEnabled = uiState.isHeadphoneOptimizationEnabled,
+                    onEnabledChange = { equalizerViewModel.setHeadphoneOptimization(it) }
+                )
+            }
+
             // Volume Control
             item(key = "volume_control") {
                 val volume by equalizerViewModel.systemVolume.collectAsState()
@@ -1580,6 +1588,52 @@ private fun PreAmpVolumeControlCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeadphoneOptimizationCard(
+    isEnabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(24.dp),
+        onClick = { onEnabledChange(!isEnabled) }
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.SurroundSound,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Headphone Optimization",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Auto-tune spatializer and bass for headphones.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
+            }
+            Switch(
+                checked = isEnabled,
+                onCheckedChange = onEnabledChange,
+                modifier = Modifier.scale(0.8f)
             )
         }
     }

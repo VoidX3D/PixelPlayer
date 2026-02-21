@@ -49,6 +49,16 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
                 largeGlanceIds.forEach { glanceId ->
                     LargeWidget4x3().update(context, glanceId)
                 }
+
+                val tinyGlanceIds = glanceAppWidgetManager.getGlanceIds(TinyWidget1x1::class.java)
+                tinyGlanceIds.forEach { glanceId ->
+                    TinyWidget1x1().update(context, glanceId)
+                }
+
+                val ultraGlanceIds = glanceAppWidgetManager.getGlanceIds(UltraWidget4x4::class.java)
+                ultraGlanceIds.forEach { glanceId ->
+                    UltraWidget4x4().update(context, glanceId)
+                }
             } catch (e: Exception) {
                 Timber.tag("WidgetUpdateReceiver").e(e, "Error updating widgets")
             } finally {

@@ -53,6 +53,7 @@ data class WidgetThemeColors(
 data class PlayerInfo(
     val songTitle: String = "",
     val artistName: String = "",
+    val albumName: String = "",
     val isPlaying: Boolean = false,
     val albumArtUri: String? = null,
     val albumArtBitmapData: ByteArray? = null,
@@ -75,6 +76,7 @@ data class PlayerInfo(
 
         if (songTitle != other.songTitle) return false
         if (artistName != other.artistName) return false
+        if (albumName != other.albumName) return false
         if (isPlaying != other.isPlaying) return false
         if (albumArtUri != other.albumArtUri) return false
         if (albumArtBitmapData != null) {
@@ -96,6 +98,7 @@ data class PlayerInfo(
     override fun hashCode(): Int {
         var result = songTitle.hashCode()
         result = 31 * result + artistName.hashCode()
+        result = 31 * result + albumName.hashCode()
         result = 31 * result + isPlaying.hashCode()
         result = 31 * result + (albumArtUri?.hashCode() ?: 0)
         result = 31 * result + (albumArtBitmapData?.contentHashCode() ?: 0)

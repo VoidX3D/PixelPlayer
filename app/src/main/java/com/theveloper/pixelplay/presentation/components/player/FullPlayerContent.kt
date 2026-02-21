@@ -253,8 +253,10 @@ fun FullPlayerContent(
     val placeholderColor = playerOnBaseColor.copy(alpha = 0.1f)
     val placeholderOnColor = playerOnBaseColor.copy(alpha = 0.2f)
 
-    val isLandscape =
-        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val screenWidth = configuration.screenWidthDp.dp
+    val isSmallScreen = screenWidth < 360.dp
 
 
     // Lógica para el botón de Lyrics en el reproductor expandido
@@ -693,11 +695,11 @@ fun FullPlayerContent(
                         titleContentColor = LocalMaterialTheme.current.onPrimaryContainer,
                     ),
                     title = {
-                        if (!isCastConnecting) {
+                        if (!isCastConnecting && !isSmallScreen) {
                             AnimatedVisibility(visible = (!isRemotePlaybackActive)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        modifier = Modifier.padding(start = 18.dp),
+                                        modifier = Modifier.padding(start = if (isSmallScreen) 0.dp else 18.dp),
                                         text = "Now Playing",
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -746,8 +748,8 @@ fun FullPlayerContent(
                     actions = {
                         Row(
                             modifier = Modifier
-                                .padding(end = 14.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                .padding(end = if (isSmallScreen) 8.dp else 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isSmallScreen) 4.dp else 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Cohesive Cluster: [Lyrics] - [Equalizer] - [Lyrics Search]
@@ -763,7 +765,7 @@ fun FullPlayerContent(
                                 // Synced Lyrics Button
                                 Box(
                                     modifier = Modifier
-                                        .size(height = 42.dp, width = 46.dp)
+                                        .size(height = 42.dp, width = if (isSmallScreen) 40.dp else 46.dp)
                                         .clickable { onLyricsClick() },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -771,14 +773,14 @@ fun FullPlayerContent(
                                         painter = painterResource(R.drawable.rounded_lyrics_24),
                                         contentDescription = "Lyrics",
                                         tint = playerAccentColor,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(if (isSmallScreen) 18.dp else 20.dp)
                                     )
                                 }
 
                                 // Bridge Shortcut: Equalizer
                                 Box(
                                     modifier = Modifier
-                                        .size(height = 32.dp, width = 42.dp)
+                                        .size(height = 32.dp, width = if (isSmallScreen) 36.dp else 42.dp)
                                         .background(
                                             color = playerAccentColor.copy(alpha = 0.15f),
                                             shape = RoundedCornerShape(8.dp)
@@ -790,14 +792,14 @@ fun FullPlayerContent(
                                         imageVector = Icons.Rounded.GraphicEq,
                                         contentDescription = "Equalizer",
                                         tint = playerAccentColor,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(if (isSmallScreen) 16.dp else 18.dp)
                                     )
                                 }
 
                                 // Secondary Lyrics/Search Button
                                 Box(
                                     modifier = Modifier
-                                        .size(height = 42.dp, width = 46.dp)
+                                        .size(height = 42.dp, width = if (isSmallScreen) 40.dp else 46.dp)
                                         .clickable { showFetchLyricsDialog = true },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -805,7 +807,7 @@ fun FullPlayerContent(
                                         painter = painterResource(R.drawable.rounded_search_24),
                                         contentDescription = "Search Lyrics",
                                         tint = playerAccentColor,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(if (isSmallScreen) 18.dp else 20.dp)
                                     )
                                 }
                             }
