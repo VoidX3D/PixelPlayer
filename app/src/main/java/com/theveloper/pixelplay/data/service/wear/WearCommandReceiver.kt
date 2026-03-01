@@ -41,6 +41,7 @@ import com.theveloper.pixelplay.shared.WearBrowseRequest
 import com.theveloper.pixelplay.shared.WearBrowseResponse
 import com.theveloper.pixelplay.shared.WearDataPaths
 import com.theveloper.pixelplay.shared.WearLibraryItem
+import com.theveloper.pixelplay.shared.WearLibraryState
 import com.theveloper.pixelplay.shared.WearPlaybackCommand
 import com.theveloper.pixelplay.shared.WearPlaybackResult
 import com.theveloper.pixelplay.shared.WearThemePalette
@@ -130,7 +131,22 @@ class WearCommandReceiver : WearableListenerService() {
                 handleTransferRequest(messageEvent)
             }
             WearDataPaths.TRANSFER_CANCEL -> handleTransferCancel(messageEvent)
+            WearDataPaths.WATCH_LIBRARY_STATE -> handleWatchLibraryState(messageEvent)
             else -> Timber.tag(TAG).w("Unknown message path: ${messageEvent.path}")
+        }
+    }
+
+    private fun handleWatchLibraryState(messageEvent: MessageEvent) {
+        val libraryStateJson = String(messageEvent.data, Charsets.UTF_8)
+        runCatching {
+            json.decodeFromString<WearLibraryState>(libraryStateJson)
+        }.onSuccess { libraryState ->
+            transferStateStore.updateWatchSongIds(
+                nodeId = messageEvent.sourceNodeId,
+                songIds = libraryState.songIds.toSet(),
+            )
+        }.onFailure { error ->
+            Timber.tag(TAG).e(error, "Failed to parse watch library state")
         }
     }
 

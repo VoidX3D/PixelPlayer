@@ -38,6 +38,9 @@ class PhoneWatchTransferStateStore @Inject constructor() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _transfers = MutableStateFlow<Map<String, PhoneWatchTransferState>>(emptyMap())
     val transfers: StateFlow<Map<String, PhoneWatchTransferState>> = _transfers.asStateFlow()
+    private val watchSongIdsByNodeId = ConcurrentHashMap<String, Set<String>>()
+    private val _watchSongIds = MutableStateFlow<Set<String>>(emptySet())
+    val watchSongIds: StateFlow<Set<String>> = _watchSongIds.asStateFlow()
 
     private val cleanupJobs = ConcurrentHashMap<String, Job>()
 
@@ -137,6 +140,21 @@ class PhoneWatchTransferStateStore @Inject constructor() {
         } else {
             cleanupJobs.remove(requestId)?.cancel()
         }
+    }
+
+    fun updateWatchSongIds(nodeId: String, songIds: Set<String>) {
+        if (nodeId.isBlank()) return
+        watchSongIdsByNodeId[nodeId] = songIds
+        _watchSongIds.value = watchSongIdsByNodeId.values.flatten().toSet()
+    }
+
+    fun retainReachableWatchNodes(nodeIds: Set<String>) {
+        watchSongIdsByNodeId.keys.toList().forEach { nodeId ->
+            if (nodeId !in nodeIds) {
+                watchSongIdsByNodeId.remove(nodeId)
+            }
+        }
+        _watchSongIds.value = watchSongIdsByNodeId.values.flatten().toSet()
     }
 
     private fun scheduleTerminalCleanup(requestId: String) {

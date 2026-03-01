@@ -104,8 +104,12 @@ fun SongInfoBottomSheet(
     val isPixelPlayWatchAvailable by songInfoViewModel.isPixelPlayWatchAvailable.collectAsState()
     val isSendingToWatch by songInfoViewModel.isSendingToWatch.collectAsState()
     val activeWatchTransfer by songInfoViewModel.activeWatchTransfer.collectAsState()
+    val watchSongIds by songInfoViewModel.watchSongIds.collectAsState()
     val currentSongTransfer = activeWatchTransfer?.takeIf { it.songId == song.id }
     val currentSongTransferPercent = ((currentSongTransfer?.progress ?: 0f) * 100f).toInt().coerceIn(0, 100)
+    val isSongSavedOnWatch = remember(song.id, watchSongIds, currentSongTransfer) {
+        currentSongTransfer == null && watchSongIds.contains(song.id)
+    }
     val canSendToWatch = remember(song.path, song.contentUriString) {
         songInfoViewModel.isLocalSongForWatchTransfer(song)
     }
@@ -444,7 +448,7 @@ fun SongInfoBottomSheet(
                                     }
                                 }
 
-                                if (isPixelPlayWatchAvailable && canSendToWatch) {
+                                if (isPixelPlayWatchAvailable && canSendToWatch && !isSongSavedOnWatch) {
                                     item {
                                         FilledTonalButton(
                                             modifier = Modifier

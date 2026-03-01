@@ -8,6 +8,7 @@ import com.google.android.gms.wearable.NodeClient
 import com.theveloper.pixelplay.data.local.LocalSongDao
 import com.theveloper.pixelplay.data.local.LocalSongEntity
 import com.theveloper.pixelplay.shared.WearDataPaths
+import com.theveloper.pixelplay.shared.WearLibraryState
 import com.theveloper.pixelplay.shared.WearTransferMetadata
 import com.theveloper.pixelplay.shared.WearTransferProgress
 import com.theveloper.pixelplay.shared.WearTransferRequest
@@ -16,10 +17,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
@@ -120,6 +124,16 @@ class WearTransferRepository @Inject constructor(
         private const val METADATA_POLL_INTERVAL_MS = 120L
         private const val WATCHDOG_TOUCH_INTERVAL_MS = 1_500L
         private const val LOCAL_PROGRESS_UPDATE_INTERVAL_BYTES = 65_536L
+    }
+
+    init {
+        scope.launch {
+            downloadedSongIds
+                .distinctUntilChanged()
+                .collect { songIds ->
+                    publishLibraryState(songIds = songIds)
+                }
+        }
     }
 
     /**
@@ -446,6 +460,37 @@ class WearTransferRepository @Inject constructor(
             pendingArtworkByRequestId.remove(requestId)
             clearTransferWatchdog(requestId)
             activeChannelRequestIds.remove(requestId)
+        }
+    }
+
+    suspend fun publishLibraryState(
+        targetNodeId: String? = null,
+        songIds: Set<String>? = null,
+    ) {
+        val snapshotSongIds = songIds ?: localSongDao.getAllSongIds().first().toSet()
+        val payload = json.encodeToString(
+            WearLibraryState(songIds = snapshotSongIds.sorted())
+        ).toByteArray(Charsets.UTF_8)
+
+        runCatching {
+            if (targetNodeId != null) {
+                messageClient.sendMessage(
+                    targetNodeId,
+                    WearDataPaths.WATCH_LIBRARY_STATE,
+                    payload,
+                ).await()
+            } else {
+                val nodes = nodeClient.connectedNodes.await()
+                nodes.forEach { node ->
+                    messageClient.sendMessage(
+                        node.id,
+                        WearDataPaths.WATCH_LIBRARY_STATE,
+                        payload,
+                    ).await()
+                }
+            }
+        }.onFailure { error ->
+            Timber.tag(TAG).w(error, "Failed to publish watch library state")
         }
     }
 

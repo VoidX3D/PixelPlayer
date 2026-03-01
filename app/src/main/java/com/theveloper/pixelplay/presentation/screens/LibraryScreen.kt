@@ -57,7 +57,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material.icons.rounded.ViewModule
@@ -286,12 +285,21 @@ private fun WatchTransferProgressDialog(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
-                Box(contentAlignment = Alignment.Center) {
-                    CircularWavyProgressIndicator(modifier = Modifier.size(52.dp))
+                Box(
+                    modifier = Modifier.size(76.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(1.15f),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Text(
                         text = "$progressPercent%",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 LinearWavyProgressIndicator(
@@ -712,6 +720,7 @@ fun LibraryScreen(
                         Surface(
                             modifier = Modifier
                                 .padding(end = 8.dp)
+                                .height(48.dp)
                                 .clip(CircleShape)
                                 .clickable(enabled = activeWatchTransfer != null) {
                                     showWatchTransferDialog = true
@@ -720,25 +729,13 @@ fun LibraryScreen(
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            Box(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier.size(18.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularWavyProgressIndicator(modifier = Modifier.size(18.dp))
-                                }
-                                Icon(
-                                    painter = painterResource(R.drawable.rounded_watch_arrow_down_24),
-                                    contentDescription = "Watch transfer",
-                                    modifier = Modifier.size(16.dp)
-                                )
                                 Text(
                                     text = "$watchTransferPercent%",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -2188,7 +2185,7 @@ private fun LibraryTabId.displayTitle(): String =
         if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
     }
 
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryFoldersTab(
     folders: ImmutableList<MusicFolder>,

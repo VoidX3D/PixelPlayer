@@ -52,4 +52,10 @@ object WearDataPaths {
 
     /** Message path for transfer cancellation (watch -> phone) */
     const val TRANSFER_CANCEL = "/transfer_cancel"
+
+    /** Message path to ask the watch for its current saved song IDs (phone -> watch). */
+    const val WATCH_LIBRARY_QUERY = "/watch_library_query"
+
+    /** Message path carrying the watch saved song IDs snapshot (watch -> phone). */
+    const val WATCH_LIBRARY_STATE = "/watch_library_state"
 }

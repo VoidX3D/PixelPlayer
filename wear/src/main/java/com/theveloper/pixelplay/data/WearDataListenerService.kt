@@ -266,6 +266,12 @@ class WearDataListenerService : WearableListenerService() {
                 }
             }
 
+            WearDataPaths.WATCH_LIBRARY_QUERY -> {
+                scope.launch {
+                    transferRepository.publishLibraryState(targetNodeId = messageEvent.sourceNodeId)
+                }
+            }
+
             WearDataPaths.VOLUME_STATE -> {
                 try {
                     val volumeJson = String(messageEvent.data, Charsets.UTF_8)

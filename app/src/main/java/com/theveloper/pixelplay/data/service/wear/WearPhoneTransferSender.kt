@@ -31,10 +31,32 @@ class WearPhoneTransferSender @Inject constructor(
                 WearCapabilities.PIXELPLAY_WEAR_APP,
                 CapabilityClient.FILTER_REACHABLE,
             ).await()
+            transferStateStore.retainReachableWatchNodes(capability.nodes.map { it.id }.toSet())
             capability.nodes.isNotEmpty()
         }.getOrElse { error ->
+            transferStateStore.retainReachableWatchNodes(emptySet())
             Timber.tag(TAG).w(error, "Failed checking PixelPlay Wear availability")
             false
+        }
+    }
+
+    suspend fun refreshWatchLibraryState(): Result<Unit> {
+        return runCatching {
+            val capability = capabilityClient.getCapability(
+                WearCapabilities.PIXELPLAY_WEAR_APP,
+                CapabilityClient.FILTER_REACHABLE,
+            ).await()
+            val nodes = capability.nodes
+            transferStateStore.retainReachableWatchNodes(nodes.map { it.id }.toSet())
+            if (nodes.isEmpty()) return@runCatching
+
+            nodes.forEach { node ->
+                messageClient.sendMessage(
+                    node.id,
+                    WearDataPaths.WATCH_LIBRARY_QUERY,
+                    ByteArray(0),
+                ).await()
+            }
         }
     }
 
@@ -47,6 +69,7 @@ class WearPhoneTransferSender @Inject constructor(
             ).await()
 
             val nodes = capability.nodes
+            transferStateStore.retainReachableWatchNodes(nodes.map { it.id }.toSet())
             if (nodes.isEmpty()) {
                 error("No reachable watch with PixelPlay")
             }
