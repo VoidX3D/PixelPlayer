@@ -115,11 +115,11 @@ constructor(
                         )
 
                     // --- MEDIA SCAN PHASE ---
-                    // For INCREMENTAL or FULL sync, trigger a media scan to detect new files
-                    // that may not have been indexed by MediaStore yet (e.g., files added via USB)
-                    if (syncMode != SyncMode.REBUILD) {
-                        triggerMediaScanForNewFiles(directoryResolver)
-                    }
+                    // Always run the pre-fetch media scan to detect files that are not yet indexed
+                    // by MediaStore (e.g., files added via USB/MTP).
+                    // Rebuild in particular must not skip this, otherwise it can clear DB data and
+                    // then fetch zero songs from a stale MediaStore index.
+                    triggerMediaScanForNewFiles(directoryResolver)
 
                     // --- DELETION PHASE ---
                     // Detect and remove deleted songs efficiently using ID comparison
