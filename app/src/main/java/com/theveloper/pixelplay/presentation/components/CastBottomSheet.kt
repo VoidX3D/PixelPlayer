@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.presentation.components
 
 import android.Manifest
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -11,6 +12,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -584,6 +586,13 @@ private fun CastSheetContent(
         pageCount = { 2 }
     )
     val scope = rememberCoroutineScope()
+    var heightAnimationEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        withFrameNanos { }
+        heightAnimationEnabled = true
+    }
 
     Column(
         modifier = Modifier
@@ -628,6 +637,14 @@ private fun CastSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxPagerHeight)
+                .animateContentSize(
+                    animationSpec = if (heightAnimationEnabled) {
+                        tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                    } else {
+                        snap()
+                    },
+                    alignment = Alignment.TopCenter
+                )
         ) {
             HorizontalPager(
                 state = pagerState,
