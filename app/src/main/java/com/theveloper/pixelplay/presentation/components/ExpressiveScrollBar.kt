@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
+import androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Icon
@@ -47,39 +49,160 @@ private data class ScrollMetrics(
     val scrollableHeight: Float
 )
 
-private fun estimateListItemStridePx(visibleItems: List<LazyListItemInfo>): Float {
-    val firstVisibleItem = visibleItems.firstOrNull() ?: return 1f
+private data class VisibleGridLineMetrics(
+    val index: Int,
+    val offsetPx: Int,
+    val sizePx: Int
+)
+
+private fun estimateListFallbackStridePx(
+    visibleItems: List<LazyListItemInfo>,
+    spacingPx: Int
+): Float {
     val strideSamples = visibleItems
         .zipWithNext()
         .mapNotNull { (current, next) ->
             (next.offset - current.offset)
-                .takeIf { it > 0 }
+                .takeIf { next.index == current.index + 1 && it > 0 }
                 ?.toFloat()
         }
 
-    val averageStride = strideSamples
-        .takeIf { it.isNotEmpty() }
-        ?.average()
-        ?.toFloat()
-
-    return (averageStride ?: firstVisibleItem.size.toFloat()).coerceAtLeast(1f)
+    return medianOrNull(strideSamples)
+        ?: medianOrNull(visibleItems.map { it.size.toFloat() + spacingPx })
+        ?: 1f
 }
 
-private fun estimateGridRowMetrics(visibleItems: List<LazyGridItemInfo>): Pair<Int, Float> {
-    val firstVisibleItem = visibleItems.firstOrNull() ?: return 1 to 1f
-    val firstRowOffset = firstVisibleItem.offset.y
-    val itemsInFirstRow = visibleItems.count { it.offset.y == firstRowOffset }.coerceAtLeast(1)
-    val nextRowOffset = visibleItems
-        .asSequence()
-        .map { it.offset.y }
-        .filter { it > firstRowOffset }
-        .minOrNull()
+private fun observeListLayoutMetrics(
+    layoutInfo: LazyListLayoutInfo,
+    tracker: AxisObservationTracker
+) {
+    tracker.resetIfNeeded(
+        totalItemsCount = layoutInfo.totalItemsCount,
+        spacingPx = layoutInfo.mainAxisItemSpacing
+    )
 
-    val rowStridePx = ((nextRowOffset ?: (firstRowOffset + firstVisibleItem.size.height)) - firstRowOffset)
-        .toFloat()
-        .coerceAtLeast(1f)
+    val visibleItems = layoutInfo.visibleItemsInfo
+    if (visibleItems.isEmpty()) return
 
-    return itemsInFirstRow to rowStridePx
+    tracker.observeRepresentativeSample(
+        strideSamplePx = estimateListFallbackStridePx(
+            visibleItems = visibleItems,
+            spacingPx = layoutInfo.mainAxisItemSpacing
+        ),
+        itemSizeSamplePx = medianOrNull(visibleItems.map { it.size.toFloat() })
+    )
+
+    visibleItems.forEach { item ->
+        tracker.observeItemSize(index = item.index, sizePx = item.size.toFloat())
+    }
+
+    visibleItems
+        .zipWithNext()
+        .forEach { (current, next) ->
+            if (next.index == current.index + 1) {
+                tracker.observeStride(
+                    index = current.index,
+                    stridePx = (next.offset - current.offset).toFloat()
+                )
+            }
+        }
+
+    val lastVisibleItem = visibleItems.last()
+    if (lastVisibleItem.index < layoutInfo.totalItemsCount - 1) {
+        tracker.observeStride(
+            index = lastVisibleItem.index,
+            stridePx = (lastVisibleItem.size + layoutInfo.mainAxisItemSpacing).toFloat()
+        )
+    }
+}
+
+private fun buildVisibleGridLines(layoutInfo: LazyGridLayoutInfo): List<VisibleGridLineMetrics> {
+    val isVertical =
+        layoutInfo.orientation == androidx.compose.foundation.gestures.Orientation.Vertical
+    val groupedLines = linkedMapOf<Int, MutableList<LazyGridItemInfo>>()
+
+    layoutInfo.visibleItemsInfo.forEach { item ->
+        val lineIndex = if (isVertical) item.row else item.column
+        if (lineIndex >= 0) {
+            groupedLines.getOrPut(lineIndex) { mutableListOf() }.add(item)
+        }
+    }
+
+    return groupedLines
+        .entries
+        .map { (lineIndex, itemsInLine) ->
+            VisibleGridLineMetrics(
+                index = lineIndex,
+                offsetPx = itemsInLine.minOf { if (isVertical) it.offset.y else it.offset.x },
+                sizePx = itemsInLine.maxOf { if (isVertical) it.size.height else it.size.width }
+            )
+        }
+        .sortedBy { it.index }
+}
+
+private fun estimateGridFallbackStridePx(
+    visibleLines: List<VisibleGridLineMetrics>,
+    spacingPx: Int
+): Float {
+    val strideSamples = visibleLines
+        .zipWithNext()
+        .mapNotNull { (current, next) ->
+            (next.offsetPx - current.offsetPx)
+                .takeIf { next.index == current.index + 1 && it > 0 }
+                ?.toFloat()
+        }
+
+    return medianOrNull(strideSamples)
+        ?: medianOrNull(visibleLines.map { it.sizePx.toFloat() + spacingPx })
+        ?: 1f
+}
+
+private fun observeGridLayoutMetrics(
+    layoutInfo: LazyGridLayoutInfo,
+    tracker: AxisObservationTracker
+): List<VisibleGridLineMetrics> {
+    tracker.resetIfNeeded(
+        totalItemsCount = layoutInfo.totalItemsCount,
+        spacingPx = layoutInfo.mainAxisItemSpacing
+    )
+
+    val visibleLines = buildVisibleGridLines(layoutInfo)
+    if (visibleLines.isEmpty()) return visibleLines
+
+    tracker.observeRepresentativeSample(
+        strideSamplePx = estimateGridFallbackStridePx(
+            visibleLines = visibleLines,
+            spacingPx = layoutInfo.mainAxisItemSpacing
+        ),
+        itemSizeSamplePx = medianOrNull(visibleLines.map { it.sizePx.toFloat() })
+    )
+
+    visibleLines.forEach { line ->
+        tracker.observeItemSize(index = line.index, sizePx = line.sizePx.toFloat())
+    }
+
+    visibleLines
+        .zipWithNext()
+        .forEach { (current, next) ->
+            if (next.index == current.index + 1) {
+                tracker.observeStride(
+                    index = current.index,
+                    stridePx = (next.offsetPx - current.offsetPx).toFloat()
+                )
+            }
+        }
+
+    val totalLines = ((layoutInfo.totalItemsCount + layoutInfo.maxSpan - 1) / layoutInfo.maxSpan)
+        .coerceAtLeast(1)
+    val lastVisibleLine = visibleLines.last()
+    if (lastVisibleLine.index < totalLines - 1) {
+        tracker.observeStride(
+            index = lastVisibleLine.index,
+            stridePx = (lastVisibleLine.sizePx + layoutInfo.mainAxisItemSpacing).toFloat()
+        )
+    }
+
+    return visibleLines
 }
 
 @Composable
@@ -95,6 +218,8 @@ fun ExpressiveScrollBar(
     paddingEnd: Dp = 4.dp,
     trackGap: Dp = 8.dp
 ) {
+    val listMetricsTracker = remember(listState) { AxisObservationTracker() }
+    val gridMetricsTracker = remember(gridState) { AxisObservationTracker() }
     var isPressed by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(-1f) }
@@ -147,11 +272,9 @@ fun ExpressiveScrollBar(
             if (listState != null) {
                 val layoutInfo = listState.layoutInfo
                 val visibleItems = layoutInfo.visibleItemsInfo
-                val firstVisibleItem = visibleItems.firstOrNull()
-                val lastVisibleItem = visibleItems.lastOrNull()
                 totalItemsCount = layoutInfo.totalItemsCount
 
-                if (firstVisibleItem == null || lastVisibleItem == null) {
+                if (visibleItems.isEmpty()) {
                     return ScrollMetrics(
                         progress = 0f,
                         totalItemsCount = totalItemsCount,
@@ -160,39 +283,88 @@ fun ExpressiveScrollBar(
                     )
                 }
 
-                val itemStridePx = estimateListItemStridePx(visibleItems)
+                observeListLayoutMetrics(layoutInfo, listMetricsTracker)
+
                 val viewportHeightPx =
                     (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).toFloat()
                         .coerceAtLeast(1f)
+                val itemStridePx = listMetricsTracker.representativeStridePx(
+                    fallbackStridePx = estimateListFallbackStridePx(
+                        visibleItems = visibleItems,
+                        spacingPx = layoutInfo.mainAxisItemSpacing
+                    )
+                )
+                val representativeItemSizePx = listMetricsTracker.representativeItemSizePx(
+                    fallbackItemSizePx = medianOrNull(visibleItems.map { it.size.toFloat() }) ?: 1f
+                )
                 val estimatedVisibleItems = (viewportHeightPx / itemStridePx).coerceAtLeast(1f)
-                val hiddenBeforeFirstPx =
-                    (layoutInfo.viewportStartOffset - firstVisibleItem.offset).coerceAtLeast(0).toFloat()
-                val hiddenAfterLastPx =
-                    ((lastVisibleItem.offset + lastVisibleItem.size) - layoutInfo.viewportEndOffset)
-                        .coerceAtLeast(0)
-                        .toFloat()
+                val lastItemIndex = (totalItemsCount - 1).coerceAtLeast(0)
 
-                currentScrollPx = (firstVisibleItem.index * itemStridePx) + hiddenBeforeFirstPx
+                currentScrollPx = (
+                    listMetricsTracker.distanceBeforeIndex(
+                        index = listState.firstVisibleItemIndex,
+                        representativeStridePx = itemStridePx
+                    ) + listState.firstVisibleItemScrollOffset
+                    ).coerceAtLeast(0f)
                 totalScrollableContentPx = (
-                    currentScrollPx +
-                        (((totalItemsCount - lastVisibleItem.index - 1) * itemStridePx) + hiddenAfterLastPx)
-                    ).coerceAtLeast(1f)
+                    layoutInfo.beforeContentPadding +
+                        layoutInfo.afterContentPadding
+                    ).toFloat()
+                    .plus(
+                        listMetricsTracker.distanceBeforeIndex(
+                            index = lastItemIndex,
+                            representativeStridePx = itemStridePx
+                        ) + listMetricsTracker.itemSizePx(
+                            index = lastItemIndex,
+                            representativeItemSizePx = representativeItemSizePx
+                        ) - viewportHeightPx
+                    )
+                    .coerceAtLeast(1f)
                 approximateMaxScrollIndex =
                     (totalItemsCount - estimatedVisibleItems).toInt().coerceAtLeast(1)
             } else if (gridState != null) {
                 val layoutInfo = gridState.layoutInfo
                 totalItemsCount = layoutInfo.totalItemsCount
-                val (itemsPerRow, rowStridePx) = estimateGridRowMetrics(layoutInfo.visibleItemsInfo)
+
+                val visibleLines = observeGridLayoutMetrics(layoutInfo, gridMetricsTracker)
                 val viewportHeightPx =
                     (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).toFloat()
                         .coerceAtLeast(1f)
+                val itemsPerRow = layoutInfo.maxSpan.coerceAtLeast(1)
                 val totalRows = ((totalItemsCount + itemsPerRow - 1) / itemsPerRow).coerceAtLeast(1)
+                val rowStridePx = gridMetricsTracker.representativeStridePx(
+                    fallbackStridePx = estimateGridFallbackStridePx(
+                        visibleLines = visibleLines,
+                        spacingPx = layoutInfo.mainAxisItemSpacing
+                    )
+                )
+                val representativeRowSizePx = gridMetricsTracker.representativeItemSizePx(
+                    fallbackItemSizePx = medianOrNull(visibleLines.map { it.sizePx.toFloat() }) ?: 1f
+                )
                 val estimatedVisibleRows = (viewportHeightPx / rowStridePx).coerceAtLeast(1f)
-                val currentRow = gridState.firstVisibleItemIndex / itemsPerRow
+                val currentRow = visibleLines.firstOrNull()?.index ?: 0
+                val lastRowIndex = (totalRows - 1).coerceAtLeast(0)
 
-                currentScrollPx = (currentRow * rowStridePx) + gridState.firstVisibleItemScrollOffset
-                totalScrollableContentPx =
-                    ((totalRows * rowStridePx) - viewportHeightPx).coerceAtLeast(1f)
+                currentScrollPx = (
+                    gridMetricsTracker.distanceBeforeIndex(
+                        index = currentRow,
+                        representativeStridePx = rowStridePx
+                    ) + gridState.firstVisibleItemScrollOffset
+                    ).coerceAtLeast(0f)
+                totalScrollableContentPx = (
+                    layoutInfo.beforeContentPadding +
+                        layoutInfo.afterContentPadding
+                    ).toFloat()
+                    .plus(
+                        gridMetricsTracker.distanceBeforeIndex(
+                            index = lastRowIndex,
+                            representativeStridePx = rowStridePx
+                        ) + gridMetricsTracker.itemSizePx(
+                            index = lastRowIndex,
+                            representativeItemSizePx = representativeRowSizePx
+                        ) - viewportHeightPx
+                    )
+                    .coerceAtLeast(1f)
                 approximateMaxScrollIndex =
                     (((totalRows - estimatedVisibleRows).toInt().coerceAtLeast(1)) * itemsPerRow)
                         .coerceAtMost((totalItemsCount - 1).coerceAtLeast(1))
