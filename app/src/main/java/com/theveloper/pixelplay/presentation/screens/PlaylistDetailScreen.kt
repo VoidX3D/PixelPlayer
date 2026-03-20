@@ -363,7 +363,8 @@ fun PlaylistDetailScreen(
                                 playerViewModel.playSongsShuffled(
                                     songsToPlay = localReorderableSongs,
                                     queueName = currentPlaylist.name,
-                                    playlistId = currentPlaylist.id
+                                    playlistId = currentPlaylist.id,
+                                    startAtZero = true,
                                 )
                             }
                         },
