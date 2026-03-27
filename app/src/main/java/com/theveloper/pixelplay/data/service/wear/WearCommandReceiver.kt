@@ -442,6 +442,9 @@ class WearCommandReceiver : WearableListenerService() {
             nodeId = messageEvent.sourceNodeId,
             requestId = request.requestId,
             songId = request.songId,
+            transferMode = request.transferMode,
+            startPositionMs = request.startPositionMs,
+            autoPlay = request.autoPlay,
         )
     }
 

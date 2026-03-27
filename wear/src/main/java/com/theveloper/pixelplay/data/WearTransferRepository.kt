@@ -73,6 +73,9 @@ class WearTransferRepository @Inject constructor(
     private val channelClient: ChannelClient,
     private val messageClient: MessageClient,
     private val nodeClient: NodeClient,
+    private val localPlayerRepository: WearLocalPlayerRepository,
+    private val stateRepository: WearStateRepository,
+    private val playbackController: WearPlaybackController,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -112,6 +115,8 @@ class WearTransferRepository @Inject constructor(
 
     /** Artwork bytes received before/while audio transfer: requestId -> bytes */
     private val pendingArtworkByRequestId = ConcurrentHashMap<String, ByteArray>()
+    /** Temporary handoff requests waiting to become local watch playback. */
+    private val pendingTemporaryPlaybackRequests = ConcurrentHashMap<String, PendingTemporaryPlaybackRequest>()
 
     /** Failsafe timeout per transfer to avoid hanging states at 0%. */
     private val transferWatchdogs = ConcurrentHashMap<String, Job>()
@@ -131,6 +136,14 @@ class WearTransferRepository @Inject constructor(
         private const val CANCELLED_REQUEST_RETENTION_MS = 300_000L
     }
 
+    private data class PendingTemporaryPlaybackRequest(
+        val songId: String,
+        val startPositionMs: Long,
+        val autoPlay: Boolean,
+        val pausePhoneAfterStart: Boolean,
+        val requestedAtElapsedMs: Long,
+    )
+
     init {
         scope.launch {
             downloadedSongIds
@@ -149,6 +162,9 @@ class WearTransferRepository @Inject constructor(
         songId: String,
         requestId: String = UUID.randomUUID().toString(),
         targetNodeId: String? = null,
+        transferMode: String = WearTransferRequest.MODE_SAVE_TO_LIBRARY,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = false,
     ) {
         // Don't request if already transferring this song
         if (songToRequestId.containsKey(songId)) {
@@ -170,6 +186,18 @@ class WearTransferRepository @Inject constructor(
 
             clearStaleTransfersForSong(songId)
             songToRequestId[songId] = requestId
+            if (
+                transferMode == WearTransferRequest.MODE_TEMPORARY_PLAYBACK &&
+                !pendingTemporaryPlaybackRequests.containsKey(requestId)
+            ) {
+                pendingTemporaryPlaybackRequests[requestId] = PendingTemporaryPlaybackRequest(
+                    songId = songId,
+                    startPositionMs = startPositionMs,
+                    autoPlay = autoPlay,
+                    pausePhoneAfterStart = false,
+                    requestedAtElapsedMs = SystemClock.elapsedRealtime(),
+                )
+            }
 
             _activeTransfers.update { map ->
                 map + (requestId to TransferState(
@@ -184,7 +212,13 @@ class WearTransferRepository @Inject constructor(
             armTransferWatchdog(requestId, songId)
 
             try {
-                val request = WearTransferRequest(requestId, songId)
+                val request = WearTransferRequest(
+                    requestId = requestId,
+                    songId = songId,
+                    transferMode = transferMode,
+                    startPositionMs = startPositionMs,
+                    autoPlay = autoPlay,
+                )
                 val requestBytes = json.encodeToString(request).toByteArray(Charsets.UTF_8)
 
                 if (targetNodeId != null) {
@@ -213,6 +247,33 @@ class WearTransferRepository @Inject constructor(
                 handleTransferError(requestId, songId, e.message ?: "Failed to send request")
             }
         }
+    }
+
+    fun requestTemporaryPlayback(
+        songId: String,
+        startPositionMs: Long,
+        autoPlay: Boolean,
+        pausePhoneAfterStart: Boolean,
+    ) {
+        if (songToRequestId.containsKey(songId)) {
+            Timber.tag(TAG).d("Temporary watch playback already requested for songId=%s", songId)
+            return
+        }
+        val requestId = UUID.randomUUID().toString()
+        pendingTemporaryPlaybackRequests[requestId] = PendingTemporaryPlaybackRequest(
+            songId = songId,
+            startPositionMs = startPositionMs,
+            autoPlay = autoPlay,
+            pausePhoneAfterStart = pausePhoneAfterStart,
+            requestedAtElapsedMs = SystemClock.elapsedRealtime(),
+        )
+        requestTransfer(
+            songId = songId,
+            requestId = requestId,
+            transferMode = WearTransferRequest.MODE_TEMPORARY_PLAYBACK,
+            startPositionMs = startPositionMs,
+            autoPlay = autoPlay,
+        )
     }
 
     private suspend fun notifyPhoneTransferFailure(
@@ -266,7 +327,10 @@ class WearTransferRepository @Inject constructor(
             return
         }
         val existingSong = localSongDao.getSongById(metadata.songId)
-        if (existingSong?.hasPlayableLocalFile() == true) {
+        if (
+            metadata.transferMode == WearTransferRequest.MODE_SAVE_TO_LIBRARY &&
+            existingSong?.hasPlayableLocalFile() == true
+        ) {
             notifyPhoneTransferFailure(
                 targetNodeId = sourceNodeId,
                 requestId = metadata.requestId,
@@ -551,6 +615,85 @@ class WearTransferRepository @Inject constructor(
 
             val extension = MimeTypeMap.getSingleton()
                 .getExtensionFromMimeType(resolvedMetadata.mimeType) ?: "mp3"
+            if (resolvedMetadata.transferMode == WearTransferRequest.MODE_TEMPORARY_PLAYBACK) {
+                val playbackDir = File(application.cacheDir, "temporary_playback")
+                if (!playbackDir.exists()) playbackDir.mkdirs()
+                val playbackFile = File(playbackDir, "$requestId.$extension")
+                if (playbackFile.exists() && !playbackFile.delete()) {
+                    tempFile.delete()
+                    handleTransferError(requestId, resolvedMetadata.songId, "Couldn't replace temporary playback file")
+                    return
+                }
+
+                if (playbackFile.absolutePath != tempFile.absolutePath) {
+                    val renamed = tempFile.renameTo(playbackFile)
+                    if (!renamed) {
+                        runCatching {
+                            tempFile.inputStream().use { input ->
+                                playbackFile.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                        }.onFailure { error ->
+                            tempFile.delete()
+                            playbackFile.delete()
+                            throw error
+                        }
+                        if (!tempFile.delete()) {
+                            Timber.tag(TAG).w("Failed to delete temp playback staging file for requestId=%s", requestId)
+                        }
+                    }
+                }
+
+                val artworkPath = consumeAndPersistPendingArtwork(
+                    requestId = requestId,
+                    artworkKey = "temp_$requestId",
+                )
+                val pendingPlayback = pendingTemporaryPlaybackRequests.remove(requestId)
+                val resolvedStartPositionMs = resolveTemporaryPlaybackStartPosition(
+                    requestId = requestId,
+                    metadata = resolvedMetadata,
+                    pendingPlayback = pendingPlayback,
+                )
+                localPlayerRepository.playTemporarySong(
+                    song = LocalSongEntity(
+                        songId = resolvedMetadata.songId,
+                        title = resolvedMetadata.title,
+                        artist = resolvedMetadata.artist,
+                        album = resolvedMetadata.album,
+                        albumId = resolvedMetadata.albumId,
+                        duration = resolvedMetadata.duration,
+                        mimeType = resolvedMetadata.mimeType,
+                        fileSize = actualSize,
+                        bitrate = resolvedMetadata.bitrate,
+                        sampleRate = resolvedMetadata.sampleRate,
+                        isFavorite = resolvedMetadata.isFavorite,
+                        favoriteSyncPending = false,
+                        paletteSeedArgb = resolvedMetadata.paletteSeedArgb,
+                        themePaletteJson = resolvedMetadata.themePalette?.let { json.encodeToString(it) },
+                        artworkPath = artworkPath,
+                        localPath = playbackFile.absolutePath,
+                        transferredAt = System.currentTimeMillis(),
+                    ),
+                    startPositionMs = resolvedStartPositionMs,
+                    autoPlay = pendingPlayback?.autoPlay ?: resolvedMetadata.autoPlay,
+                )
+                stateRepository.setOutputTarget(WearOutputTarget.WATCH)
+                if (pendingPlayback?.pausePhoneAfterStart == true) {
+                    playbackController.pause()
+                }
+                _activeTransfers.update { it - requestId }
+                songToRequestId.remove(resolvedMetadata.songId)
+                clearTransferWatchdog(requestId)
+                Timber.tag(TAG).d(
+                    "Temporary playback ready: %s (%d bytes) → %s",
+                    resolvedMetadata.title,
+                    actualSize,
+                    playbackFile.absolutePath,
+                )
+                return
+            }
+
             val localFile = File(musicDir, "${resolvedMetadata.songId}.$extension")
             val previousSong = localSongDao.getSongById(resolvedMetadata.songId)
 
@@ -582,7 +725,7 @@ class WearTransferRepository @Inject constructor(
 
             val artworkPath = consumeAndPersistPendingArtwork(
                 requestId = requestId,
-                songId = resolvedMetadata.songId,
+                artworkKey = resolvedMetadata.songId,
             )
 
             localSongDao.insert(
@@ -768,6 +911,7 @@ class WearTransferRepository @Inject constructor(
             map.filterValues { it.songId != songId }
         }
         staleRequestIds.forEach { staleRequestId ->
+            pendingTemporaryPlaybackRequests.remove(staleRequestId)
             pendingMetadata.remove(staleRequestId)
             pendingArtworkByRequestId.remove(staleRequestId)
             clearTransferWatchdog(staleRequestId)
@@ -792,6 +936,7 @@ class WearTransferRepository @Inject constructor(
         songId?.takeIf { it.isNotBlank() }?.let { safeSongId ->
             songToRequestId.remove(safeSongId)
         }
+        pendingTemporaryPlaybackRequests.remove(requestId)
         pendingMetadata.remove(requestId)
         pendingArtworkByRequestId.remove(requestId)
         clearTransferWatchdog(requestId)
@@ -812,10 +957,40 @@ class WearTransferRepository @Inject constructor(
             }
         }
         songToRequestId.remove(songId)
+        pendingTemporaryPlaybackRequests.remove(requestId)
         pendingMetadata.remove(requestId)
         pendingArtworkByRequestId.remove(requestId)
         clearTransferWatchdog(requestId)
         activeChannelRequestIds.remove(requestId)
+    }
+
+    private fun resolveTemporaryPlaybackStartPosition(
+        requestId: String,
+        metadata: WearTransferMetadata,
+        pendingPlayback: PendingTemporaryPlaybackRequest?,
+    ): Long {
+        val initialPositionMs = pendingPlayback?.startPositionMs ?: metadata.startPositionMs
+        if (!(pendingPlayback?.autoPlay ?: metadata.autoPlay)) {
+            return initialPositionMs.coerceAtLeast(0L)
+        }
+
+        val requestedAtElapsedMs = pendingPlayback?.requestedAtElapsedMs
+            ?: return initialPositionMs.coerceAtLeast(0L)
+        val elapsedMs = (SystemClock.elapsedRealtime() - requestedAtElapsedMs).coerceAtLeast(0L)
+        val adjustedPositionMs = initialPositionMs.coerceAtLeast(0L) + elapsedMs
+        val clampedPositionMs = if (metadata.duration > 0L) {
+            adjustedPositionMs.coerceAtMost(metadata.duration)
+        } else {
+            adjustedPositionMs
+        }
+        Timber.tag(TAG).d(
+            "Resolved temporary playback start for requestId=%s: base=%d elapsed=%d final=%d",
+            requestId,
+            initialPositionMs,
+            elapsedMs,
+            clampedPositionMs,
+        )
+        return clampedPositionMs
     }
 
     private fun LocalSongEntity.hasPlayableLocalFile(): Boolean {
@@ -823,9 +998,9 @@ class WearTransferRepository @Inject constructor(
         return file.isFile && file.length() > 0L
     }
 
-    private fun consumeAndPersistPendingArtwork(requestId: String, songId: String): String? {
+    private fun consumeAndPersistPendingArtwork(requestId: String, artworkKey: String): String? {
         val artworkBytes = pendingArtworkByRequestId.remove(requestId) ?: return null
-        return persistArtwork(songId, artworkBytes)
+        return persistArtwork(artworkKey, artworkBytes)
     }
 
     private fun persistArtwork(songId: String, artworkBytes: ByteArray): String? {

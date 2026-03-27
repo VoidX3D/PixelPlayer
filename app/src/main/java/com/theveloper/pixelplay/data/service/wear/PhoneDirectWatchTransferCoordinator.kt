@@ -9,25 +9,34 @@ import android.os.Build
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.core.graphics.get
 import androidx.core.net.toUri
+import com.theveloper.pixelplay.data.gdrive.GDriveStreamProxy
 import com.google.android.gms.wearable.Wearable
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.navidrome.NavidromeStreamProxy
+import com.theveloper.pixelplay.data.netease.NeteaseStreamProxy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.ThemePreference
+import com.theveloper.pixelplay.data.qqmusic.QqMusicStreamProxy
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.telegram.TelegramRepository
+import com.theveloper.pixelplay.data.telegram.TelegramStreamProxy
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemeProcessor
 import com.theveloper.pixelplay.shared.WearDataPaths
 import com.theveloper.pixelplay.shared.WearThemePalette
 import com.theveloper.pixelplay.shared.WearTransferMetadata
 import com.theveloper.pixelplay.shared.WearTransferProgress
+import com.theveloper.pixelplay.shared.WearTransferRequest
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import javax.inject.Singleton
 import java.io.ByteArrayOutputStream
+import java.io.Closeable
 import java.io.File
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +47,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import timber.log.Timber
 
 @Singleton
@@ -48,6 +59,13 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
     private val transferStateStore: PhoneWatchTransferStateStore,
     private val transferCancellationStore: PhoneWatchTransferCancellationStore,
+    private val telegramRepository: TelegramRepository,
+    private val telegramStreamProxy: Lazy<TelegramStreamProxy>,
+    private val neteaseStreamProxy: NeteaseStreamProxy,
+    private val qqMusicStreamProxy: QqMusicStreamProxy,
+    private val navidromeStreamProxy: NavidromeStreamProxy,
+    private val gDriveStreamProxy: GDriveStreamProxy,
+    private val okHttpClient: OkHttpClient,
 ) {
     private val contentResolver by lazy { application.contentResolver }
     private val messageClient by lazy { Wearable.getMessageClient(application) }
@@ -57,10 +75,27 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
     private val albumPaletteSeedCache = ConcurrentHashMap<Long, Int>()
     private val albumArtworkTransferCache = ConcurrentHashMap<Long, ByteArray>()
 
+    private data class OpenedSongSource(
+        val inputStream: InputStream,
+        val fileSize: Long,
+        private val closeable: Closeable? = null,
+    ) : Closeable {
+        override fun close() {
+            if (closeable != null) {
+                closeable.close()
+            } else {
+                inputStream.close()
+            }
+        }
+    }
+
     fun startTransferToWatch(
         nodeId: String,
         requestId: String,
         songId: String,
+        transferMode: String = WearTransferRequest.MODE_SAVE_TO_LIBRARY,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = false,
     ) {
         transferStateStore.markRequested(
             requestId = requestId,
@@ -72,6 +107,9 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 nodeId = nodeId,
                 requestId = requestId,
                 songId = songId,
+                transferMode = transferMode,
+                startPositionMs = startPositionMs,
+                autoPlay = autoPlay,
             )
         }
     }
@@ -80,8 +118,11 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
         nodeId: String,
         requestId: String,
         songId: String,
+        transferMode: String,
+        startPositionMs: Long,
+        autoPlay: Boolean,
     ) {
-        var openedInputStream: InputStream? = null
+        var openedSongSource: OpenedSongSource? = null
         try {
             val song = musicRepository.getSongsByIds(listOf(songId)).first().firstOrNull()
             if (song == null) {
@@ -94,7 +135,10 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 return
             }
 
-            if (!isSongTransferEligible(song)) {
+            if (
+                transferMode == WearTransferRequest.MODE_SAVE_TO_LIBRARY &&
+                !isSongTransferEligible(song)
+            ) {
                 sendTransferMetadataError(
                     nodeId = nodeId,
                     requestId = requestId,
@@ -104,19 +148,26 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 return
             }
 
-            val fileInputStream = openSongFile(song)
-            if (fileInputStream == null) {
+            val songSource = openSongSource(
+                song = song,
+                allowProxyStreaming = transferMode == WearTransferRequest.MODE_TEMPORARY_PLAYBACK,
+            )
+            if (songSource == null) {
                 sendTransferMetadataError(
                     nodeId = nodeId,
                     requestId = requestId,
                     songId = song.id,
-                    errorMessage = "Cannot read audio file",
+                    errorMessage = if (transferMode == WearTransferRequest.MODE_TEMPORARY_PLAYBACK) {
+                        "Cannot stream audio source to watch"
+                    } else {
+                        "Cannot read audio file"
+                    },
                 )
                 return
             }
-            openedInputStream = fileInputStream
+            openedSongSource = songSource
 
-            val fileSize = getSongFileSize(song)
+            val fileSize = songSource.fileSize
             val paletteSeedArgb = resolvePaletteSeedArgb(song)
             val transferThemePalette = resolveTransferThemePalette(song)
             val transferArtworkBytes = resolveTransferArtworkBytes(song)
@@ -136,6 +187,9 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 isFavorite = song.isFavorite,
                 paletteSeedArgb = paletteSeedArgb,
                 themePalette = transferThemePalette,
+                transferMode = transferMode,
+                startPositionMs = startPositionMs,
+                autoPlay = autoPlay,
             )
             transferStateStore.markMetadata(
                 requestId = requestId,
@@ -168,6 +222,8 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                     transfer.error == WearTransferProgress.ERROR_ALREADY_ON_WATCH
             } == true
             if (duplicateRejected) {
+                runCatching { openedSongSource?.close() }
+                openedSongSource = null
                 return
             }
 
@@ -193,6 +249,8 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                     totalBytes = fileSize,
                     status = WearTransferProgress.STATUS_CANCELLED,
                 )
+                runCatching { openedSongSource?.close() }
+                openedSongSource = null
                 return
             }
 
@@ -200,10 +258,11 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 nodeId = nodeId,
                 requestId = requestId,
                 songId = song.id,
-                inputStream = fileInputStream,
+                inputStream = songSource.inputStream,
                 fileSize = fileSize,
             )
-            openedInputStream = null
+            runCatching { songSource.close() }
+            openedSongSource = null
         } catch (error: Exception) {
             Timber.tag(TAG).e(error, "Direct transfer failed for songId=%s", songId)
             sendTransferProgress(
@@ -215,7 +274,7 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
                 status = WearTransferProgress.STATUS_FAILED,
                 error = error.message,
             )
-            runCatching { openedInputStream?.close() }
+            runCatching { openedSongSource?.close() }
         }
     }
 
@@ -253,31 +312,188 @@ class PhoneDirectWatchTransferCoordinator @Inject constructor(
         }
     }
 
-    private fun openSongFile(song: Song): InputStream? {
-        return try {
-            val file = File(song.path)
-            if (file.exists() && file.canRead()) {
-                file.inputStream()
-            } else {
-                contentResolver.openInputStream(song.contentUriString.toUri())
+    private suspend fun openSongSource(
+        song: Song,
+        allowProxyStreaming: Boolean,
+    ): OpenedSongSource? {
+        openDirectSongSource(song)?.let { return it }
+        if (!allowProxyStreaming) return null
+
+        val streamUrl = resolveStreamUrl(song) ?: return null
+        return openHttpSongSource(streamUrl)
+    }
+
+    private fun openDirectSongSource(song: Song): OpenedSongSource? {
+        val directFile = song.path
+            .takeIf { it.isNotBlank() }
+            ?.let(::File)
+            ?.takeIf { it.isFile && it.canRead() && it.length() > 0L }
+        if (directFile != null) {
+            return runCatching {
+                OpenedSongSource(
+                    inputStream = directFile.inputStream(),
+                    fileSize = directFile.length(),
+                )
+            }.onFailure { error ->
+                Timber.tag(TAG).w(error, "Failed to open direct file for songId=%s", song.id)
+            }.getOrNull()
+        }
+
+        val rawUri = song.contentUriString
+        if (rawUri.isBlank()) return null
+        if (rawUri.startsWith("/")) {
+            val rawFile = File(rawUri)
+            if (rawFile.isFile && rawFile.canRead() && rawFile.length() > 0L) {
+                return runCatching {
+                    OpenedSongSource(
+                        inputStream = rawFile.inputStream(),
+                        fileSize = rawFile.length(),
+                    )
+                }.getOrNull()
             }
-        } catch (error: Exception) {
-            Timber.tag(TAG).w(error, "Failed to open song file: %s", song.path)
-            runCatching { contentResolver.openInputStream(song.contentUriString.toUri()) }.getOrNull()
+        }
+
+        val uri = runCatching { rawUri.toUri() }.getOrNull() ?: return null
+        return when (uri.scheme?.lowercase()) {
+            "file" -> {
+                val uriFile = uri.path?.let(::File)
+                    ?.takeIf { it.isFile && it.canRead() && it.length() > 0L }
+                    ?: return null
+                runCatching {
+                    OpenedSongSource(
+                        inputStream = uriFile.inputStream(),
+                        fileSize = uriFile.length(),
+                    )
+                }.getOrNull()
+            }
+
+            "content" -> {
+                runCatching {
+                    val inputStream = contentResolver.openInputStream(uri) ?: return@runCatching null
+                    val size = contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+                        afd.length.takeIf { it > 0L } ?: afd.declaredLength.takeIf { it > 0L }
+                    } ?: 0L
+                    OpenedSongSource(
+                        inputStream = inputStream,
+                        fileSize = size.coerceAtLeast(0L),
+                    )
+                }.onFailure { error ->
+                    Timber.tag(TAG).w(error, "Failed to open content source for songId=%s", song.id)
+                }.getOrNull()
+            }
+
+            else -> null
         }
     }
 
-    private fun getSongFileSize(song: Song): Long {
-        val file = File(song.path)
-        if (file.exists()) return file.length()
-
-        return try {
-            contentResolver.openAssetFileDescriptor(song.contentUriString.toUri(), "r")?.use {
-                it.length
-            } ?: 0L
-        } catch (_: Exception) {
-            0L
+    private suspend fun resolveStreamUrl(song: Song): String? {
+        val rawUri = song.contentUriString
+        val uri = runCatching { rawUri.toUri() }.getOrNull() ?: return null
+        return when (uri.scheme?.lowercase()) {
+            "http", "https" -> rawUri
+            "telegram" -> resolveTelegramStreamUrl(song, uri, rawUri)
+            "netease" -> {
+                ensureCloudProxyReady(neteaseStreamProxy) || return null
+                neteaseStreamProxy.resolveNeteaseUri(rawUri)
+            }
+            "qqmusic" -> {
+                ensureCloudProxyReady(qqMusicStreamProxy) || return null
+                qqMusicStreamProxy.warmUpStreamUrl(rawUri)
+                qqMusicStreamProxy.resolveQqMusicUri(rawUri)
+            }
+            "navidrome" -> {
+                ensureCloudProxyReady(navidromeStreamProxy) || return null
+                navidromeStreamProxy.warmUpStreamUrl(rawUri)
+                navidromeStreamProxy.resolveNavidromeUri(rawUri)
+            }
+            "gdrive" -> {
+                ensureGDriveProxyReady() || return null
+                gDriveStreamProxy.resolveGDriveUri(rawUri)
+            }
+            else -> null
         }
+    }
+
+    private suspend fun resolveTelegramStreamUrl(song: Song, uri: android.net.Uri, rawUri: String): String? {
+        if (!telegramRepository.isReady()) {
+            val ready = telegramRepository.awaitReady(10_000L)
+            if (!ready) {
+                Timber.tag(TAG).w("Telegram repository not ready for watch handoff")
+                return null
+            }
+        }
+
+        val resolved = telegramRepository.resolveTelegramUri(rawUri)
+        val fileId = resolved?.first
+            ?: song.telegramFileId
+            ?: uri.host?.toIntOrNull()
+            ?: uri.pathSegments.firstOrNull()?.toIntOrNull()
+            ?: return null
+        val knownSize = (resolved?.second ?: 0L).coerceAtLeast(0L)
+
+        val proxy = telegramStreamProxy.get()
+        if (!proxy.isReady()) {
+            proxy.start()
+            val ready = proxy.awaitReady(5_000L)
+            if (!ready) {
+                Timber.tag(TAG).w("Telegram stream proxy not ready for watch handoff")
+                return null
+            }
+        }
+        return proxy.getProxyUrl(fileId, knownSize)
+    }
+
+    private suspend fun ensureCloudProxyReady(proxy: Any): Boolean {
+        return when (proxy) {
+            is NeteaseStreamProxy -> {
+                if (!proxy.isReady()) proxy.start()
+                proxy.awaitReady(5_000L)
+            }
+            is QqMusicStreamProxy -> {
+                if (!proxy.isReady()) proxy.start()
+                proxy.awaitReady(5_000L)
+            }
+            is NavidromeStreamProxy -> {
+                if (!proxy.isReady()) proxy.start()
+                proxy.awaitReady(5_000L)
+            }
+            else -> false
+        }
+    }
+
+    private suspend fun ensureGDriveProxyReady(): Boolean {
+        if (gDriveStreamProxy.isReady()) return true
+        gDriveStreamProxy.start()
+        repeat(50) {
+            if (gDriveStreamProxy.isReady()) return true
+            delay(100L)
+        }
+        Timber.tag(TAG).w("GDrive stream proxy not ready for watch handoff")
+        return false
+    }
+
+    private suspend fun openHttpSongSource(url: String): OpenedSongSource? {
+        val response = withContext(Dispatchers.IO) {
+            okHttpClient.newCall(
+                Request.Builder()
+                    .url(url)
+                    .get()
+                    .build()
+            ).execute()
+        }
+        if (!response.isSuccessful) {
+            Timber.tag(TAG).w("Watch handoff stream request failed: code=%d url=%s", response.code, url)
+            response.close()
+            return null
+        }
+
+        val body = response.body
+
+        return OpenedSongSource(
+            inputStream = body.byteStream(),
+            fileSize = body.contentLength().coerceAtLeast(0L),
+            closeable = response,
+        )
     }
 
     private fun resolvePaletteSeedArgb(song: Song): Int? {

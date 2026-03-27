@@ -103,6 +103,8 @@ class WearLocalPlayerRepository @Inject constructor(
     private var currentQueueItemsById: Map<String, WearQueueSong> = emptyMap()
     private var lastPaletteSongId: String = ""
     private var lastArtworkSongId: String = ""
+    private var transientSongIds: Set<String> = emptySet()
+    private var transientCleanupPaths: Set<String> = emptySet()
 
     companion object {
         private const val TAG = "WearLocalPlayer"
@@ -173,7 +175,12 @@ class WearLocalPlayerRepository @Inject constructor(
     /**
      * Start local playback with the given songs, beginning at [startIndex].
      */
-    fun playLocalSongs(songs: List<LocalSongEntity>, startIndex: Int = 0) {
+    fun playLocalSongs(
+        songs: List<LocalSongEntity>,
+        startIndex: Int = 0,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true,
+    ) {
         scope.launch {
             val playableSongs = songs.filter { song ->
                 val file = File(song.localPath)
@@ -197,6 +204,8 @@ class WearLocalPlayerRepository @Inject constructor(
                 queueSongs = queueSongs,
                 queueSongIdToLocal = playableSongs.associateBy { it.songId },
                 startIndex = startIndex,
+                startPositionMs = startPositionMs,
+                autoPlay = autoPlay,
             )
         }
     }
@@ -204,7 +213,12 @@ class WearLocalPlayerRepository @Inject constructor(
     /**
      * Start local playback from watch MediaStore songs.
      */
-    fun playUriSongs(songs: List<WearQueueSong>, startIndex: Int = 0) {
+    fun playUriSongs(
+        songs: List<WearQueueSong>,
+        startIndex: Int = 0,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true,
+    ) {
         scope.launch {
             if (songs.isEmpty()) {
                 Timber.tag(TAG).w("No watch library songs available")
@@ -214,6 +228,43 @@ class WearLocalPlayerRepository @Inject constructor(
                 queueSongs = songs,
                 queueSongIdToLocal = emptyMap(),
                 startIndex = startIndex,
+                startPositionMs = startPositionMs,
+                autoPlay = autoPlay,
+            )
+        }
+    }
+
+    fun playTemporarySong(
+        song: LocalSongEntity,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true,
+        cleanupPaths: Set<String> = emptySet(),
+    ) {
+        scope.launch {
+            val file = File(song.localPath)
+            if (!file.isFile || file.length() <= 0L) {
+                Timber.tag(TAG).w("Temporary playback file missing for songId=%s", song.songId)
+                return@launch
+            }
+
+            startPlayback(
+                queueSongs = listOf(
+                    WearQueueSong(
+                        songId = song.songId,
+                        title = song.title,
+                        artist = song.artist,
+                        album = song.album,
+                        uri = Uri.fromFile(file),
+                    )
+                ),
+                queueSongIdToLocal = mapOf(song.songId to song),
+                startIndex = 0,
+                startPositionMs = startPositionMs,
+                autoPlay = autoPlay,
+                transientSongIds = setOf(song.songId),
+                transientCleanupPaths = cleanupPaths +
+                    setOf(song.localPath) +
+                    listOfNotNull(song.artworkPath),
             )
         }
     }
@@ -222,9 +273,17 @@ class WearLocalPlayerRepository @Inject constructor(
         queueSongs: List<WearQueueSong>,
         queueSongIdToLocal: Map<String, LocalSongEntity>,
         startIndex: Int,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true,
+        transientSongIds: Set<String> = emptySet(),
+        transientCleanupPaths: Set<String> = emptySet(),
     ) {
         withContext(Dispatchers.Main) {
             val player = getOrCreatePlayer()
+            if (this@WearLocalPlayerRepository.transientCleanupPaths.isNotEmpty()) {
+                player.stop()
+            }
+            clearTransientPlaybackArtifacts()
             currentQueueSongIds = queueSongs.map { it.songId }
             val latestSongsById = queueSongIdToLocal.keys.mapNotNull { songId ->
                 localSongDao.getSongById(songId)
@@ -233,6 +292,10 @@ class WearLocalPlayerRepository @Inject constructor(
                 latestSongsById[songId] ?: song
             }
             currentQueueItemsById = queueSongs.associateBy { it.songId }
+            this@WearLocalPlayerRepository.transientSongIds = transientSongIds
+            this@WearLocalPlayerRepository.transientCleanupPaths = transientCleanupPaths
+                .filter { it.isNotBlank() }
+                .toSet()
             lastPaletteSongId = ""
             lastArtworkSongId = ""
             _localThemePalette.value = null
@@ -253,16 +316,25 @@ class WearLocalPlayerRepository @Inject constructor(
                     .build()
             }
             val startIndexSafe = startIndex.coerceIn(0, mediaItems.lastIndex)
-            player.setMediaItems(mediaItems, startIndexSafe, 0L)
+            player.setMediaItems(mediaItems, startIndexSafe, startPositionMs.coerceAtLeast(0L))
             player.prepare()
-            player.play()
+            player.playWhenReady = autoPlay
+            if (autoPlay) {
+                player.play()
+            } else {
+                player.pause()
+            }
             _isLocalPlaybackActive.value = true
             updateQueueState(currentIndex = startIndexSafe)
             updateState()
             Timber.tag(TAG).d(
-                "Playing locally: ${queueSongs.getOrNull(startIndexSafe)?.title}, queue=${queueSongs.size}"
+                "Playing locally: ${queueSongs.getOrNull(startIndexSafe)?.title}, queue=${queueSongs.size}, autoPlay=$autoPlay"
             )
         }
+    }
+
+    fun play() {
+        exoPlayer?.play()
     }
 
     fun togglePlayPause() {
@@ -373,6 +445,7 @@ class WearLocalPlayerRepository @Inject constructor(
         mediaSession = null
         exoPlayer?.release()
         exoPlayer = null
+        clearTransientPlaybackArtifacts()
         _isLocalPlaybackActive.value = false
         _localPlayerState.value = WearLocalPlayerState()
         _localThemePalette.value = null
@@ -400,13 +473,24 @@ class WearLocalPlayerRepository @Inject constructor(
             currentPositionMs = player.currentPosition,
             totalDurationMs = player.duration.coerceAtLeast(0L),
             isFavorite = currentLocalSong?.isFavorite == true,
-            canToggleFavorite = currentLocalSong != null,
+            canToggleFavorite = currentLocalSong != null && currentItem?.mediaId !in transientSongIds,
             isShuffleEnabled = player.shuffleModeEnabled,
             repeatMode = player.repeatMode,
         )
         updateQueueState(currentIndex = player.currentMediaItemIndex)
         updatePaletteForSong(currentItem?.mediaId.orEmpty())
         updateArtworkForSong(currentItem?.mediaId.orEmpty())
+    }
+
+    private fun clearTransientPlaybackArtifacts() {
+        transientCleanupPaths.forEach { path ->
+            runCatching { File(path).delete() }
+                .onFailure { error ->
+                    Timber.tag(TAG).w(error, "Failed to delete transient playback artifact: %s", path)
+                }
+        }
+        transientCleanupPaths = emptySet()
+        transientSongIds = emptySet()
     }
 
     private fun startPositionUpdates() {
