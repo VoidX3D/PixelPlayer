@@ -28,9 +28,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         QqMusicSongEntity::class,
         QqMusicPlaylistEntity::class,
         NavidromeSongEntity::class,
-        NavidromePlaylistEntity::class
+        NavidromePlaylistEntity::class,
+        TelegramTopicEntity::class
     ],
-    version = 31, // Add disc_number to songs table
+         version = 32, // Add Telegram forum topic support
 
     exportSchema = true
 )
@@ -86,7 +87,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
         val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE songs ADD COLUMN album_artist TEXT DEFAULT NULL")
-                
+
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS song_artist_cross_ref (
                         song_id INTEGER NOT NULL,
@@ -97,11 +98,11 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
                     )
                 """.trimIndent())
-                
+
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_song_artist_cross_ref_song_id ON song_artist_cross_ref(song_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_song_artist_cross_ref_artist_id ON song_artist_cross_ref(artist_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_song_artist_cross_ref_is_primary ON song_artist_cross_ref(is_primary)")
-                
+
                 db.execSQL("""
                     INSERT OR REPLACE INTO song_artist_cross_ref (song_id, artist_id, is_primary)
                     SELECT id, artist_id, 1 FROM songs WHERE artist_id IS NOT NULL
@@ -154,7 +155,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 """.trimIndent())
             }
         }
-        
+
         val MIGRATION_15_16 = object : Migration(15, 16) {
              override fun migrate(db: SupportSQLiteDatabase) {
                 // Create song_engagements table for tracking play statistics
@@ -190,7 +191,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
 
                 val themePrefixes = listOf("light_", "dark_")
                 val columnDefinitions = StringBuilder()
-                
+
                 // Add standard columns
                 columnDefinitions.append("albumArtUriString TEXT NOT NULL, ")
                 columnDefinitions.append("paletteStyle TEXT NOT NULL, ")
@@ -208,7 +209,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE IF NOT EXISTS album_art_themes ($columnsSql, PRIMARY KEY(albumArtUriString))")
             }
         }
-        
+
         val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 try {
@@ -244,7 +245,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
 
                 val themePrefixes = listOf("light_", "dark_")
                 val columnDefinitions = StringBuilder()
-                
+
                 // Add standard columns
                 columnDefinitions.append("albumArtUriString TEXT NOT NULL, ")
                 columnDefinitions.append("paletteStyle TEXT NOT NULL, ")
@@ -272,7 +273,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         timestamp INTEGER NOT NULL
                     )
                 """.trimIndent())
-                
+
                 // Migrate existing favorites from songs table if possible
                 // Note: We need to cast is_favorite (boolean/int) to ensure compatibility
                 db.execSQL("""
@@ -1136,5 +1137,28 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id ON navidrome_songs(playlist_id)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_navidrome_songs_playlist_id_date_added ON navidrome_songs(playlist_id, date_added)")
         }
+
+        val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Add thread_id column to telegram_songs
+                db.execSQL("ALTER TABLE telegram_songs ADD COLUMN thread_id INTEGER DEFAULT NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_songs_thread_id ON telegram_songs(thread_id)")
+
+                // 2. Create telegram_topics table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS telegram_topics (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        chat_id INTEGER NOT NULL,
+                        thread_id INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        song_count INTEGER NOT NULL DEFAULT 0,
+                        last_sync_time INTEGER NOT NULL DEFAULT 0,
+                        icon_emoji TEXT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_telegram_topics_chat_id ON telegram_topics(chat_id)")
+            }
+        }
+
     }
 }

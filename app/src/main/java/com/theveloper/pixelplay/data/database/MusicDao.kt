@@ -161,6 +161,15 @@ interface MusicDao {
     """)
     suspend fun getTelegramSongIdsByChatId(chatId: Long): List<Long>
 
+    @Query("""
+        SELECT s.id FROM songs s
+        INNER JOIN telegram_songs ts
+            ON ts.chat_id = s.telegram_chat_id
+            AND ('telegram://' || ts.chat_id || '/' || ts.message_id) = s.content_uri_string
+        WHERE ts.chat_id = :chatId AND ts.thread_id = :threadId
+    """)
+    suspend fun getTelegramSongIdsByTopicId(chatId: Long, threadId: Long): List<Long>
+
     @Query("SELECT id FROM songs WHERE content_uri_string LIKE 'netease://%'")
     suspend fun getAllNeteaseSongIds(): List<Long>
 
@@ -226,6 +235,13 @@ interface MusicDao {
         val telegramSongIds = getTelegramSongIdsByChatId(chatId)
         if (telegramSongIds.isEmpty()) return
         deleteSongsAndRelatedData(telegramSongIds)
+    }
+
+    @Transaction
+    suspend fun clearTelegramSongsForTopic(chatId: Long, threadId: Long) {
+        val songIds = getTelegramSongIdsByTopicId(chatId, threadId)
+        if (songIds.isEmpty()) return
+        deleteSongsAndRelatedData(songIds)
     }
 
     /**
@@ -311,7 +327,7 @@ interface MusicDao {
         """
     )
     suspend fun getSongByIdOnce(songId: Long): SongEntity?
-    
+
     @Query(
         "SELECT " + SONG_DETAIL_PROJECTION + """
         FROM songs
@@ -1238,7 +1254,7 @@ interface MusicDao {
         // Save current cloud songs before clearing to prevent accidental data loss
         // Only clear if we have new songs to insert, or we are explicitly asked to REBUILD everything.
         // We handle this logic at the worker/repository level to be more precise.
-        
+
         clearAllSongArtistCrossRefs()
         clearAllSongs()
         clearAllAlbums()
