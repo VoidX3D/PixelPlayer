@@ -2929,7 +2929,9 @@ fun AlbumGridItemRedesigned(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp)
+                        .height(84.dp)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Center
                 ) {
                     ShimmerBox(
                         modifier = Modifier
@@ -3032,7 +3034,9 @@ fun AlbumGridItemRedesigned(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp)
+                            .height(84.dp)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             album.title,
