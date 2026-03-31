@@ -123,15 +123,6 @@ object AlbumArtUtils {
             return cachedFile.takeIf { it.exists() && it.length() > 0 }
         }
 
-        resolveSongMediaStoreInfo(appContext, songId)?.albumId?.let { albumId ->
-            getMediaStoreAlbumArtUri(appContext, albumId)?.let { mediaStoreUri ->
-                if (copyUriToCache(appContext, mediaStoreUri, cachedFile) != null) {
-                    noArtFile.delete()
-                    return cachedFile
-                }
-            }
-        }
-
         getExternalAlbumArtUri(resolvedPath)?.let { externalUri ->
             if (copyUriToCache(appContext, externalUri, cachedFile) != null) {
                 noArtFile.delete()
@@ -198,12 +189,6 @@ object AlbumArtUtils {
             return true
         }
 
-        val albumId = resolveSongMediaStoreInfo(appContext, songId)?.albumId
-        if (albumId != null && getMediaStoreAlbumArtUri(appContext, albumId) != null) {
-            noArtFile.delete()
-            return true
-        }
-
         if (getExternalAlbumArtUri(filePath) != null) {
             noArtFile.delete()
             return true
@@ -244,7 +229,9 @@ object AlbumArtUtils {
     }
 
     /**
-     * Try MediaStore as last resort
+     * MediaStore's album-art cache can alias unrelated local songs when album metadata is weak or
+     * collapsed into "Unknown Album". Keep this helper available for controlled callers, but do
+     * not use it as an automatic per-song fallback.
      */
     fun getMediaStoreAlbumArtUri(appContext: Context, albumId: Long): Uri? {
         if (albumId <= 0) return null
