@@ -495,6 +495,9 @@ fun FullPlayerContent(
             albumArtQuality = albumArtQuality,
             requestedScrollIndex = pendingCarouselIndex,
             onSongSelected = onAlbumSongSelected,
+            onAlbumClick = { albumSong ->
+                playerViewModel.triggerAlbumNavigationFromPlayer(albumSong.albumId)
+            },
             modifier = modifier
         )
     }
@@ -994,6 +997,7 @@ private fun FullPlayerAlbumCoverSection(
     albumArtQuality: AlbumArtQuality,
     requestedScrollIndex: Int?,
     onSongSelected: (Song) -> Unit,
+    onAlbumClick: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delayAlbumCarousel
@@ -1065,6 +1069,7 @@ private fun FullPlayerAlbumCoverSection(
                         onSongSelected(newSong)
                     }
                 },
+                onAlbumClick = onAlbumClick,
                 carouselStyle = carouselStyle,
                 modifier = Modifier
                     .height(carouselHeight)

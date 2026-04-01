@@ -52,6 +52,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.scoped.PlayerAlbumNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerArtistNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerSheetPredictiveBackHandler
 import com.theveloper.pixelplay.presentation.components.scoped.QueueSheetRuntimeEffects
@@ -227,6 +228,12 @@ fun UnifiedPlayerSheetV2(
     }
 
     PlayerArtistNavigationEffect(
+        navController = navController,
+        sheetCollapsedTargetY = sheetCollapsedTargetY,
+        sheetMotionController = sheetMotionController,
+        playerViewModel = playerViewModel
+    )
+    PlayerAlbumNavigationEffect(
         navController = navController,
         sheetCollapsedTargetY = sheetCollapsedTargetY,
         sheetMotionController = sheetMotionController,

@@ -96,6 +96,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.scoped.PlayerAlbumNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerArtistNavigationEffect
 import com.theveloper.pixelplay.presentation.components.scoped.PlayerSheetPredictiveBackHandler
 import com.theveloper.pixelplay.presentation.components.scoped.QueueSheetRuntimeEffects
@@ -264,6 +265,12 @@ fun UnifiedPlayerSheet(
     }
 
     PlayerArtistNavigationEffect(
+        navController = navController,
+        sheetCollapsedTargetY = sheetCollapsedTargetY,
+        sheetMotionController = sheetMotionController,
+        playerViewModel = playerViewModel
+    )
+    PlayerAlbumNavigationEffect(
         navController = navController,
         sheetCollapsedTargetY = sheetCollapsedTargetY,
         sheetMotionController = sheetMotionController,

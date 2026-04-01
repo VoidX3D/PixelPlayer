@@ -529,6 +529,8 @@ class PlayerViewModel @Inject constructor(
     )
     val toastEvents = _toastEvents.asSharedFlow()
 
+    private val _albumNavigationRequests = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val albumNavigationRequests = _albumNavigationRequests.asSharedFlow()
     private val _artistNavigationRequests = MutableSharedFlow<Long>(extraBufferCapacity = 1)
     val artistNavigationRequests = _artistNavigationRequests.asSharedFlow()
     private val _searchNavDoubleTapEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -538,6 +540,7 @@ class PlayerViewModel @Inject constructor(
     private val _scrollToIndexEvent = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     val scrollToIndexEvent = _scrollToIndexEvent.asSharedFlow()
     
+    private var albumNavigationJob: Job? = null
     private var artistNavigationJob: Job? = null
     private var fullQueuePlaybackJob: Job? = null
     private var fullQueuePlaybackToken: Long = 0L
@@ -2037,6 +2040,36 @@ class PlayerViewModel @Inject constructor(
         _sheetState.value = PlayerSheetState.COLLAPSED
         if (resetPredictiveState) {
             resetPredictiveBackState()
+        }
+    }
+
+    fun triggerAlbumNavigationFromPlayer(albumId: Long) {
+        if (albumId <= 0) {
+            Log.d("AlbumDebug", "triggerAlbumNavigationFromPlayer ignored invalid albumId=$albumId")
+            return
+        }
+
+        val existingJob = albumNavigationJob
+        if (existingJob != null && existingJob.isActive) {
+            Log.d("AlbumDebug", "triggerAlbumNavigationFromPlayer ignored; navigation already in progress for albumId=$albumId")
+            return
+        }
+
+        albumNavigationJob?.cancel()
+        albumNavigationJob = viewModelScope.launch {
+            val currentSong = playbackStateHolder.stablePlayerState.value.currentSong
+            Log.d(
+                "AlbumDebug",
+                "triggerAlbumNavigationFromPlayer: albumId=$albumId, songId=${currentSong?.id}, title=${currentSong?.title}"
+            )
+            collapsePlayerSheet()
+
+            withTimeoutOrNull(900) {
+                awaitSheetState(PlayerSheetState.COLLAPSED)
+                awaitPlayerCollapse()
+            }
+
+            _albumNavigationRequests.emit(albumId)
         }
     }
 
