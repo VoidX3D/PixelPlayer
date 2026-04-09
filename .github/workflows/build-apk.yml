@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android Release
 
 on:
   push:
@@ -13,17 +13,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK components
         run: |
@@ -31,22 +31,33 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Phone debug APK
-        run: ./gradlew :app:assembleDebug
+      - name: Build Phone release APK and AAB
+        run: ./gradlew :app:assembleRelease :app:bundleRelease
 
-      - name: Build Wear OS debug APK
-        run: ./gradlew :wear:assembleDebug
+      - name: Generate Dynamic Keystore
+        run: |
+          keytool -genkey -v -keystore release.keystore -alias releaseAlias -keyalg RSA -keysize 2048 -validity 10000 -storepass pixelplayerkey -keypass pixelplayerkey -dname "CN=PixelPlayer, OU=Android, O=OpenSource, L=World, ST=Earth, C=US"
 
-      - name: Upload Phone APK artifact
-        uses: actions/upload-artifact@v7
+      - name: Sign APK and AAB
+        run: |
+          # Sign APK
+          $ANDROID_HOME/build-tools/35.0.0/apksigner sign --ks release.keystore --ks-key-alias releaseAlias --ks-pass pass:pixelplayerkey --key-pass pass:pixelplayerkey app/build/outputs/apk/release/app-release-unsigned.apk
+          # Rename for output
+          mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release.apk
+          
+          # Sign AAB using jarsigner
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore release.keystore -storepass pixelplayerkey -keypass pixelplayerkey app/build/outputs/bundle/release/app-release.aab releaseAlias
+
+      - name: Upload Phone Signed Release APK
+        uses: actions/upload-artifact@v4
         with:
-          name: PixelPlay-phone-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: PixelPlay-phone-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
 
-      - name: Upload Wear OS APK artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload Phone Signed Release AAB
+        uses: actions/upload-artifact@v4
         with:
-          name: PixelPlay-wear-debug-apk
-          path: wear/build/outputs/apk/debug/wear-debug.apk
+          name: PixelPlay-phone-release-aab
+          path: app/build/outputs/bundle/release/app-release.aab

@@ -179,18 +179,28 @@ class SettingsViewModel @Inject constructor(
 
     val deepseekSystemPrompt: StateFlow<String> = aiPreferencesRepository.deepseekSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT)
+
+    val groqApiKey: StateFlow<String> = aiPreferencesRepository.groqApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val groqModel: StateFlow<String> = aiPreferencesRepository.groqModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val groqSystemPrompt: StateFlow<String> = aiPreferencesRepository.groqSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_GROQ_SYSTEM_PROMPT)
+
+    val mistralApiKey: StateFlow<String> = aiPreferencesRepository.mistralApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val mistralModel: StateFlow<String> = aiPreferencesRepository.mistralModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val mistralSystemPrompt: StateFlow<String> = aiPreferencesRepository.mistralSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_MISTRAL_SYSTEM_PROMPT)
     
     // AI Provider Settings
     val aiProvider: StateFlow<String> = aiPreferencesRepository.aiProvider
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "GEMINI")
-    
-    val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    
-    val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    private val fileExplorerStateHolder = FileExplorerStateHolder(userPreferencesRepository, viewModelScope, context)
 
     val currentPath = fileExplorerStateHolder.currentPath
     val currentDirectoryChildren = fileExplorerStateHolder.currentDirectoryChildren
@@ -788,6 +798,8 @@ class SettingsViewModel @Inject constructor(
             val apiKey = when (provider) {
                 "GEMINI" -> geminiApiKey.value
                 "DEEPSEEK" -> deepseekApiKey.value
+                "GROQ" -> groqApiKey.value
+                "MISTRAL" -> mistralApiKey.value
                 else -> ""
             }
 
@@ -797,6 +809,80 @@ class SettingsViewModel @Inject constructor(
                     modelsFetchError = null
                 )
             }
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, provider)
+        }
+    }
+
+    fun onDeepseekApiKeyChange(apiKey: String) {
+        viewModelScope.launch { aiPreferencesRepository.setDeepseekApiKey(apiKey) }
+    }
+
+    fun onGroqApiKeyChange(apiKey: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGroqApiKey(apiKey) }
+    }
+
+    fun onMistralApiKeyChange(apiKey: String) {
+        viewModelScope.launch { aiPreferencesRepository.setMistralApiKey(apiKey) }
+    }
+
+    fun onDeepseekModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setDeepseekModel(model) }
+    }
+
+    fun onGroqModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGroqModel(model) }
+    }
+
+    fun onMistralModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setMistralModel(model) }
+    }
+
+    fun onGeminiModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGeminiModel(model) }
+    }
+
+    fun onDeepseekSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setDeepseekSystemPrompt(prompt) }
+    }
+
+    fun onGroqSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGroqSystemPrompt(prompt) }
+    }
+
+    fun onMistralSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setMistralSystemPrompt(prompt) }
+    }
+
+    fun onGeminiSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGeminiSystemPrompt(prompt) }
+    }
+
+    fun resetDeepseekSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetDeepseekSystemPrompt() }
+    }
+
+    fun resetGroqSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetGroqSystemPrompt() }
+    }
+
+    fun resetMistralSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetMistralSystemPrompt() }
+    }
+
+    private fun fetchAvailableModels(apiKey: String, providerName: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
+            try {
+                val provider = AiProvider.fromString(providerName)
+                val aiClient = aiClientFactory.createClient(provider, apiKey)
+                val modelStrings = aiClient.getAvailableModels(apiKey)
+                val models = modelStrings.map { GeminiModel(it, it) }
+                _uiState.update { it.copy(availableModels = models, isLoadingModels = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoadingModels = false, modelsFetchError = e.message ?: "Failed to load") }
+            }
+        }
+    }
 
             if (apiKey.isNotBlank()) {
                 fetchAvailableModels(apiKey, provider)

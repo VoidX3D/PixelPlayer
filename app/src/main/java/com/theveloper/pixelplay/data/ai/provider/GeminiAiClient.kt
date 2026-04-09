@@ -17,9 +17,12 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
         Client.builder().apiKey(apiKey).build()
     }
     
-    override suspend fun generateContent(model: String, prompt: String): String {
+    override suspend fun generateContent(model: String, systemPrompt: String, prompt: String): String {
         return withContext(Dispatchers.IO) {
-            val response = client.models.generateContent(model, prompt, null)
+            val config = com.google.genai.models.GenerateContentConfig.builder()
+                .systemInstruction(systemPrompt)
+                .build()
+            val response = client.models.generateContent(model, prompt, config)
             response.text() ?: throw Exception("Gemini returned an empty response")
         }
     }

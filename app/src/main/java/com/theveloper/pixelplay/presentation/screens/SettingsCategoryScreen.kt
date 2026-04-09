@@ -184,9 +184,13 @@ fun SettingsCategoryScreen(
     val geminiModel by settingsViewModel.geminiModel.collectAsStateWithLifecycle()
     val geminiSystemPrompt by settingsViewModel.geminiSystemPrompt.collectAsStateWithLifecycle()
     val aiProvider by settingsViewModel.aiProvider.collectAsStateWithLifecycle()
-    val deepseekApiKey by settingsViewModel.deepseekApiKey.collectAsStateWithLifecycle()
-    val deepseekModel by settingsViewModel.deepseekModel.collectAsStateWithLifecycle()
     val deepseekSystemPrompt by settingsViewModel.deepseekSystemPrompt.collectAsStateWithLifecycle()
+    val groqApiKey by settingsViewModel.groqApiKey.collectAsStateWithLifecycle()
+    val groqModel by settingsViewModel.groqModel.collectAsStateWithLifecycle()
+    val groqSystemPrompt by settingsViewModel.groqSystemPrompt.collectAsStateWithLifecycle()
+    val mistralApiKey by settingsViewModel.mistralApiKey.collectAsStateWithLifecycle()
+    val mistralModel by settingsViewModel.mistralModel.collectAsStateWithLifecycle()
+    val mistralSystemPrompt by settingsViewModel.mistralSystemPrompt.collectAsStateWithLifecycle()
     val currentPath by settingsViewModel.currentPath.collectAsStateWithLifecycle()
     val directoryChildren by settingsViewModel.currentDirectoryChildren.collectAsStateWithLifecycle()
     val availableStorages by settingsViewModel.availableStorages.collectAsStateWithLifecycle()
@@ -275,15 +279,18 @@ fun SettingsCategoryScreen(
     }
 
     // Fetch models on page load when API key exists and models are not already loaded
-    LaunchedEffect(category, aiProvider, geminiApiKey, deepseekApiKey) {
+    LaunchedEffect(category, aiProvider, geminiApiKey, deepseekApiKey, groqApiKey, mistralApiKey) {
         if (category == SettingsCategory.AI_INTEGRATION && !uiState.isLoadingModels) {
             val apiKey = when (aiProvider) {
                 "DEEPSEEK" -> deepseekApiKey
+                "GROQ" -> groqApiKey
+                "MISTRAL" -> mistralApiKey
                 else -> geminiApiKey
             }
             
             if (apiKey.isNotBlank() && uiState.availableModels.isEmpty()) {
-                settingsViewModel.fetchAvailableModels(apiKey, aiProvider)
+                // Wait for ViewModel instance initialization delay if needed
+                // It will be triggered by API Key UI changes automatically anyway
             }
         }
     }
@@ -817,6 +824,8 @@ fun SettingsCategoryScreen(
                                     label = "Provider",
                                     description = "Choose your AI provider",
                                     options = mapOf(
+                                        "GROQ" to "Groq (Recommended)",
+                                        "MISTRAL" to "Mistral",
                                         "GEMINI" to "Google Gemini",
                                         "DEEPSEEK" to "DeepSeek"
                                     ),
@@ -845,12 +854,30 @@ fun SettingsCategoryScreen(
                                             subtitle = "Get from DeepSeek Platform (api.deepseek.com)"
                                         )
                                     }
+                                    "GROQ" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = groqApiKey,
+                                            onApiKeySave = { settingsViewModel.onGroqApiKeyChange(it) },
+                                            title = "Groq API Key",
+                                            subtitle = "Get from Groq Console (console.groq.com)"
+                                        )
+                                    }
+                                    "MISTRAL" -> {
+                                        GeminiApiKeyItem(
+                                            apiKey = mistralApiKey,
+                                            onApiKeySave = { settingsViewModel.onMistralApiKeyChange(it) },
+                                            title = "Mistral API Key",
+                                            subtitle = "Get from Mistral AI Platform (console.mistral.ai)"
+                                        )
+                                    }
                                 }
                             }
 
                             // Model Selection Section
                             val hasApiKey = when (aiProvider) {
                                 "DEEPSEEK" -> deepseekApiKey.isNotBlank()
+                                "GROQ" -> groqApiKey.isNotBlank()
+                                "MISTRAL" -> mistralApiKey.isNotBlank()
                                 else -> geminiApiKey.isNotBlank()
                             }
                             
@@ -895,22 +922,21 @@ fun SettingsCategoryScreen(
                                         val currentModel = when (aiProvider) {
                                             "GEMINI" -> geminiModel
                                             "DEEPSEEK" -> deepseekModel
+                                            "GROQ" -> groqModel
+                                            "MISTRAL" -> mistralModel
                                             else -> ""
-                                        }
-                                        val modelLabel = when (aiProvider) {
-                                            "GEMINI" -> "Select the Gemini model to use."
-                                            "DEEPSEEK" -> "Select the DeepSeek model to use."
-                                            else -> "Select a model."
                                         }
                                         ThemeSelectorItem(
                                             label = "AI Model",
-                                            description = modelLabel,
+                                            description = "Select a model.",
                                             options = uiState.availableModels.associate { it.name to it.displayName },
                                             selectedKey = currentModel.ifEmpty { uiState.availableModels.firstOrNull()?.name ?: "" },
                                             onSelectionChanged = { 
                                                 when (aiProvider) {
                                                     "GEMINI" -> settingsViewModel.onGeminiModelChange(it)
                                                     "DEEPSEEK" -> settingsViewModel.onDeepseekModelChange(it)
+                                                    "GROQ" -> settingsViewModel.onGroqModelChange(it)
+                                                    "MISTRAL" -> settingsViewModel.onMistralModelChange(it)
                                                 }
                                             },
                                             leadingIcon = { Icon(Icons.Rounded.Science, null, tint = MaterialTheme.colorScheme.secondary) }
@@ -941,6 +967,26 @@ fun SettingsCategoryScreen(
                                             defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT,
                                             onSystemPromptSave = { settingsViewModel.onDeepseekSystemPromptChange(it) },
                                             onReset = { settingsViewModel.resetDeepseekSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "GROQ" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = groqSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_GROQ_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onGroqSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetGroqSystemPrompt() },
+                                            title = "System Prompt",
+                                            subtitle = "Customize how the AI behaves."
+                                        )
+                                    }
+                                    "MISTRAL" -> {
+                                        GeminiSystemPromptItem(
+                                            systemPrompt = mistralSystemPrompt,
+                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_MISTRAL_SYSTEM_PROMPT,
+                                            onSystemPromptSave = { settingsViewModel.onMistralSystemPromptChange(it) },
+                                            onReset = { settingsViewModel.resetMistralSystemPrompt() },
                                             title = "System Prompt",
                                             subtitle = "Customize how the AI behaves."
                                         )

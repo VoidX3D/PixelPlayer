@@ -18,6 +18,10 @@ class AiPreferencesRepository @Inject constructor(
             "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
         const val DEFAULT_DEEPSEEK_SYSTEM_PROMPT =
             "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
+        const val DEFAULT_GROQ_SYSTEM_PROMPT =
+            "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
+        const val DEFAULT_MISTRAL_SYSTEM_PROMPT =
+            "You are a helpful AI assistant integrated into a music player app. You help users create perfect playlists based on their request."
     }
 
     private object Keys {
@@ -28,6 +32,14 @@ class AiPreferencesRepository @Inject constructor(
         val DEEPSEEK_API_KEY = stringPreferencesKey("deepseek_api_key")
         val DEEPSEEK_MODEL = stringPreferencesKey("deepseek_model")
         val DEEPSEEK_SYSTEM_PROMPT = stringPreferencesKey("deepseek_system_prompt")
+        
+        val GROQ_API_KEY = stringPreferencesKey("groq_api_key")
+        val GROQ_MODEL = stringPreferencesKey("groq_model")
+        val GROQ_SYSTEM_PROMPT = stringPreferencesKey("groq_system_prompt")
+        
+        val MISTRAL_API_KEY = stringPreferencesKey("mistral_api_key")
+        val MISTRAL_MODEL = stringPreferencesKey("mistral_model")
+        val MISTRAL_SYSTEM_PROMPT = stringPreferencesKey("mistral_system_prompt")
     }
 
     val geminiApiKey: Flow<String> =
@@ -53,6 +65,28 @@ class AiPreferencesRepository @Inject constructor(
     val deepseekSystemPrompt: Flow<String> =
         dataStore.data.map { preferences ->
             preferences[Keys.DEEPSEEK_SYSTEM_PROMPT] ?: DEFAULT_DEEPSEEK_SYSTEM_PROMPT
+        }
+
+    val groqApiKey: Flow<String> =
+        dataStore.data.map { preferences -> preferences[Keys.GROQ_API_KEY] ?: "" }
+
+    val groqModel: Flow<String> =
+        dataStore.data.map { preferences -> preferences[Keys.GROQ_MODEL] ?: "" }
+
+    val groqSystemPrompt: Flow<String> =
+        dataStore.data.map { preferences ->
+            preferences[Keys.GROQ_SYSTEM_PROMPT] ?: DEFAULT_GROQ_SYSTEM_PROMPT
+        }
+
+    val mistralApiKey: Flow<String> =
+        dataStore.data.map { preferences -> preferences[Keys.MISTRAL_API_KEY] ?: "" }
+
+    val mistralModel: Flow<String> =
+        dataStore.data.map { preferences -> preferences[Keys.MISTRAL_MODEL] ?: "" }
+
+    val mistralSystemPrompt: Flow<String> =
+        dataStore.data.map { preferences ->
+            preferences[Keys.MISTRAL_SYSTEM_PROMPT] ?: DEFAULT_MISTRAL_SYSTEM_PROMPT
         }
 
     suspend fun setGeminiApiKey(apiKey: String) {
@@ -92,6 +126,42 @@ class AiPreferencesRepository @Inject constructor(
     suspend fun resetDeepseekSystemPrompt() {
         dataStore.edit { preferences ->
             preferences[Keys.DEEPSEEK_SYSTEM_PROMPT] = DEFAULT_DEEPSEEK_SYSTEM_PROMPT
+        }
+    }
+
+    suspend fun setGroqApiKey(apiKey: String) {
+        dataStore.edit { preferences -> preferences[Keys.GROQ_API_KEY] = apiKey }
+    }
+
+    suspend fun setGroqModel(model: String) {
+        dataStore.edit { preferences -> preferences[Keys.GROQ_MODEL] = model }
+    }
+
+    suspend fun setGroqSystemPrompt(prompt: String) {
+        dataStore.edit { preferences -> preferences[Keys.GROQ_SYSTEM_PROMPT] = prompt }
+    }
+
+    suspend fun resetGroqSystemPrompt() {
+        dataStore.edit { preferences ->
+            preferences[Keys.GROQ_SYSTEM_PROMPT] = DEFAULT_GROQ_SYSTEM_PROMPT
+        }
+    }
+
+    suspend fun setMistralApiKey(apiKey: String) {
+        dataStore.edit { preferences -> preferences[Keys.MISTRAL_API_KEY] = apiKey }
+    }
+
+    suspend fun setMistralModel(model: String) {
+        dataStore.edit { preferences -> preferences[Keys.MISTRAL_MODEL] = model }
+    }
+
+    suspend fun setMistralSystemPrompt(prompt: String) {
+        dataStore.edit { preferences -> preferences[Keys.MISTRAL_SYSTEM_PROMPT] = prompt }
+    }
+
+    suspend fun resetMistralSystemPrompt() {
+        dataStore.edit { preferences ->
+            preferences[Keys.MISTRAL_SYSTEM_PROMPT] = DEFAULT_MISTRAL_SYSTEM_PROMPT
         }
     }
 }
