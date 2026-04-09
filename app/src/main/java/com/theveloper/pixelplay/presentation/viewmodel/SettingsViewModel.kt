@@ -770,31 +770,19 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onGeminiApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setGeminiApiKey(apiKey)
-
-            // Fetch models when API key changes and is not empty
-            if (apiKey.isNotBlank()) {
-                fetchAvailableModels(apiKey, "GEMINI")
-            } else {
-                // Clear models if API key is empty
-                _uiState.update {
-                    it.copy(
-                        availableModels = emptyList(),
-                        modelsFetchError = null
-                    )
-                }
-                aiPreferencesRepository.setGeminiModel("")
-            }
-        }
-    }
-    
     fun onAiProviderChange(provider: String) {
         viewModelScope.launch {
             aiPreferencesRepository.setAiProvider(provider)
 
-            // Fetch models for the selected provider
+            // Update UI immediately
+            _uiState.update {
+                it.copy(
+                    availableModels = emptyList(),
+                    modelsFetchError = null
+                )
+            }
+
+            // Fetch models for the newly selected provider if we have an API key
             val apiKey = when (provider) {
                 "GEMINI" -> geminiApiKey.value
                 "DEEPSEEK" -> deepseekApiKey.value
@@ -803,70 +791,59 @@ class SettingsViewModel @Inject constructor(
                 else -> ""
             }
 
-            _uiState.update {
-                it.copy(
-                    availableModels = emptyList(),
-                    modelsFetchError = null
-                )
+            if (apiKey.isNotBlank()) {
+                fetchAvailableModels(apiKey, provider)
             }
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, provider)
+        }
+    }
+
+    fun onGeminiApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setGeminiApiKey(apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GEMINI")
+            else clearModelsState("GEMINI")
         }
     }
 
     fun onDeepseekApiKeyChange(apiKey: String) {
-        viewModelScope.launch { aiPreferencesRepository.setDeepseekApiKey(apiKey) }
+        viewModelScope.launch {
+            aiPreferencesRepository.setDeepseekApiKey(apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "DEEPSEEK")
+            else clearModelsState("DEEPSEEK")
+        }
     }
 
     fun onGroqApiKeyChange(apiKey: String) {
-        viewModelScope.launch { aiPreferencesRepository.setGroqApiKey(apiKey) }
+        viewModelScope.launch {
+            aiPreferencesRepository.setGroqApiKey(apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GROQ")
+            else clearModelsState("GROQ")
+        }
     }
 
     fun onMistralApiKeyChange(apiKey: String) {
-        viewModelScope.launch { aiPreferencesRepository.setMistralApiKey(apiKey) }
+        viewModelScope.launch {
+            aiPreferencesRepository.setMistralApiKey(apiKey)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "MISTRAL")
+            else clearModelsState("MISTRAL")
+        }
     }
 
-    fun onDeepseekModelChange(model: String) {
-        viewModelScope.launch { aiPreferencesRepository.setDeepseekModel(model) }
-    }
-
-    fun onGroqModelChange(model: String) {
-        viewModelScope.launch { aiPreferencesRepository.setGroqModel(model) }
-    }
-
-    fun onMistralModelChange(model: String) {
-        viewModelScope.launch { aiPreferencesRepository.setMistralModel(model) }
-    }
-
-    fun onGeminiModelChange(model: String) {
-        viewModelScope.launch { aiPreferencesRepository.setGeminiModel(model) }
-    }
-
-    fun onDeepseekSystemPromptChange(prompt: String) {
-        viewModelScope.launch { aiPreferencesRepository.setDeepseekSystemPrompt(prompt) }
-    }
-
-    fun onGroqSystemPromptChange(prompt: String) {
-        viewModelScope.launch { aiPreferencesRepository.setGroqSystemPrompt(prompt) }
-    }
-
-    fun onMistralSystemPromptChange(prompt: String) {
-        viewModelScope.launch { aiPreferencesRepository.setMistralSystemPrompt(prompt) }
-    }
-
-    fun onGeminiSystemPromptChange(prompt: String) {
-        viewModelScope.launch { aiPreferencesRepository.setGeminiSystemPrompt(prompt) }
-    }
-
-    fun resetDeepseekSystemPrompt() {
-        viewModelScope.launch { aiPreferencesRepository.resetDeepseekSystemPrompt() }
-    }
-
-    fun resetGroqSystemPrompt() {
-        viewModelScope.launch { aiPreferencesRepository.resetGroqSystemPrompt() }
-    }
-
-    fun resetMistralSystemPrompt() {
-        viewModelScope.launch { aiPreferencesRepository.resetMistralSystemPrompt() }
+    private fun clearModelsState(provider: String) {
+        _uiState.update {
+            it.copy(
+                availableModels = emptyList(),
+                modelsFetchError = null
+            )
+        }
+        viewModelScope.launch {
+            when (provider) {
+                "GEMINI" -> aiPreferencesRepository.setGeminiModel("")
+                "DEEPSEEK" -> aiPreferencesRepository.setDeepseekModel("")
+                "GROQ" -> aiPreferencesRepository.setGroqModel("")
+                "MISTRAL" -> aiPreferencesRepository.setMistralModel("")
+            }
+        }
     }
 
     private fun fetchAvailableModels(apiKey: String, providerName: String) {
@@ -876,98 +853,36 @@ class SettingsViewModel @Inject constructor(
                 val provider = AiProvider.fromString(providerName)
                 val aiClient = aiClientFactory.createClient(provider, apiKey)
                 val modelStrings = aiClient.getAvailableModels(apiKey)
-                val models = modelStrings.map { GeminiModel(it, it) }
-                _uiState.update { it.copy(availableModels = models, isLoadingModels = false) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoadingModels = false, modelsFetchError = e.message ?: "Failed to load") }
-            }
-        }
-    }
-
-            if (apiKey.isNotBlank()) {
-                fetchAvailableModels(apiKey, provider)
-            }
-        }
-    }
-    
-    fun onDeepseekApiKeyChange(apiKey: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setDeepseekApiKey(apiKey)
-            
-            // Fetch models when API key changes and is not empty
-            if (apiKey.isNotBlank() && aiProvider.value == "DEEPSEEK") {
-                fetchAvailableModels(apiKey, "DEEPSEEK")
-            } else if (apiKey.isBlank()) {
-                // Clear models if API key is empty
-                _uiState.update {
+                val models = modelStrings.map { GeminiModel(it, formatModelDisplayName(it)) }
+                
+                _uiState.update { 
                     it.copy(
-                        availableModels = emptyList(),
-                        modelsFetchError = null
-                    )
-                }
-                aiPreferencesRepository.setDeepseekModel("")
-            }
-        }
-    }
-    
-    fun onDeepseekModelChange(model: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setDeepseekModel(model)
-        }
-    }
-
-    fun onDeepseekSystemPromptChange(prompt: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setDeepseekSystemPrompt(prompt)
-        }
-    }
-
-    fun resetDeepseekSystemPrompt() {
-        viewModelScope.launch {
-            aiPreferencesRepository.resetDeepseekSystemPrompt()
-        }
-    }
-
-    fun fetchAvailableModels(apiKey: String, providerName: String = aiProvider.value) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
-
-            val result = runCatching {
-                val provider = AiProvider.fromString(providerName)
-                val client = aiClientFactory.createClient(provider, apiKey)
-                client.getAvailableModels(apiKey).map { modelName ->
-                    GeminiModel(name = modelName, displayName = formatModelDisplayName(modelName))
-                }
-            }
-
-            result.onSuccess { rawModels ->
-                val models = rawModels.distinctBy { it.name }
-                _uiState.update {
-                    it.copy(
-                        availableModels = models,
+                        availableModels = models, 
                         isLoadingModels = false,
                         modelsFetchError = null
-                    )
+                    ) 
                 }
 
-                // Auto-select first model if none is selected
+                // Auto-select first model if nothing is selected yet
                 val currentModel = when (providerName) {
-                    "DEEPSEEK" -> aiPreferencesRepository.deepseekModel.first()
-                    else -> aiPreferencesRepository.geminiModel.first()
+                    "GEMINI" -> geminiModel.value
+                    "DEEPSEEK" -> deepseekModel.value
+                    "GROQ" -> groqModel.value
+                    "MISTRAL" -> mistralModel.value
+                    else -> ""
                 }
-                if (currentModel.isEmpty() && models.isNotEmpty()) {
+                
+                if (currentModel.isBlank() && models.isNotEmpty()) {
+                    val firstModel = models.first().name
                     when (providerName) {
-                        "DEEPSEEK" -> aiPreferencesRepository.setDeepseekModel(models.first().name)
-                        else -> aiPreferencesRepository.setGeminiModel(models.first().name)
+                        "GEMINI" -> aiPreferencesRepository.setGeminiModel(firstModel)
+                        "DEEPSEEK" -> aiPreferencesRepository.setDeepseekModel(firstModel)
+                        "GROQ" -> aiPreferencesRepository.setGroqModel(firstModel)
+                        "MISTRAL" -> aiPreferencesRepository.setMistralModel(firstModel)
                     }
                 }
-            }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isLoadingModels = false,
-                        modelsFetchError = error.message ?: "Failed to fetch models"
-                    )
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoadingModels = false, modelsFetchError = e.message ?: "Failed to load models") }
             }
         }
     }
@@ -984,32 +899,61 @@ class SettingsViewModel @Inject constructor(
             }
     }
 
-    fun onGeminiModelChange(modelName: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setGeminiModel(modelName)
-        }
+    private val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    private val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")    fun onGeminiModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGeminiModel(model) }
     }
 
-    fun setNavBarCornerRadius(radius: Int) {
-        viewModelScope.launch {
-            userPreferencesRepository.setNavBarCornerRadius(radius)
-        }
+    fun onDeepseekModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setDeepseekModel(model) }
+    }
+
+    fun onGroqModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGroqModel(model) }
+    }
+
+    fun onMistralModelChange(model: String) {
+        viewModelScope.launch { aiPreferencesRepository.setMistralModel(model) }
     }
 
     fun onGeminiSystemPromptChange(prompt: String) {
-        viewModelScope.launch {
-            aiPreferencesRepository.setGeminiSystemPrompt(prompt)
-        }
+        viewModelScope.launch { aiPreferencesRepository.setGeminiSystemPrompt(prompt) }
+    }
+
+    fun onDeepseekSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setDeepseekSystemPrompt(prompt) }
+    }
+
+    fun onGroqSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setGroqSystemPrompt(prompt) }
+    }
+
+    fun onMistralSystemPromptChange(prompt: String) {
+        viewModelScope.launch { aiPreferencesRepository.setMistralSystemPrompt(prompt) }
     }
 
     fun resetGeminiSystemPrompt() {
-        viewModelScope.launch {
-            aiPreferencesRepository.resetGeminiSystemPrompt()
-        }
+        viewModelScope.launch { aiPreferencesRepository.resetGeminiSystemPrompt() }
     }
 
+    fun resetDeepseekSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetDeepseekSystemPrompt() }
+    }
 
+    fun resetGroqSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetGroqSystemPrompt() }
+    }
 
+    fun resetMistralSystemPrompt() {
+        viewModelScope.launch { aiPreferencesRepository.resetMistralSystemPrompt() }
+    }
+
+    fun setNavBarCornerRadius(radius: Int) {
+        viewModelScope.launch { userPreferencesRepository.setNavBarCornerRadius(radius) }
+    }
     /**
      * Triggers a test crash to verify the crash handler is working correctly.
      * This should only be used for testing in Developer Options.

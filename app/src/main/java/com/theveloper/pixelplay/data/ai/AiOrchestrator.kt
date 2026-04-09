@@ -16,6 +16,10 @@ class AiOrchestrator @Inject constructor(
     private val clientFactory: AiClientFactory,
     private val cacheDao: AiCacheDao
 ) {
+    // Cooldown timer: Provider -> Expiry Timestamp
+    private val providerCooldowns = mutableMapOf<AiProvider, Long>()
+    private val COOLDOWN_DURATION_MS = 1000L * 60 * 5 // 5 minutes
+
     private fun String.sha256(): String {
         return MessageDigest.getInstance("SHA-256")
             .digest(this.toByteArray())
@@ -72,8 +76,13 @@ class AiOrchestrator @Inject constructor(
         if (userProvider != AiProvider.DEEPSEEK) providersToTry.add(AiProvider.DEEPSEEK)
         
         var lastException: Exception? = null
+        val now = System.currentTimeMillis()
         
         for (provider in providersToTry) {
+            // Skip if in cooldown
+            val cooldownExpiry = providerCooldowns[provider] ?: 0L
+            if (now < cooldownExpiry) continue
+
             try {
                 val apiKey = getApiKey(provider)
                 if (apiKey.isBlank()) continue
@@ -92,6 +101,8 @@ class AiOrchestrator @Inject constructor(
                 return response
             } catch (e: Exception) {
                 lastException = e
+                // Trigger cooldown on critical failures (auth, network)
+                providerCooldowns[provider] = now + COOLDOWN_DURATION_MS
             }
         }
         
