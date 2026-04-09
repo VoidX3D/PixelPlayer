@@ -546,6 +546,44 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         timestamp INTEGER NOT NULL
                     )
                 """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `jellyfin_songs` (
+                        `id` TEXT NOT NULL,
+                        `jellyfin_id` TEXT NOT NULL,
+                        `playlist_id` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `artist` TEXT NOT NULL,
+                        `artist_id` TEXT,
+                        `album` TEXT NOT NULL,
+                        `album_id` TEXT,
+                        `duration` INTEGER NOT NULL,
+                        `track_number` INTEGER NOT NULL,
+                        `disc_number` INTEGER NOT NULL,
+                        `year` INTEGER NOT NULL,
+                        `genre` TEXT,
+                        `bitRate` INTEGER,
+                        `mime_type` TEXT,
+                        `path` TEXT NOT NULL,
+                        `date_added` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_jellyfin_id` ON `jellyfin_songs` (`jellyfin_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_playlist_id` ON `jellyfin_songs` (`playlist_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_playlist_id_date_added` ON `jellyfin_songs` (`playlist_id`, `date_added`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `jellyfin_playlists` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `song_count` INTEGER NOT NULL,
+                        `duration` INTEGER NOT NULL,
+                        `last_sync_time` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
             }
         }
 
@@ -1298,48 +1336,6 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 createSongsSearchVirtualTable(db)
                 installSongsSearchSyncTriggers(db)
                 rebuildSongsSearchIndex(db)
-            }
-        }
-
-        val MIGRATION_36_37 = object : Migration(36, 37) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS `jellyfin_songs` (
-                        `id` TEXT NOT NULL,
-                        `jellyfin_id` TEXT NOT NULL,
-                        `playlist_id` TEXT NOT NULL,
-                        `title` TEXT NOT NULL,
-                        `artist` TEXT NOT NULL,
-                        `artist_id` TEXT,
-                        `album` TEXT NOT NULL,
-                        `album_id` TEXT,
-                        `duration` INTEGER NOT NULL,
-                        `track_number` INTEGER NOT NULL,
-                        `disc_number` INTEGER NOT NULL,
-                        `year` INTEGER NOT NULL,
-                        `genre` TEXT,
-                        `bitRate` INTEGER,
-                        `mime_type` TEXT,
-                        `path` TEXT NOT NULL,
-                        `date_added` INTEGER NOT NULL,
-                        PRIMARY KEY(`id`)
-                    )
-                """.trimIndent())
-
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_jellyfin_id` ON `jellyfin_songs` (`jellyfin_id`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_playlist_id` ON `jellyfin_songs` (`playlist_id`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_jellyfin_songs_playlist_id_date_added` ON `jellyfin_songs` (`playlist_id`, `date_added`)")
-
-                db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS `jellyfin_playlists` (
-                        `id` TEXT NOT NULL,
-                        `name` TEXT NOT NULL,
-                        `song_count` INTEGER NOT NULL,
-                        `duration` INTEGER NOT NULL,
-                        `last_sync_time` INTEGER NOT NULL,
-                        PRIMARY KEY(`id`)
-                    )
-                """.trimIndent())
             }
         }
 

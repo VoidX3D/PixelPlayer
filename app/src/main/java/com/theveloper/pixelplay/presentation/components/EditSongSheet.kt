@@ -269,12 +269,6 @@ private fun EditSongContent(
                 }
             }
         }
-                }.onFailure { error ->
-                    aiError = error.message
-                }
-                isGenerating = false
-            }
-        }
     }
 
     if (showCoverArtCropper && pendingCoverArtUri != null) {

@@ -184,6 +184,7 @@ fun SettingsCategoryScreen(
     val geminiModel by settingsViewModel.geminiModel.collectAsStateWithLifecycle()
     val geminiSystemPrompt by settingsViewModel.geminiSystemPrompt.collectAsStateWithLifecycle()
     val aiProvider by settingsViewModel.aiProvider.collectAsStateWithLifecycle()
+    val deepseekApiKey by settingsViewModel.deepseekApiKey.collectAsStateWithLifecycle()
     val deepseekSystemPrompt by settingsViewModel.deepseekSystemPrompt.collectAsStateWithLifecycle()
     val groqApiKey by settingsViewModel.groqApiKey.collectAsStateWithLifecycle()
     val groqModel by settingsViewModel.groqModel.collectAsStateWithLifecycle()

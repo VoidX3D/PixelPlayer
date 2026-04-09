@@ -5,6 +5,7 @@ import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
+import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
@@ -55,6 +56,8 @@ class AiStateHolder @Inject constructor(
     private val _aiError = MutableStateFlow<String?>(null)
     val aiError = _aiError.asStateFlow()
 
+    private var _lastPlaylistPrompt: String? = null
+    private var _lastMinLength: Int = 5
     private var _lastMaxLength: Int = 15
 
     // Metadata Retry Cache: Stores parameters for the last metadata generation
@@ -195,7 +198,6 @@ class AiStateHolder @Inject constructor(
                                 songIds = songIds,
                                 isAiGenerated = true
                             )
-                            }
                             _aiStatus.value = "Success! Your mix is ready."
                             _aiSuccess.value = true
                             notificationManager.showCompletion("Generation Complete", "Your AI Mix is ready to play.")

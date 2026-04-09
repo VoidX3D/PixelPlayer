@@ -9,7 +9,9 @@ import androidx.work.workDataOf
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiOrchestrator
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
+import com.theveloper.pixelplay.data.ai.UserProfileDigestGenerator
 import com.theveloper.pixelplay.data.database.MusicDao
+import com.theveloper.pixelplay.data.database.toSongs
 import com.theveloper.pixelplay.data.model.Song
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -52,7 +54,7 @@ class AiWorker @AssistedInject constructor(
             val context = if (type == AiSystemPromptType.PLAYLIST || 
                             type == AiSystemPromptType.TAGGING || 
                             type == AiSystemPromptType.PERSONA) {
-                val allSongs = musicDao.getAllSongsList() // Fetch all songs for a full digest
+                val allSongs = musicDao.getAllSongsList().toSongs() // Fetch all songs for a full digest
                 digestGenerator.generateDigest(allSongs)
             } else ""
 

@@ -183,6 +183,12 @@ class SettingsViewModel @Inject constructor(
     val geminiSystemPrompt: StateFlow<String> = aiPreferencesRepository.geminiSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT)
 
+    val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     val deepseekSystemPrompt: StateFlow<String> = aiPreferencesRepository.deepseekSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_DEEPSEEK_SYSTEM_PROMPT)
 
@@ -203,6 +209,33 @@ class SettingsViewModel @Inject constructor(
 
     val mistralSystemPrompt: StateFlow<String> = aiPreferencesRepository.mistralSystemPrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_MISTRAL_SYSTEM_PROMPT)
+
+    val nvidiaApiKey: StateFlow<String> = aiPreferencesRepository.nvidiaApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val nvidiaModel: StateFlow<String> = aiPreferencesRepository.nvidiaModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val nvidiaSystemPrompt: StateFlow<String> = aiPreferencesRepository.nvidiaSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_NVIDIA_SYSTEM_PROMPT)
+
+    val kimiApiKey: StateFlow<String> = aiPreferencesRepository.kimiApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val kimiModel: StateFlow<String> = aiPreferencesRepository.kimiModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val kimiSystemPrompt: StateFlow<String> = aiPreferencesRepository.kimiSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_KIMI_SYSTEM_PROMPT)
+
+    val glmApiKey: StateFlow<String> = aiPreferencesRepository.glmApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val glmModel: StateFlow<String> = aiPreferencesRepository.glmModel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val glmSystemPrompt: StateFlow<String> = aiPreferencesRepository.glmSystemPrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiPreferencesRepository.DEFAULT_GLM_SYSTEM_PROMPT)
 
     val openaiApiKey: StateFlow<String> = aiPreferencesRepository.openaiApiKey
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
@@ -996,39 +1029,6 @@ class SettingsViewModel @Inject constructor(
                 token.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }
     }
-
-    val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val groqApiKey: StateFlow<String> = aiPreferencesRepository.groqApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val groqModel: StateFlow<String> = aiPreferencesRepository.groqModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val mistralApiKey: StateFlow<String> = aiPreferencesRepository.mistralApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val mistralModel: StateFlow<String> = aiPreferencesRepository.mistralModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val nvidiaApiKey: StateFlow<String> = aiPreferencesRepository.nvidiaApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val nvidiaModel: StateFlow<String> = aiPreferencesRepository.nvidiaModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-    
-    val kimiApiKey: StateFlow<String> = aiPreferencesRepository.kimiApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val kimiModel: StateFlow<String> = aiPreferencesRepository.kimiModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val glmApiKey: StateFlow<String> = aiPreferencesRepository.glmApiKey
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
-
-    val glmModel: StateFlow<String> = aiPreferencesRepository.glmModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     fun onGeminiModelChange(model: String) {
         viewModelScope.launch { aiPreferencesRepository.setGeminiModel(model) }

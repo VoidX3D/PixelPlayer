@@ -425,7 +425,16 @@ class PlayerViewModel @Inject constructor(
         aiPreferencesRepository.kimiApiKey,
         aiPreferencesRepository.glmApiKey,
         aiPreferencesRepository.openaiApiKey
-    ) { provider, gemini, deepseek, groq, mistral, nvidia, kimi, glm, openai ->
+    ) { values ->
+        val provider = values[0]
+        val gemini = values[1]
+        val deepseek = values[2]
+        val groq = values[3]
+        val mistral = values[4]
+        val nvidia = values[5]
+        val kimi = values[6]
+        val glm = values[7]
+        val openai = values[8]
         when (provider) {
             "DEEPSEEK" -> deepseek.isNotBlank()
             "GROQ" -> groq.isNotBlank()
@@ -1713,10 +1722,6 @@ class PlayerViewModel @Inject constructor(
                     isGeneratingAiMetadata = generatingMetadata
                 )
             }.collect { snapshot ->
-                _showAiPlaylistSheet.value = snapshot.showAiPlaylistSheet
-                _isGeneratingAiPlaylist.value = snapshot.isGeneratingAiPlaylist
-                _aiStatus.value = snapshot.aiStatus
-                _aiError.value = snapshot.aiError
                 _playerUiState.update {
                     it.copy(isGeneratingAiMetadata = snapshot.isGeneratingAiMetadata)
                 }

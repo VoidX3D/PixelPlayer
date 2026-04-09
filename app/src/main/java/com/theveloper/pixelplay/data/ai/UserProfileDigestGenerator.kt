@@ -1,7 +1,6 @@
 package com.theveloper.pixelplay.data.ai
 
 
-import com.theveloper.pixelplay.data.database.EngagementDao
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import com.theveloper.pixelplay.data.stats.StatsTimeRange
@@ -10,7 +9,6 @@ import javax.inject.Singleton
 
 @Singleton
 class UserProfileDigestGenerator @Inject constructor(
-    private val engagementDao: EngagementDao,
     private val statsRepository: PlaybackStatsRepository
 ) {
     /**
@@ -19,7 +17,7 @@ class UserProfileDigestGenerator @Inject constructor(
      */
     suspend fun generateDigest(allSongs: List<Song>): String {
         // AI Optimization: Load summaries for both all-time and recent activity to detect trends
-        val summary = statsRepository.loadSummary(StatsTimeRange.ALL_TIME, allSongs)
+        val summary = statsRepository.loadSummary(StatsTimeRange.ALL, allSongs)
         val recentSummary = statsRepository.loadSummary(StatsTimeRange.WEEK, allSongs)
         
         val sb = StringBuilder()
@@ -53,9 +51,8 @@ class UserProfileDigestGenerator @Inject constructor(
         val varietyRatio = if (summary.totalPlayCount > 0) (summary.uniqueSongs.toDouble() / summary.totalPlayCount) else 0.0
         sb.append("DYNAMICS: discovery_ratio=${"%.2f".format(discoveryPlays.toDouble() / maxOf(1, summary.totalPlayCount))}, variety_score=${"%.2f".format(varietyRatio)}\n")
         
-        // Behavioral Context: Skips and Sessions
-        val skipRatio = if (summary.totalPlayCount > 0) (summary.skipCount.toDouble() / summary.totalPlayCount) else 0.0
-        sb.append("BEHAVIOR: avg_session=${summary.averageSessionDurationMs / 60000}m, skip_rate=${"%.2f".format(skipRatio)}\n")
+        // Behavioral Context: Session cadence is available in the current stats summary.
+        sb.append("BEHAVIOR: avg_session=${summary.averageSessionDurationMs / 60000}m, sessions_per_day=${"%.2f".format(summary.averageSessionsPerDay)}\n")
         
         // Temporal Focus (Weekday vs Weekend)
         val peakDay = summary.peakDayLabel ?: "Unknown"
