@@ -14,14 +14,14 @@ class AiPreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
     companion object {
-        const val DEFAULT_SYSTEM_PROMPT = """
+        val DEFAULT_SYSTEM_PROMPT = """
             You are 'Vibe-Engine', a professional music curator.
             Analyze the user's request and listening profile to provide perfect music recommendations.
         """.trimIndent()
 
-        const val DEFAULT_DEEPSEEK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
-        const val DEFAULT_GROQ_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
-        const val DEFAULT_MISTRAL_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_DEEPSEEK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_GROQ_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_MISTRAL_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         
         // Internal specialized prompts are now handled by AiSystemPromptEngine
     }
