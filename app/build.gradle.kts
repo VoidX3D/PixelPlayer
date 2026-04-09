@@ -47,6 +47,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("${project.rootDir}/release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "pixelplayerkey"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "releaseAlias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "pixelplayerkey"
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -59,15 +68,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         // AGREGA ESTE BLOQUE:
         create("benchmark") {
             initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             matchingFallbacks += listOf("release")
-            isDebuggable = false // Esto quita el error que mencionaste
+            isDebuggable = false 
         }
     }
     compileOptions {
@@ -113,7 +122,7 @@ android {
     // TDLib 单架构约 15~25MB，四架构合计 87MB，开启后每个 APK 只含对应架构
     splits {
         abi {
-            isEnable = true
+            isEnable = !project.hasProperty("noSplits")
             reset()
             // 覆盖市面上 >99% 设备：arm64-v8a（现代手机）+ armeabi-v7a（旧设备）
             // x86 / x86_64 仅模拟器使用，发布阶段可不包含
