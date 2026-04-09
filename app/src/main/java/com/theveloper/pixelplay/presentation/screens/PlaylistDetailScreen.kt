@@ -129,11 +129,6 @@ import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.PlaylistShapeType
 import kotlinx.coroutines.launch
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(
-    ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class
-)
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
@@ -995,7 +990,6 @@ private fun PlaylistActionItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 // SongPickerBottomSheet moved to com.theveloper.pixelplay.presentation.components
 fun RenamePlaylistDialog(currentName: String, onDismiss: () -> Unit, onRename: (String) -> Unit) {

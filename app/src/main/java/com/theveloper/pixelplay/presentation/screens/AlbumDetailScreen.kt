@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -100,8 +99,6 @@ import kotlin.math.roundToInt
 
 private const val UseSharedCollapsibleTopBarProbe = true
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AlbumDetailScreen(
     albumId: String,
@@ -570,7 +567,6 @@ private fun SharedAlbumTopBarProbe(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CollapsingAlbumTopBar(
     album: Album,

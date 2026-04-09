@@ -45,7 +45,6 @@ private data class RawDirectoryEntry(
     val displayName: String? = null
 )
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class FileExplorerStateHolder(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val scope: CoroutineScope,

@@ -62,7 +62,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 
 // 2) DailyMixSection y DailyMixCard quedan igual de ligeras...
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun DailyMixSection(
     songs: ImmutableList<Song>,
@@ -174,7 +173,6 @@ fun DailyMixSection(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun DailyMixCard(
     songs: ImmutableList<Song>,
@@ -322,7 +320,6 @@ fun threeShapeSwitch(index: Int, thirdShapeCornerRadius: Dp = 16.dp): Shape { //
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun DailyMixSongList(
     songs: ImmutableList<Song>,
@@ -408,7 +405,6 @@ private fun ViewAllDailyMixButton(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberDailyMixTitleStyle(): TextStyle {
     return remember {

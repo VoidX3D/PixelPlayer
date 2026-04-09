@@ -181,9 +181,7 @@ private suspend fun validateLyricsImport(
     } ?: LyricsImportValidationResult.Invalid(LyricsImportFailureReason.EMPTY_CONTENT)
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FullPlayerContent(
     currentSong: Song?,
@@ -1268,7 +1266,6 @@ private fun predictSkipPreviousCarouselIndex(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun FullPlayerSongMetadataSection(
     song: Song,
@@ -1413,8 +1410,6 @@ private fun FullPlayerLandscapeContent(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun SongMetadataDisplaySection(
     song: Song?,
@@ -2059,7 +2054,6 @@ private fun DelayedContent(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun PlayerSongInfo(
     title: String,

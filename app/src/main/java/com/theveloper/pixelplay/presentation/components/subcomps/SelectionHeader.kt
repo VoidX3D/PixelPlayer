@@ -62,7 +62,6 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
  * @param onShareClick Callback to share all selected songs
  * @param modifier Modifier for the header
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SelectionHeader(
     selectedSongs: List<Song>,

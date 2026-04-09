@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.telegram.dashboard
 
@@ -96,10 +95,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
 @Composable
 fun TelegramDashboardScreen(
     onAddChannel: () -> Unit,
@@ -331,7 +326,6 @@ fun TelegramDashboardScreen(
     }
 }
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ExpressiveChannelItem(
     channel: TelegramChannelEntity,
@@ -638,7 +632,6 @@ private fun TopicRow(topic: TelegramTopicEntity) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelActionsBottomSheet(
     channel: TelegramChannelEntity,
@@ -724,7 +717,6 @@ private fun ChannelActionsBottomSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChannelActionCard(
     title: String,

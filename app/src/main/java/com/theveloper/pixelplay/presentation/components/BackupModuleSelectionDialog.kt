@@ -77,11 +77,6 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.animation.animateColorAsState
 
-@OptIn(
-    ExperimentalAnimationApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
 @Composable
 fun BackupModuleSelectionDialog(
     plan: RestorePlan,

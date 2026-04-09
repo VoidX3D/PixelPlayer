@@ -41,7 +41,6 @@ import coil.size.Size
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AlbumMultiSelectionOptionSheet(
     selectedAlbums: List<Album>,

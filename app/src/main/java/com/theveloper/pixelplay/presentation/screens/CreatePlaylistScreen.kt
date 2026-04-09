@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -1422,7 +1421,6 @@ fun ExpressiveButtonGroup(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShapeParameterCard(
     title: String,

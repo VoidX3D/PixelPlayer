@@ -40,7 +40,6 @@ import com.theveloper.pixelplay.utils.formatListeningDurationCompact
 import com.theveloper.pixelplay.utils.formatListeningDurationLong
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsOverviewCard(
     modifier: Modifier = Modifier,

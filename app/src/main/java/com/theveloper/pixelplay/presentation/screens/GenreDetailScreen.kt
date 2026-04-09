@@ -80,8 +80,6 @@ import kotlin.math.roundToInt
 
 // --- Data Models & Helpers ---
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GenreDetailScreen(
     navController: NavHostController,

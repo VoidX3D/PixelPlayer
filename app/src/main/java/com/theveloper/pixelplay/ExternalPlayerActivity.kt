@@ -22,7 +22,6 @@ import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import javax.inject.Inject
 
-@UnstableApi
 @AndroidEntryPoint
 class ExternalPlayerActivity : ComponentActivity() {
 

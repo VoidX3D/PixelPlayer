@@ -39,7 +39,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  * For Netease: if already logged in, navigates to dashboard.
  * If not logged in, launches WebView login activity.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreamingProviderSheet(
     onDismissRequest: () -> Unit,

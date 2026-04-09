@@ -1,12 +1,10 @@
 package com.theveloper.pixelplay.di
 
 import android.content.Context
-import androidx.annotation.OptIn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -76,7 +74,6 @@ object AppModule {
         return com.google.gson.Gson()
     }
 
-    @OptIn(UnstableApi::class)
     @Singleton
     @Provides
     fun provideSessionToken(@ApplicationContext context: Context): androidx.media3.session.SessionToken {

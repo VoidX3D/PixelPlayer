@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -66,7 +65,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibraryFavoritesTab(
     favoriteSongs: LazyPagingItems<Song>,
@@ -273,7 +271,6 @@ fun LibraryFavoritesTab(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibrarySongsTabPaginated(
     paginatedSongs: LazyPagingItems<Song>,

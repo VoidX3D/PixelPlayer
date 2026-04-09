@@ -47,7 +47,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 private enum class PlaybackButtonType { NONE, PREVIOUS, PLAY_PAUSE, NEXT }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AnimatedPlaybackControls(
     isPlayingProvider: () -> Boolean,

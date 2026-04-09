@@ -120,8 +120,6 @@ import timber.log.Timber
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchScreen(
     paddingValues: PaddingValues,
@@ -611,7 +609,6 @@ fun EmptySearchResults(searchQuery: String, colorScheme: ColorScheme) {
 }
 
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun SearchResultsList(
     results: List<SearchResultItem>,
@@ -844,7 +841,6 @@ fun SearchResultsList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultAlbumItem(
     album: Album,
@@ -921,7 +917,6 @@ fun SearchResultAlbumItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultArtistItem(
     artist: Artist,
@@ -1005,7 +1000,6 @@ fun SearchResultArtistItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultPlaylistItem(
     playlist: Playlist,
@@ -1075,7 +1069,6 @@ fun SearchResultPlaylistItem(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun SearchFilterChip(
     filterType: SearchFilterType,

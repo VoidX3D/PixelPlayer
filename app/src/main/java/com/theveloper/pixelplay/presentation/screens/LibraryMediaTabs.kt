@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -60,7 +59,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibraryAlbumsTab(
     albums: ImmutableList<Album>,
@@ -384,7 +382,6 @@ fun LibraryAlbumsTab(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibraryArtistsTab(
     artists: ImmutableList<Artist>,
@@ -516,7 +513,6 @@ fun LibraryArtistsTab(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibraryPlaylistsTab(
     playlistUiState: PlaylistUiState,

@@ -53,7 +53,6 @@ import kotlin.math.roundToInt
 
 val predefinedTimes = listOf(0, 5, 10, 15, 20, 30, 45, 60) // 0 represents 'Off'
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TimerOptionsBottomSheet(
     onPlayCounter: (count: Int) -> Unit,

@@ -31,7 +31,6 @@ import javax.inject.Singleton
  * Orchestrates song transitions by observing the player state and
  * commanding the DualPlayerEngine.
  */
-@OptIn(UnstableApi::class)
 @Singleton
 class TransitionController @Inject constructor(
     private val engine: DualPlayerEngine,

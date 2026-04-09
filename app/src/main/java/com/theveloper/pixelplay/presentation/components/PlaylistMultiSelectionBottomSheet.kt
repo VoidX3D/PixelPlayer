@@ -72,7 +72,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  * @param onMergeAll Merge all selected playlists into one
  * @param onShareAll Share all selected playlists as ZIP file
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlaylistMultiSelectionBottomSheet(
     selectedPlaylists: List<Playlist>,

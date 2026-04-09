@@ -62,7 +62,6 @@ import com.theveloper.pixelplay.utils.formatDuration
 import kotlin.math.roundToLong
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(UnstableApi::class)
 @Composable
 fun ExternalPlayerOverlay(
     playerViewModel: PlayerViewModel,

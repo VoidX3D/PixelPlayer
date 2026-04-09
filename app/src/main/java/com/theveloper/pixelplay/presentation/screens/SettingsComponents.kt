@@ -221,7 +221,6 @@ fun SwitchSettingItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSelectorItem(
         label: String,

@@ -85,7 +85,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  */
 import androidx.compose.ui.platform.LocalContext
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MultiSelectionBottomSheet(
     selectedSongs: List<Song>,

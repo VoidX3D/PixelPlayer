@@ -164,8 +164,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsCategoryScreen(
     categoryId: String,
@@ -1448,7 +1446,6 @@ private fun BackupInfoNoticeCard(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BackupSectionSelectionDialog(
     operation: BackupOperationType,
@@ -1877,7 +1874,6 @@ private fun BackupTransferProgressDialogHost(progress: BackupTransferProgressUpd
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate) {
     val animatedProgress by animateFloatAsState(
@@ -1996,7 +1992,6 @@ private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImportFileSelectionDialog(
     backupHistory: List<BackupHistoryEntry>,
@@ -2319,7 +2314,6 @@ private fun BackupHistoryCard(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImportModuleSelectionDialog(
     plan: RestorePlan,

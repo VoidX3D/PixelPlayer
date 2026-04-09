@@ -84,7 +84,6 @@ import com.theveloper.pixelplay.presentation.screens.TabAnimation
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.AudioMetaUtils
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SongInfoBottomSheet(
     song: Song,

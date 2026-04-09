@@ -153,7 +153,6 @@ private data class DismissUndoBarSlice(
     val durationMillis: Long = 4000L
 )
 
-@UnstableApi
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -173,7 +172,6 @@ class MainActivity : ComponentActivity() {
         // Handle the result in onResume
     }
 
-    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         LogUtils.d(this, "onCreate")
         val splashScreen = installSplashScreen()
@@ -219,7 +217,6 @@ class MainActivity : ComponentActivity() {
             } else {
                 listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            @OptIn(ExperimentalPermissionsApi::class)
             val permissionState = rememberMultiplePermissionsState(permissions = permissions)
             val needsAllFilesAccess = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                     !android.os.Environment.isExternalStorageManager()
@@ -438,7 +435,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     private fun SetupGateLoadingScreen() {
         Box(
@@ -461,7 +457,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @androidx.annotation.OptIn(UnstableApi::class)
     @Composable
     private fun MainAppContent(playerViewModel: PlayerViewModel, mainViewModel: MainViewModel) {
         Trace.beginSection("MainActivity.MainAppContent")
@@ -550,7 +545,6 @@ class MainActivity : ComponentActivity() {
         Trace.endSection() // End MainActivity.MainAppContent
     }
 
-    @androidx.annotation.OptIn(UnstableApi::class)
     @Composable
     private fun MainUI(playerViewModel: PlayerViewModel, navController: NavHostController) {
         Trace.beginSection("MainActivity.MainUI")
@@ -968,7 +962,6 @@ class MainActivity : ComponentActivity() {
         Trace.endSection()
     }
 
-    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     private fun LoadingOverlay(syncProgress: SyncProgress) {
         // Animate progress smoothly instead of jumping in steps
@@ -1018,7 +1011,6 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @androidx.annotation.OptIn(UnstableApi::class)
     override fun onStart() {
         super.onStart()
         LogUtils.d(this, "onStart")

@@ -173,7 +173,6 @@ private fun normalizeHandle(handle: String): String {
 
 // AboutTopBar removed, replaced by CollapsibleCommonTopBar
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun AboutScreen(
@@ -593,7 +592,6 @@ private fun AboutHeroCard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CommunitySignalsRow() {
     val labels = listOf(

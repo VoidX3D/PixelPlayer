@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.telegram.channel
 
@@ -61,7 +60,6 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.delay
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TelegramChannelSearchSheet(
     onDismissRequest: () -> Unit,

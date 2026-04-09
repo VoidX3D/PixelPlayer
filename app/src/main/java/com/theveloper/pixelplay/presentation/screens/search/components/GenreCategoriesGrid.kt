@@ -51,7 +51,6 @@ import com.theveloper.pixelplay.presentation.utils.GenreIconProvider
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(UnstableApi::class)
 @Composable
 fun GenreCategoriesGrid(
     genres: List<Genre>,
@@ -147,7 +146,6 @@ fun GenreCategoriesGrid(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun GenreCard(
     genre: Genre,

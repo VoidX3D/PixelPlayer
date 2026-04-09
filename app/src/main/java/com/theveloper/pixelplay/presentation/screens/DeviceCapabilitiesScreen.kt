@@ -73,7 +73,6 @@ import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import kotlin.math.roundToInt
 
-@OptIn(UnstableApi::class)
 @Composable
 fun DeviceCapabilitiesScreen(
     navController: NavController,

@@ -91,8 +91,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun DailyMixScreen(
     mainViewModel: MainViewModel = hiltViewModel(),
@@ -395,7 +393,6 @@ fun DailyMixScreen(
 }
 
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpressiveDailyMixHeader(
     songs: List<Song>,
@@ -555,7 +552,6 @@ private fun ExpressiveDailyMixHeader(
     Trace.endSection()
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberDailyMixTitleStyle(): TextStyle {
     return remember {

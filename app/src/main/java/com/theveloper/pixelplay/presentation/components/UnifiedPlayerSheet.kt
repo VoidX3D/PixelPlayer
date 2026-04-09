@@ -143,7 +143,6 @@ private data class PlayerUiSheetSlice(
 
 val MiniPlayerBottomSpacer = 8.dp
 
-@OptIn(UnstableApi::class)
 @Composable
 fun UnifiedPlayerSheet(
     playerViewModel: PlayerViewModel,

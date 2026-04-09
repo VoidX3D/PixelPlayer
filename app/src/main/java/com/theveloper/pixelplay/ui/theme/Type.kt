@@ -65,7 +65,6 @@ val ExpTitleTypography = Typography(
 // Google Sans Flex variable font with rounded axis for Google Sans Rounded-like appearance.
 private const val GoogleSansFlexRond = 100f
 
-@OptIn(ExperimentalTextApi::class)
 val GoogleSansRounded = FontFamily(
     androidx.compose.ui.text.font.Font(
         resId = R.font.gflex_variable,

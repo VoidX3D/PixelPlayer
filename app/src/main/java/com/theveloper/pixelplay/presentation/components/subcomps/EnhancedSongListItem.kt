@@ -71,7 +71,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  * @param onMoreOptionsClick Callback for more options button
  * @param onClick Callback for tap gesture
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedSongListItem(
     modifier: Modifier = Modifier,

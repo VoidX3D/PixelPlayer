@@ -38,7 +38,6 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import kotlinx.collections.immutable.toImmutableList
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GenreGradientTopBar(
     title: String,
@@ -89,7 +88,6 @@ fun GenreGradientTopBar(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeGradientTopBar(
     onNavigationIconClick: () -> Unit,

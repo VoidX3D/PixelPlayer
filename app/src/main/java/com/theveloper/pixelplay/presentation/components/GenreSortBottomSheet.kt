@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.presentation.viewmodel.SortOption
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GenreSortBottomSheet(
     onDismiss: () -> Unit,

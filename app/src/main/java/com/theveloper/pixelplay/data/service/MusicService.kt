@@ -104,7 +104,6 @@ import androidx.core.net.toUri
 // Acciones personalizadas para compatibilidad con el widget existente
 
 
-@UnstableApi
 @AndroidEntryPoint
 class MusicService : MediaLibraryService() {
 

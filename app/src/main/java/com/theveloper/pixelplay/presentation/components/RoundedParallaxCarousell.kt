@@ -131,7 +131,6 @@ fun rememberCarouselState(initialItem: Int = 0, itemCount: () -> Int): CarouselS
 }
 
 /** API pública del carrusel tipo Multi-Browse con clip redondeado real. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoundedHorizontalMultiBrowseCarousel(
     state: CarouselState,
@@ -245,7 +244,6 @@ fun RoundedHorizontalMultiBrowseCarousel(
    CORE (Carousel + PageSize + ItemScope con clip redondeado)
    ================================================================================================ */
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoundedCarousel(
     state: CarouselState,
@@ -437,7 +435,6 @@ sealed interface CarouselItemDrawInfo {
     val maskRect: Rect
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 private class CarouselItemDrawInfoImpl : CarouselItemDrawInfo {
     var sizeState by mutableFloatStateOf(0f)
     var minSizeState by mutableFloatStateOf(0f)
@@ -449,7 +446,6 @@ private class CarouselItemDrawInfoImpl : CarouselItemDrawInfo {
     override val maskRect: Rect get() = maskRectState
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 private fun Modifier.carouselItem(
     index: Int,
     state: CarouselState,
@@ -464,7 +460,6 @@ private fun Modifier.carouselItem(
     clipShape = clipShape
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 private data class CarouselItemModifierNodeElement(
     val index: Int,
     val state: CarouselState,
@@ -492,7 +487,6 @@ private data class CarouselItemModifierNodeElement(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 private class CarouselItemModifierNode(
     var index: Int,
     var state: CarouselState,
@@ -1031,14 +1025,12 @@ private fun KeylineSnapPosition(pageSize: CarouselPageSize): SnapPosition =
         ): Int = getSnapPositionOffset(pageSize.strategy, itemIndex, itemCount)
     }
 
-@OptIn(ExperimentalMaterial3Api::class)
 private fun calculateCurrentScrollOffset(state: CarouselState, strategy: Strategy): Float {
     val w = strategy.itemMainAxisSize + strategy.itemSpacing
     val curr = (state.pagerState.currentPage * w) + (state.pagerState.currentPageOffsetFraction * w)
     return curr - getSnapPositionOffset(strategy, state.pagerState.currentPage, state.pagerState.pageCount)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 private fun calculateMaxScrollOffset(state: CarouselState, strategy: Strategy): Float {
     val itemCount = state.pagerState.pageCount.toFloat()
     val maxScroll = (strategy.itemMainAxisSize * itemCount) + (strategy.itemSpacing * (itemCount - 1))

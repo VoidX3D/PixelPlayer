@@ -14,7 +14,6 @@ import timber.log.Timber
 class PlayerControlActionCallback : ActionCallback {
     private val TAG = "PlayerControlCallback"
 
-    @OptIn(UnstableApi::class)
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,

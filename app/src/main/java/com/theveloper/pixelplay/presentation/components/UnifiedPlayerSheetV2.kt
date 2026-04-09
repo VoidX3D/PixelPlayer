@@ -100,7 +100,6 @@ private data class PlayerUiSheetSliceV2(
  * This path keeps behavior parity, but now owns its own runtime wiring so we can
  * profile and optimize V2 independently while preserving the Experimental switch.
  */
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun UnifiedPlayerSheetV2(
     playerViewModel: PlayerViewModel,

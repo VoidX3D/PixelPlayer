@@ -12,7 +12,6 @@ interface SongRepository {
     suspend fun searchSongs(query: String): List<Song>
     fun getSongById(songId: Long): Flow<Song?>
     fun getPaginatedSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption, storageFilter: com.theveloper.pixelplay.data.model.StorageFilter): Flow<PagingData<Song>>
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun getPaginatedSongs(): Flow<PagingData<Song>>
     fun getPaginatedFavoriteSongs(
         sortOption: com.theveloper.pixelplay.data.model.SortOption,

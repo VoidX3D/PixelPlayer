@@ -138,7 +138,6 @@ class DeviceCapabilitiesViewModel @Inject constructor(
         return codecs.sortedBy { it.name }
     }
 
-    @androidx.annotation.OptIn(UnstableApi::class)
     private fun getExoPlayerInfo(): ExoPlayerInfo {
         val player = engine.masterPlayer
         

@@ -335,7 +335,6 @@ fun LibraryActionRow(
                      }
                      val tooltipState = rememberTooltipState()
 
-                    @OptIn(ExperimentalMaterial3Api::class)
                     TooltipBox(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                         tooltip = {

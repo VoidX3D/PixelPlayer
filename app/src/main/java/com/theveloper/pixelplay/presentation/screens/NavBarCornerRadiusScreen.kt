@@ -70,7 +70,6 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 
 const val DEFAULT_NAV_BAR_CORNER_RADIUS = 28f
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavBarCornerRadiusScreen(
     navController: NavController, settingsViewModel: SettingsViewModel = hiltViewModel()
@@ -87,7 +86,6 @@ fun NavBarCornerRadiusScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavBarCornerRadiusContent(
     initialRadius: Float,

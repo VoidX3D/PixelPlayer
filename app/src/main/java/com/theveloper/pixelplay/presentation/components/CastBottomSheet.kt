@@ -157,8 +157,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CastBottomSheet(
     playerViewModel: PlayerViewModel,
@@ -1281,7 +1279,6 @@ private fun DeviceSectionHeader(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ActiveDeviceHero(
     device: ActiveDeviceUi,

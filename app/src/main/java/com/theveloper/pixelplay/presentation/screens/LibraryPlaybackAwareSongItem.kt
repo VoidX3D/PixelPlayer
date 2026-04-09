@@ -21,7 +21,6 @@ internal data class LibrarySongPlaybackUiState(
     val isPlaying: Boolean = false
 )
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun LibraryPlaybackAwareSongItem(
     song: Song,

@@ -24,7 +24,6 @@ import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 
 // ====== TIPOS/STATE DEL CARRUSEL (wrapper para mantener compatibilidad) ======
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberRoundedParallaxCarouselState(
     initialPage: Int,
@@ -33,7 +32,6 @@ fun rememberRoundedParallaxCarouselState(
 
 // ====== TU SECCIÓN: ACOPLADA AL NUEVO API ======
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumCarouselSection(
     currentSong: Song?,

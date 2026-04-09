@@ -49,7 +49,6 @@ private data class PlayerArtistShortcutItem(
     val isPrimary: Boolean
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayerArtistPickerBottomSheet(
     song: Song,

@@ -81,7 +81,6 @@ class LibraryStateHolder @Inject constructor(
         }
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val songsPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
         kotlinx.coroutines.flow.combine(_currentSongSortOption, _currentStorageFilter) { sort, filter ->
             sort to filter
@@ -103,7 +102,6 @@ class LibraryStateHolder @Inject constructor(
     private val _currentFavoriteSortOption = MutableStateFlow<SortOption>(SortOption.LikedSongDateLiked)
     val currentFavoriteSortOption = _currentFavoriteSortOption.asStateFlow()
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val favoritesPagingFlow: kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<Song>> =
         kotlinx.coroutines.flow.combine(_currentFavoriteSortOption, _currentStorageFilter) { sort, filter ->
             sort to filter
@@ -112,12 +110,10 @@ class LibraryStateHolder @Inject constructor(
         }
         .flowOn(Dispatchers.IO)
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val favoriteSongCountFlow: kotlinx.coroutines.flow.Flow<Int> = _currentStorageFilter
         .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
         .flowOn(Dispatchers.IO)
 
-    @OptIn(ExperimentalStdlibApi::class)
     val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> = _allSongs
         .map { songs ->
             val genreMap = mutableMapOf<String, MutableList<Song>>()
@@ -231,7 +227,6 @@ class LibraryStateHolder @Inject constructor(
 
         albumsJob = scope?.launch {
             _isLoadingCategories.value = true
-            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             _currentStorageFilter.flatMapLatest { filter ->
                 musicRepository.getAlbums(filter)
             }.collect { albums ->
@@ -243,7 +238,6 @@ class LibraryStateHolder @Inject constructor(
 
         artistsJob = scope?.launch {
             _isLoadingCategories.value = true
-            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             _currentStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
             }.collect { artists ->
@@ -254,7 +248,6 @@ class LibraryStateHolder @Inject constructor(
         }
 
         foldersJob = scope?.launch {
-            @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             _currentStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
             }.collect { folders ->

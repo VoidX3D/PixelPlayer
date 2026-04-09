@@ -149,7 +149,6 @@ internal fun UnifiedPlayerQueueLayer(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun UnifiedPlayerSongInfoLayer(
     selectedSongForInfo: Song?,
@@ -252,7 +251,6 @@ internal fun UnifiedPlayerSongInfoLayer(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun UnifiedPlayerQueueAndSongInfoHost(
     shouldRenderHost: Boolean,
@@ -430,7 +428,6 @@ internal fun UnifiedPlayerSaveQueueLayer(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun UnifiedPlayerCastLayer(
     showCastSheet: Boolean,

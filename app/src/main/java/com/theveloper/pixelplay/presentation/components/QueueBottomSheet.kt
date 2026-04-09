@@ -185,10 +185,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.util.RandomAccess
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
 @Composable
 fun QueueBottomSheet(
     viewModel: PlayerViewModel = hiltViewModel(),
@@ -1107,7 +1103,6 @@ fun QueueBottomSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueToolbarMenuButton(
     text: String,
@@ -1280,7 +1275,6 @@ private fun QueueControlsToolbar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveQueueAsPlaylistSheet(
     songs: List<Song>,

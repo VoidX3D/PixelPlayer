@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -252,7 +251,6 @@ private const val FOLDER_NAVIGATION_ROOT_KEY = "__folder_root__"
 private const val FOLDER_NAVIGATION_FORWARD = 1
 private const val FOLDER_NAVIGATION_BACKWARD = -1
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WatchTransferProgressDialog(
     transfer: PhoneWatchTransferState,
@@ -415,8 +413,6 @@ private fun PlayerUiState.toLibraryScreenProjection(): LibraryScreenPlayerProjec
     )
 
 @RequiresApi(Build.VERSION_CODES.R)
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun LibraryScreen(
     navController: NavController,
@@ -2100,7 +2096,6 @@ private fun LibrarySyncOverlay(syncManager: com.theveloper.pixelplay.data.worker
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LibraryNavigationPill(
     modifier: Modifier = Modifier,
@@ -2369,7 +2364,6 @@ private val LibraryNavigationPillMinimumTextWidth = 56.dp
 private val LibraryNavigationPillArrowPaddingExpanded = 10.dp
 private val LibraryNavigationPillArrowPaddingCompressed = 4.dp
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberLibraryNavigationPillTitleStyle(widthAxis: Float): TextStyle {
     return remember(widthAxis) {
@@ -2398,7 +2392,6 @@ private fun rememberLibraryNavigationPillTitleStyle(widthAxis: Float): TextStyle
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTabSwitcherSheet(
     tabs: List<String>,
@@ -2603,7 +2596,6 @@ private fun isDescendantFolderPath(ancestorPath: String, candidatePath: String):
     return normalizedCandidate.startsWith("$normalizedAncestor${File.separatorChar}")
 }
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryFoldersTab(
     folders: ImmutableList<MusicFolder>,
@@ -2987,7 +2979,6 @@ private fun MusicFolder.collectAllSongs(): List<Song> {
     return songs + subFolders.flatMap { it.collectAllSongs() }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun AlbumGridItemRedesigned(
     album: Album,
@@ -3195,7 +3186,6 @@ fun AlbumGridItemRedesigned(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun ArtistListItem(artist: Artist, onClick: () -> Unit, isLoading: Boolean = false) {
     Card(
@@ -3266,7 +3256,6 @@ fun ArtistListItem(artist: Artist, onClick: () -> Unit, isLoading: Boolean = fal
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun AlbumListItem(
     album: Album,

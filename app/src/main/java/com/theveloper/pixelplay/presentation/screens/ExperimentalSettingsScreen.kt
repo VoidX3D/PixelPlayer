@@ -78,7 +78,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(UnstableApi::class)
 @Composable
 fun ExperimentalSettingsScreen(
     navController: NavController,

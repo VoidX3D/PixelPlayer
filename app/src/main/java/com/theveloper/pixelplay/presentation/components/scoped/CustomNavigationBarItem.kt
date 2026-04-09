@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 
 // En un nuevo archivo o junto a PlayerInternalNavigationItemsRow.kt
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RowScope.CustomNavigationBarItem(
     selected: Boolean,

@@ -54,8 +54,6 @@ import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.songFastScrollLabel
 
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibrarySongsTab(
     songs: LazyPagingItems<Song>, // Changed from ImmutableList<Song>

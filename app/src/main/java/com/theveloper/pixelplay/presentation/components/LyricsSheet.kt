@@ -134,7 +134,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.utils.MultiLangRomanizer
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LyricsSheet(
     stablePlayerStateFlow: StateFlow<StablePlayerState>,
@@ -980,7 +979,6 @@ private fun LyricsPlaybackSeekBar(
     )
 }
 
-@OptIn(ExperimentalSnapperApi::class)
 @Composable
 fun SyncedLyricsList(
     lines: List<SyncedLine>,
@@ -1184,7 +1182,6 @@ fun SyncedLyricsList(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LyricLineRow(
     line: SyncedLine,

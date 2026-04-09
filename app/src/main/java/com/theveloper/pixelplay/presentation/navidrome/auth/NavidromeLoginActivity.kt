@@ -91,7 +91,6 @@ class NavidromeLoginActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavidromeLoginScreen(
     viewModel: NavidromeLoginViewModel = hiltViewModel(),

@@ -63,7 +63,6 @@ fun AutoScrollingTextOnDemand(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AutoScrollingText(
     text: String,

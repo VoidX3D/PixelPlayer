@@ -82,7 +82,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -158,7 +157,6 @@ class MusicRepositoryImpl @Inject constructor(
             .distinctBy { (_, name) -> name.trim().lowercase() }
             .toList()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAudioFiles(): Flow<List<Song>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
@@ -181,12 +179,10 @@ class MusicRepositoryImpl @Inject constructor(
         }.distinctUntilChanged().flowOn(Dispatchers.IO)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedSongs(sortOption: SortOption, storageFilter: com.theveloper.pixelplay.data.model.StorageFilter): Flow<PagingData<Song>> {
         return songRepository.getPaginatedSongs(sortOption, storageFilter)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedFavoriteSongs(sortOption: SortOption, storageFilter: StorageFilter): Flow<PagingData<Song>> {
         return songRepository.getPaginatedFavoriteSongs(sortOption, storageFilter)
     }
@@ -257,7 +253,6 @@ class MusicRepositoryImpl @Inject constructor(
         StorageFilter.ONLINE -> 2
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getAlbums(storageFilter: StorageFilter): Flow<List<Album>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
@@ -276,7 +271,6 @@ class MusicRepositoryImpl @Inject constructor(
         return musicDao.getAlbumById(id).map { it?.toAlbum() }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getArtists(storageFilter: StorageFilter): Flow<List<Artist>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,

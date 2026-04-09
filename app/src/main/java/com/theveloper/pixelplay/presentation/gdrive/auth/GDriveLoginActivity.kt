@@ -58,7 +58,6 @@ class GDriveLoginActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GDriveLoginScreen(
     viewModel: GDriveLoginViewModel = hiltViewModel(),

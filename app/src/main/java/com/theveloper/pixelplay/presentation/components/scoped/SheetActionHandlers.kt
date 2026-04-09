@@ -27,7 +27,6 @@ internal data class SheetActionHandlers(
     val onNavigateToGenre: (Song) -> Unit
 )
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun rememberSheetActionHandlers(
     scope: CoroutineScope,

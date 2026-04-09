@@ -45,7 +45,6 @@ import androidx.compose.ui.draw.clip
 
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LyricsFloatingToolbar(
     modifier: Modifier = Modifier,

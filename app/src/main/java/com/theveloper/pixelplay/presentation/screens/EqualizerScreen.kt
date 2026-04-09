@@ -150,8 +150,6 @@ import androidx.compose.material.icons.automirrored.rounded.ViewQuilt
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.ui.platform.LocalView
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun EqualizerScreen(
     navController: NavController,
@@ -524,7 +522,6 @@ private fun PresetTabsRow(
 }
 
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BandSlidersSection(
     bandLevels: List<Int>,
@@ -856,7 +853,6 @@ private fun GraphBandSliders(
 }
 
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun VerticalBandSlider(
     frequency: String,
@@ -1388,7 +1384,6 @@ private fun UnsupportedEffectRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun IndividualEffectRow(
     title: String,
@@ -1452,7 +1447,6 @@ private fun IndividualEffectRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun VolumeControlCard(
     volume: Float, 
@@ -1671,7 +1665,6 @@ private fun HybridBandSliders(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HybridHorizontalSlider(
     frequency: String,

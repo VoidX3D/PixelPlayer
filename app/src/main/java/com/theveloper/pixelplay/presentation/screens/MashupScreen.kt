@@ -59,8 +59,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.DeckState
 import com.theveloper.pixelplay.presentation.viewmodel.MashupViewModel
 import kotlinx.coroutines.launch
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MashupScreen(
     mashupViewModel: MashupViewModel = hiltViewModel()
@@ -153,7 +151,6 @@ fun MashupScreen(
 
 
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DeckUi(
     deckNumber: Int,

@@ -88,8 +88,6 @@ import com.theveloper.pixelplay.data.preferences.LaunchTab
 
 // SettingsTopBar removed, replaced by CollapsibleCommonTopBar
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
         navController: NavController,

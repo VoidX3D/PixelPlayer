@@ -160,7 +160,6 @@ import java.util.Locale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-@OptIn(ExperimentalPermissionsApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SetupScreen(
     setupViewModel: SetupViewModel = hiltViewModel(),
@@ -442,7 +441,6 @@ fun SetupScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DirectorySelectionPage(
     uiState: SetupUiState,
@@ -756,7 +754,6 @@ fun WelcomePage() {
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MediaPermissionPage(
     uiState: SetupUiState,
@@ -798,7 +795,6 @@ fun MediaPermissionPage(
     )
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun NotificationsPermissionPage(
     uiState: SetupUiState,
@@ -909,7 +905,6 @@ fun AllFilesPermissionPage(uiState: SetupUiState) {
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BackupRestorePage(
     uiState: SetupUiState,
@@ -1002,7 +997,6 @@ private data class ThemeOptionItem(
     val recommended: Boolean = false
 )
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSelectionPage(
     uiState: SetupUiState,
@@ -1083,7 +1077,6 @@ fun ThemeSelectionPage(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeModeOptionCard(
     option: ThemeOptionItem,
@@ -1206,7 +1199,6 @@ private fun ThemeModeOptionCard(
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LibraryLayoutPage(
     uiState: SetupUiState,
@@ -1652,7 +1644,6 @@ fun PermissionPageLayout(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SetupRestoreDialog(
     plan: RestorePlan,
@@ -1912,7 +1903,6 @@ private fun SetupRestoreSectionRow(
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LibraryNavigationPillSetupShow(
     title: String,
@@ -2059,9 +2049,6 @@ fun LibraryNavigationPillSetupShow(
  * @param onNextClicked Lambda que se invoca al pulsar el botón "Siguiente".
  * @param onFinishClicked Lambda que se invoca al pulsar el botón "Finalizar".
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
 @Composable
 fun SetupBottomBar(
     modifier: Modifier = Modifier,
@@ -2223,7 +2210,6 @@ fun SetupBottomBar(
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavBarLayoutPage(
     uiState: SetupUiState,

@@ -54,7 +54,6 @@ object PlayStoreAnnouncementDefaults {
     val HardcodedPreview = Template.copy(enabled = true)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayStoreAnnouncementDialog(
     announcement: PlayStoreAnnouncementUiModel,

@@ -104,8 +104,6 @@ import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 // Modern HomeScreen with collapsible top bar and staggered grid layout
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -451,7 +449,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun YourMixHeader(
     song: String,
@@ -594,7 +591,6 @@ fun SongListItemFavs(
 }
 
 // Wrapper Composable for SongListItemFavs to isolate state observation
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun SongListItemFavsWrapper(
     song: Song,
@@ -624,7 +620,6 @@ fun SongListItemFavsWrapper(
 }
 
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberYourMixTitleStyle(): TextStyle {
     return remember {

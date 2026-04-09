@@ -48,7 +48,6 @@ import kotlinx.coroutines.isActive
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun WavySliderExpressive(
     value: Float,

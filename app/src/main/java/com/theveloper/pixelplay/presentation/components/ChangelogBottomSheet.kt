@@ -234,7 +234,6 @@ val changelog = listOf(
 )
 
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChangelogBottomSheet(
     modifier: Modifier = Modifier

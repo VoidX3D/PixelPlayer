@@ -91,8 +91,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RecentlyPlayedScreen(
     playerViewModel: PlayerViewModel,
@@ -422,7 +420,6 @@ private fun ExpressiveRecentlyPlayedHeader(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberRecentlyPlayedTitleStyle(): TextStyle {
     return remember {

@@ -37,7 +37,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiPlaylistSheet(
     onDismiss: () -> Unit,

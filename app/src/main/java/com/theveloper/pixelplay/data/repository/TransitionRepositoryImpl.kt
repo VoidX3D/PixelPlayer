@@ -21,7 +21,6 @@ class TransitionRepositoryImpl @Inject constructor(
     private val userPreferences: UserPreferencesRepository
 ) : TransitionRepository {
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun resolveTransitionSettings(
         playlistId: String,
         fromTrackId: String,

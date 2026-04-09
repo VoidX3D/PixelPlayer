@@ -17,7 +17,6 @@ import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(UnstableApi::class)
 class CoilBitmapLoader(private val context: Context, private val scope: CoroutineScope) : BitmapLoader {
 
     companion object {

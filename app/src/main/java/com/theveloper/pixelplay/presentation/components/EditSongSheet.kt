@@ -92,7 +92,6 @@ private fun formatReplayGainForInput(gainDb: Float?): String {
     return gainDb?.let { String.format(Locale.US, "%.2f", it) }.orEmpty()
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 
 fun EditSongSheet(
@@ -140,7 +139,6 @@ fun EditSongSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun EditSongContent(
     song: Song,
@@ -878,7 +876,6 @@ private data class CoverArtCropResult(
     val update: CoverArtUpdate,
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun CoverArtCropperDialog(
     sourceUri: Uri,

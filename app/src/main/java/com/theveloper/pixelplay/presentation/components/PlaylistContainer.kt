@@ -88,8 +88,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistSelectionStateHol
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.foundation.combinedClickable
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlaylistContainer(
     playlistUiState: PlaylistUiState,
@@ -219,7 +217,6 @@ fun PlaylistContainer(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun PlaylistItems(
     bottomBarHeight: Dp,
@@ -329,7 +326,6 @@ fun PlaylistItems(
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun PlaylistItem(
     playlist: Playlist,
@@ -535,7 +531,6 @@ fun PlaylistItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePlaylistDialogRedesigned(
     onDismiss: () -> Unit,

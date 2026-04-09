@@ -369,7 +369,6 @@ class MediaStoreSongRepository @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedSongs(): Flow<PagingData<Song>> {
         return combine(
             mediaStoreObserver.mediaStoreChanges.onStart { emit(Unit) },
@@ -462,7 +461,6 @@ class MediaStoreSongRepository @Inject constructor(
         maxSize = 250
     )
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedSongs(sortOption: com.theveloper.pixelplay.data.model.SortOption, storageFilter: com.theveloper.pixelplay.data.model.StorageFilter): Flow<PagingData<Song>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
@@ -492,7 +490,6 @@ class MediaStoreSongRepository @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getPaginatedFavoriteSongs(
         sortOption: com.theveloper.pixelplay.data.model.SortOption,
         storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
@@ -540,7 +537,6 @@ class MediaStoreSongRepository @Inject constructor(
             .map { entity -> entity.toSong().copy(isFavorite = true) }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getFavoriteSongCountFlow(
         storageFilter: com.theveloper.pixelplay.data.model.StorageFilter
     ): Flow<Int> {

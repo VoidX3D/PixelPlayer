@@ -84,7 +84,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.TransitionViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import java.util.concurrent.TimeUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTransitionScreen(
     navController: NavController,
@@ -428,7 +427,6 @@ private fun ExpressiveMorphingToggle(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TransitionDurationSection(
     settings: TransitionSettings,

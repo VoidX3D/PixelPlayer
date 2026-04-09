@@ -81,7 +81,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.ArtistSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DelimiterConfigScreen(
     navController: NavController,
@@ -439,7 +438,6 @@ fun DelimiterConfigScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DelimiterChip(
     delimiter: String,

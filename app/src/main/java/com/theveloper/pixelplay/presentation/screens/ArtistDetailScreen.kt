@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -100,8 +99,6 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 private const val UseSharedCollapsibleTopBarProbe = true
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ArtistDetailScreen(
     artistId: String,
@@ -872,7 +869,6 @@ private fun SharedArtistTopBarProbe(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun CustomCollapsingTopBar(
     artist: Artist,

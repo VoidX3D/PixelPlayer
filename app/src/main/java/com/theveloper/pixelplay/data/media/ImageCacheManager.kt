@@ -12,7 +12,6 @@ import javax.inject.Singleton
 class ImageCacheManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    @OptIn(ExperimentalCoilApi::class)
     fun invalidateCoverArtCaches(vararg uriStrings: String?) {
         val imageLoader = context.imageLoader
         val memoryCache = imageLoader.memoryCache

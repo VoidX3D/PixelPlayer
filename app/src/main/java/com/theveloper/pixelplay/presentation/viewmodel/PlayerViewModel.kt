@@ -157,9 +157,7 @@ private data class PreparedPlaybackQueue(
     val startIndex: Int
 )
 
-@UnstableApi
 @SuppressLint("LogNotTimber")
-@OptIn(coil.annotation.ExperimentalCoilApi::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -243,7 +241,6 @@ class PlayerViewModel @Inject constructor(
      * Paginated songs for efficient display in LibraryScreen.
      * Uses Paging 3 for memory-efficient loading of large libraries.
      */
-    @OptIn(ExperimentalCoroutinesApi::class)
     val paginatedSongs: Flow<PagingData<Song>> = libraryStateHolder.songsPagingFlow
         .cachedIn(viewModelScope)
 
@@ -331,7 +328,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     val currentSongArtists: StateFlow<List<Artist>> = stablePlayerState
         .map { it.currentSong?.id }
         .distinctUntilChanged()

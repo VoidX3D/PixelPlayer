@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomPresetsSheet(
     presets: List<EqualizerPreset>,

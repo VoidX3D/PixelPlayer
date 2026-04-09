@@ -112,7 +112,6 @@ private data class QqMusicWebUiState(
     val lastError: String? = null
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun QqMusicLoginScreen(
     viewModel: QqMusicLoginViewModel = hiltViewModel(),
@@ -478,7 +477,6 @@ private fun QqMusicLoginScreen(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberQqMusicLoginTitleStyle(): TextStyle {
     return remember {

@@ -52,7 +52,6 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongPickerBottomSheet(
     allSongs: List<Song>,

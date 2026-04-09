@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.screens
 
@@ -131,7 +130,6 @@ import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
 
 private const val PULL_TO_REFRESH_MIN_DURATION_MS = 3500L
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun StatsScreen(
     navController: NavController,
@@ -387,7 +385,6 @@ fun StatsScreen(
 
 // StatsTopBar removed, replaced by CollapsibleCommonTopBar
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StatsHeroSection(
     summary: PlaybackStatsRepository.PlaybackStatsSummary?,
@@ -953,7 +950,6 @@ private data class TrackShareSlice(
     val color: Color
 )
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberStatsSectionTitleStyle(): TextStyle {
     return remember {
@@ -974,7 +970,6 @@ private fun rememberStatsSectionTitleStyle(): TextStyle {
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberStatsAxisLabelStyle(range: StatsTimeRange): TextStyle {
     val fontSize = when (range) {
@@ -1000,7 +995,6 @@ private fun rememberStatsAxisLabelStyle(range: StatsTimeRange): TextStyle {
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberStatsMetricValueStyle(compact: Boolean): TextStyle {
     return remember(compact) {
@@ -1174,7 +1168,6 @@ private fun ListeningTimelineSection(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryMetricsSection(
     summary: PlaybackStatsRepository.PlaybackStatsSummary?,

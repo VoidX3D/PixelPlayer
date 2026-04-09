@@ -62,8 +62,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme
 import com.theveloper.pixelplay.ui.theme.generateColorSchemeFromSeed
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaletteStyleSettingsScreen(
     playerViewModel: PlayerViewModel,

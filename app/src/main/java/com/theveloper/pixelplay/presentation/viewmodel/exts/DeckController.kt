@@ -16,7 +16,6 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.theveloper.pixelplay.data.service.player.HiResSampleRateCapAudioProcessor
 import com.theveloper.pixelplay.data.service.player.SurroundDownmixProcessor
 
-@OptIn(UnstableApi::class)
 class DeckController(
     private val context: Context
 ) {

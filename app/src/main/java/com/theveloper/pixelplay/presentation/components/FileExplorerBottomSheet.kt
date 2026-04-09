@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.theveloper.pixelplay.presentation.components
 
@@ -91,7 +90,6 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.StorageInfo
 import java.io.File
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FileExplorerDialog(
     visible: Boolean,
@@ -162,7 +160,6 @@ fun FileExplorerDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun FileExplorerContent(
     currentPath: File,
@@ -577,7 +574,6 @@ private fun FileExplorerItem(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FileExplorerHeader(
     modifier: Modifier,

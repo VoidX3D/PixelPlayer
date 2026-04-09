@@ -25,7 +25,6 @@ object GenreTypography {
         val secondLineWidthFraction: Float
     )
 
-    @OptIn(ExperimentalTextApi::class)
     fun resolveTitlePresentation(
         genreId: String,
         genreName: String,
@@ -96,7 +95,6 @@ object GenreTypography {
         )
     }
 
-    @OptIn(ExperimentalTextApi::class)
     fun getGenreStyle(genreId: String, genreName: String): TextStyle {
         val normalizedName = genreName.trim().replace(Regex("\\s+"), " ")
         val profile = GenreTitleProfile.from(normalizedName)
@@ -104,7 +102,6 @@ object GenreTypography {
         return buildStyleCandidates(hash = hash, profile = profile, isGridView = true).first()
     }
 
-    @OptIn(ExperimentalTextApi::class)
     private fun fitsSingleLine(
         text: String,
         style: TextStyle,
@@ -122,7 +119,6 @@ object GenreTypography {
         return !layoutResult.hasVisualOverflow && layoutResult.lineCount == 1
     }
 
-    @OptIn(ExperimentalTextApi::class)
     private fun findBestBreak(
         words: List<String>,
         style: TextStyle,
@@ -214,7 +210,6 @@ object GenreTypography {
         }
     }
 
-    @OptIn(ExperimentalTextApi::class)
     private fun buildStyleCandidates(
         hash: Long,
         profile: GenreTitleProfile,
@@ -338,7 +333,6 @@ object GenreTypography {
         )
     }
 
-    @OptIn(ExperimentalTextApi::class)
     private fun expressiveStyle(
         fontSize: Float,
         weight: Int,

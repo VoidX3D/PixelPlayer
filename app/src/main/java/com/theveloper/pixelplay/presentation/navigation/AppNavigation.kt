@@ -59,7 +59,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.flow.first
 import com.theveloper.pixelplay.presentation.components.ScreenWrapper
 
-@OptIn(UnstableApi::class)
 @SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
 fun AppNavigation(

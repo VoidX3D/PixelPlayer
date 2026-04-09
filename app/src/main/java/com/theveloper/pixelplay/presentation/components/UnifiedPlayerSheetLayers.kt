@@ -38,7 +38,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 import kotlinx.collections.immutable.ImmutableList
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     currentSong: Song?,
@@ -224,7 +223,6 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun UnifiedPlayerPrewarmLayer(
     prewarmFullPlayer: Boolean,

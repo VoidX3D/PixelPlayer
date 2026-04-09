@@ -1,8 +1,3 @@
-@file:OptIn(
-    ExperimentalLayoutApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
 
 package com.theveloper.pixelplay.presentation.components
 

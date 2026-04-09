@@ -30,7 +30,6 @@ import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 
-@OptIn(ExperimentalCoilApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun OptimizedAlbumArt(
     uri: Any?,

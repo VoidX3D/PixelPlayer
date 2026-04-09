@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
-@OptIn(UnstableApi::class)
 @Composable
 internal fun PlayerSheetPredictiveBackHandler(
     enabled: Boolean,

@@ -114,7 +114,6 @@ private data class NeteaseWebUiState(
     val lastError: String? = null
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NeteaseWebLoginScreen(
     viewModel: NeteaseLoginViewModel = hiltViewModel(),
@@ -480,7 +479,6 @@ fun NeteaseWebLoginScreen(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun rememberNeteaseLoginTitleStyle(): TextStyle {
     return remember {

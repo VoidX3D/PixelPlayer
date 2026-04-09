@@ -31,7 +31,6 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Beta05CleanInstallDisclaimerDialog(
     onDismiss: (dontShowAgain: Boolean) -> Unit

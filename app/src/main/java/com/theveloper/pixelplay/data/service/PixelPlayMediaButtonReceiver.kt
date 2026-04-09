@@ -9,7 +9,6 @@ import timber.log.Timber
 
 class PixelPlayMediaButtonReceiver : MediaButtonReceiver() {
 
-    @OptIn(UnstableApi::class)
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_MEDIA_BUTTON) {
             super.onReceive(context, intent)
