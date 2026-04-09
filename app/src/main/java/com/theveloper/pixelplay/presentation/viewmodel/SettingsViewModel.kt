@@ -52,6 +52,7 @@ data class SettingsUiState(
     val mockGenresEnabled: Boolean = false,
     val navBarCornerRadius: Int = 32,
     val navBarStyle: String = NavBarStyle.DEFAULT,
+    val navBarCompactMode: Boolean = false,
     val carouselStyle: String = CarouselStyle.NO_PEEK,
     val libraryNavigationMode: String = LibraryNavigationMode.TAB_ROW,
     val launchTab: String = LaunchTab.HOME,
@@ -126,6 +127,7 @@ private sealed interface SettingsUiUpdate {
         val mockGenresEnabled: Boolean,
         val navBarCornerRadius: Int,
         val navBarStyle: String,
+        val navBarCompactMode: Boolean,
         val libraryNavigationMode: String,
         val carouselStyle: String,
         val launchTab: String,
@@ -269,6 +271,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.mockGenresEnabledFlow,
                 userPreferencesRepository.navBarCornerRadiusFlow,
                 userPreferencesRepository.navBarStyleFlow,
+                userPreferencesRepository.navBarCompactModeFlow,
                 userPreferencesRepository.libraryNavigationModeFlow,
                 userPreferencesRepository.carouselStyleFlow,
                 userPreferencesRepository.launchTabFlow,
@@ -282,10 +285,11 @@ class SettingsViewModel @Inject constructor(
                     mockGenresEnabled = values[4] as Boolean,
                     navBarCornerRadius = values[5] as Int,
                     navBarStyle = values[6] as String,
-                    libraryNavigationMode = values[7] as String,
-                    carouselStyle = values[8] as String,
-                    launchTab = values[9] as String,
-                    showPlayerFileInfo = values[10] as Boolean
+                    navBarCompactMode = values[7] as Boolean,
+                    libraryNavigationMode = values[8] as String,
+                    carouselStyle = values[9] as String,
+                    launchTab = values[10] as String,
+                    showPlayerFileInfo = values[11] as Boolean
                 )
             }.collect { update ->
                 _uiState.update { state ->
@@ -297,6 +301,7 @@ class SettingsViewModel @Inject constructor(
                         mockGenresEnabled = update.mockGenresEnabled,
                         navBarCornerRadius = update.navBarCornerRadius,
                         navBarStyle = update.navBarStyle,
+                        navBarCompactMode = update.navBarCompactMode,
                         libraryNavigationMode = update.libraryNavigationMode,
                         carouselStyle = update.carouselStyle,
                         launchTab = update.launchTab,
@@ -527,6 +532,12 @@ class SettingsViewModel @Inject constructor(
     fun setNavBarStyle(style: String) {
         viewModelScope.launch {
             userPreferencesRepository.setNavBarStyle(style)
+        }
+    }
+
+    fun setNavBarCompactMode(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setNavBarCompactMode(enabled)
         }
     }
 

@@ -44,9 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.model.Genre
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
-import com.theveloper.pixelplay.presentation.components.NavBarContentHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.components.getNavigationBarHeight
+import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import com.theveloper.pixelplay.presentation.utils.GenreIconProvider
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -77,6 +77,7 @@ fun GenreCategoriesGrid(
 
     // Persistence: Collect from ViewModel
     val isGridView by playerViewModel.isGenreGridView.collectAsStateWithLifecycle()
+    val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
 
     LazyVerticalGrid(
         columns = if (isGridView) GridCells.Fixed(2) else GridCells.Fixed(1),
@@ -95,7 +96,7 @@ fun GenreCategoriesGrid(
             )),
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = 28.dp + NavBarContentHeight + MiniPlayerHeight + systemNavBarHeight
+            bottom = 28.dp + resolveNavBarOccupiedHeight(systemNavBarHeight, navBarCompactMode) + MiniPlayerHeight
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -147,7 +148,6 @@ fun GenreCategoriesGrid(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun GenreCard(
     genre: Genre,

@@ -392,6 +392,13 @@ class PlayerViewModel @Inject constructor(
             initialValue = NavBarStyle.DEFAULT
         )
 
+    val navBarCompactMode: StateFlow<Boolean> = userPreferencesRepository.navBarCompactModeFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     val libraryNavigationMode: StateFlow<String> = userPreferencesRepository.libraryNavigationModeFlow
         .stateIn(
             scope = viewModelScope,

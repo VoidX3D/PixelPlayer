@@ -595,6 +595,19 @@ fun SettingsCategoryScreen(
                                     onSelectionChanged = { settingsViewModel.setNavBarStyle(it) },
                                     leadingIcon = { Icon(Icons.Outlined.Style, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+                                SwitchSettingItem(
+                                    title = "Compact mode",
+                                    subtitle = "Show only icons and reduce the navbar height.",
+                                    checked = uiState.navBarCompactMode,
+                                    onCheckedChange = { settingsViewModel.setNavBarCompactMode(it) },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.rounded_view_week_24),
+                                            null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                )
                                 SettingsItem(
                                     title = "NavBar Corner Radius",
                                     subtitle = "Adjust the corner radius of the navigation bar.",

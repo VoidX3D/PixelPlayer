@@ -108,6 +108,7 @@ constructor(
         val YOUR_MIX_SONG_IDS = stringPreferencesKey("your_mix_song_ids")
         val NAV_BAR_CORNER_RADIUS = intPreferencesKey("nav_bar_corner_radius")
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
+        val NAV_BAR_COMPACT_MODE = booleanPreferencesKey("nav_bar_compact_mode")
         val CAROUSEL_STYLE = stringPreferencesKey("carousel_style")
         val LIBRARY_NAVIGATION_MODE = stringPreferencesKey("library_navigation_mode")
         val LAUNCH_TAB = stringPreferencesKey("launch_tab")
@@ -1208,6 +1209,17 @@ constructor(
 
     suspend fun setNavBarStyle(style: String) {
         dataStore.edit { preferences -> preferences[PreferencesKeys.NAV_BAR_STYLE] = style }
+    }
+
+    val navBarCompactModeFlow: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.NAV_BAR_COMPACT_MODE] ?: false
+            }
+
+    suspend fun setNavBarCompactMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.NAV_BAR_COMPACT_MODE] = enabled
+        }
     }
 
     val libraryNavigationModeFlow: Flow<String> =
