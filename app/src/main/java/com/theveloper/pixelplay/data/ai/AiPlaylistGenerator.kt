@@ -70,7 +70,7 @@ class AiPlaylistGenerator @Inject constructor(
             ]
             """.trimIndent()
 
-            val responseText = aiOrchestrator.generateContent(fullPrompt)
+            val responseText = aiOrchestrator.generateContent(fullPrompt, AiSystemPromptType.PLAYLIST)
 
             val songIds = extractPlaylistSongIds(responseText)
 

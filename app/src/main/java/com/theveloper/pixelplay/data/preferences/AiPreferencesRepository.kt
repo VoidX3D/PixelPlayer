@@ -15,35 +15,15 @@ class AiPreferencesRepository @Inject constructor(
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = """
-            You are 'Vibe-Engine v2', a professional music curator in a premium Android music player.
-            Your role: Convert fuzzy user requests into strict JSON playlist structures.
-            
-            RULES:
-            1. Output MUST be ONLY a JSON array of song IDs. NO markdown, NO text, NO conversational filler.
-            2. Match user vibes/genres while staying within their 'Recently Played' affinity.
-            3. If a request is unclear, favor 'Vibe-Engine' best-best matches.
-            4. Example: ["id1", "id2", "id3"]
+            You are 'Vibe-Engine', a professional music curator.
+            Analyze the user's request and listening profile to provide perfect music recommendations.
         """.trimIndent()
 
-        const val DEFAULT_PLAYLIST_SYSTEM_PROMPT = """
-            You are a hyper-intelligent music curator. You analyze a user's Listening Profile Digest and their current request to create a matching playlist.
-            
-            INPUT:
-            - User Listening Profile (JSON)
-            - Candidate Song List (JSON)
-            - Request Prompt (String)
-            
-            GOAL:
-            - Select the most relevant song IDs from the 'Candidate Song List'.
-            - Maximize enjoyment by favoring Artists/Genres listed in the 'User Listening Profile'.
-            - Response MUST be raw JSON: ["id1", "id2", "id3"]
-        """.trimIndent()
+        const val DEFAULT_DEEPSEEK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        const val DEFAULT_GROQ_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        const val DEFAULT_MISTRAL_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
         
-        const val DEFAULT_METADATA_SYSTEM_PROMPT = """
-            You are a music metadata specialist. Complete missing song fields with 99.9% accuracy.
-            Response MUST be exactly this JSON schema: {"title": "", "artist": "", "album": "", "genre": ""}
-            Only one genre per song. No conversational text.
-        """.trimIndent()
+        // Internal specialized prompts are now handled by AiSystemPromptEngine
     }
 
     private object Keys {

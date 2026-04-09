@@ -39,7 +39,7 @@ class AiMetadataGenerator @Inject constructor(
             Fields to complete: [$fieldsJson]
             """.trimIndent()
 
-            val responseText = aiOrchestrator.generateContent(fullPrompt)
+            val responseText = aiOrchestrator.generateContent(fullPrompt, AiSystemPromptType.METADATA)
             if (responseText.isBlank()) {
                 Timber.e("AI returned an empty or null response.")
                 return Result.failure(Exception("AI returned an empty response."))
