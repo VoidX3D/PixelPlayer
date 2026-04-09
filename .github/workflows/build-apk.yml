@@ -1,0 +1,72 @@
+name: Build Android Release
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Set up Android SDK
+        run: |
+          mkdir -p $ANDROID_HOME/licenses || true
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "24333f8a63b6825ea9c5514f52684075b9671c8d" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "847d32918449e469588663806a68f6cf01b1a739" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "d975f751698a77b39fa0df3a3d1630015701a537" > $ANDROID_HOME/licenses/intel-android-extra-license
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
+          echo "601085b96cd04f616738a3d34010eef0ce625341" > $ANDROID_HOME/licenses/android-googletv-license
+          echo "bd210891461f6e2ec907a752697818e9d6d06d4e" > $ANDROID_HOME/licenses/android-googlexr-license
+          echo "e9acab3b5dccd51d9111867c827083a046896f12" > $ANDROID_HOME/licenses/android-sdk-arm-dbt-license
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Prepare Gradle
+        run: chmod +x gradlew
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate Dynamic Keystore
+        run: |
+          keytool -genkey -v -keystore release.keystore -alias releaseAlias -keyalg RSA -keysize 2048 -validity 10000 -storepass pixelplayerkey -keypass pixelplayerkey -dname "CN=PixelPlayer, OU=Android, O=OpenSource, L=World, ST=Earth, C=US"
+
+      - name: Build Phone release APK
+        run: ./gradlew :app:assembleRelease
+        env:
+          KEYSTORE_PASSWORD: pixelplayerkey
+          KEY_ALIAS: releaseAlias
+          KEY_PASSWORD: pixelplayerkey
+
+      - name: Build Phone release AAB
+        run: ./gradlew :app:bundleRelease -PnoSplits
+        env:
+          KEYSTORE_PASSWORD: pixelplayerkey
+          KEY_ALIAS: releaseAlias
+          KEY_PASSWORD: pixelplayerkey
+
+      - name: Upload Phone Signed Release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPlay-phone-release-apks
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Upload Phone Signed Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPlay-phone-release-aab
+          path: app/build/outputs/bundle/release/*.aab
