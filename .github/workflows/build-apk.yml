@@ -52,6 +52,7 @@ jobs:
           keytool -genkey -v -keystore release.keystore -alias releaseAlias -keyalg RSA -keysize 2048 -validity 10000 -storepass pixelplayerkey -keypass pixelplayerkey -dname "CN=PixelPlayer, OU=Android, O=OpenSource, L=World, ST=Earth, C=US"
 
       - name: Sign APK and AAB
+        run: |
           # Sign all generated APKs
           for apk in app/build/outputs/apk/release/*-unsigned.apk; do
             echo "Signing $apk..."
