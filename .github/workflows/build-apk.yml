@@ -41,31 +41,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Phone release APK
-        run: ./gradlew :app:assembleRelease
-
-      - name: Build Phone release AAB
-        run: ./gradlew :app:bundleRelease -PnoSplits
-
       - name: Generate Dynamic Keystore
         run: |
           keytool -genkey -v -keystore release.keystore -alias releaseAlias -keyalg RSA -keysize 2048 -validity 10000 -storepass pixelplayerkey -keypass pixelplayerkey -dname "CN=PixelPlayer, OU=Android, O=OpenSource, L=World, ST=Earth, C=US"
 
-      - name: Sign APK and AAB
-        run: |
-          # Sign all generated APKs
-          for apk in app/build/outputs/apk/release/*-unsigned.apk; do
-            echo "Signing $apk..."
-            $ANDROID_HOME/build-tools/35.0.0/apksigner sign --ks release.keystore --ks-key-alias releaseAlias --ks-pass pass:pixelplayerkey --key-pass pass:pixelplayerkey "$apk"
-            # Move to a clean named file (removing -unsigned)
-            signed_apk="${apk/-unsigned.apk/.apk}"
-            mv "$apk" "$signed_apk"
-          done
-          
-          # Sign AAB using jarsigner
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore release.keystore -storepass pixelplayerkey -keypass pixelplayerkey app/build/outputs/bundle/release/app-release.aab releaseAlias
+      - name: Build Phone release APK
+        run: ./gradlew :app:assembleRelease
+        env:
+          KEYSTORE_PASSWORD: pixelplayerkey
+          KEY_ALIAS: releaseAlias
+          KEY_PASSWORD: pixelplayerkey
 
-      - name: Upload Phone Signed Release APK
+      - name: Build Phone release AAB
+        run: ./gradlew :app:bundleRelease -PnoSplits
+        env:
+          KEYSTORE_PASSWORD: pixelplayerkey
+          KEY_ALIAS: releaseAlias
+          KEY_PASSWORD: pixelplayerkey
+
+      - name: Upload Phone Signed Release APKs
         uses: actions/upload-artifact@v4
         with:
           name: PixelPlay-phone-release-apks
@@ -75,4 +69,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PixelPlay-phone-release-aab
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/release/*.aab

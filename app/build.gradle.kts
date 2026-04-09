@@ -47,6 +47,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("${project.rootDir}/release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "pixelplayerkey"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "releaseAlias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "pixelplayerkey"
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -59,15 +68,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         // AGREGA ESTE BLOQUE:
         create("benchmark") {
             initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             matchingFallbacks += listOf("release")
-            isDebuggable = false // Esto quita el error que mencionaste
+            isDebuggable = false 
         }
     }
     compileOptions {
