@@ -202,6 +202,8 @@ class SettingsViewModel @Inject constructor(
     val aiProvider: StateFlow<String> = aiPreferencesRepository.aiProvider
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "GEMINI")
 
+    private val fileExplorerStateHolder = FileExplorerStateHolder(userPreferencesRepository, viewModelScope, context)
+
     val currentPath = fileExplorerStateHolder.currentPath
     val currentDirectoryChildren = fileExplorerStateHolder.currentDirectoryChildren
     val blockedDirectories = fileExplorerStateHolder.blockedDirectories
@@ -899,10 +901,10 @@ class SettingsViewModel @Inject constructor(
             }
     }
 
-    private val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
+    val deepseekApiKey: StateFlow<String> = aiPreferencesRepository.deepseekApiKey
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    private val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
+    val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     fun onGeminiModelChange(model: String) {

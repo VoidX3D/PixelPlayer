@@ -191,6 +191,8 @@ fun SettingsCategoryScreen(
     val mistralApiKey by settingsViewModel.mistralApiKey.collectAsStateWithLifecycle()
     val mistralModel by settingsViewModel.mistralModel.collectAsStateWithLifecycle()
     val mistralSystemPrompt by settingsViewModel.mistralSystemPrompt.collectAsStateWithLifecycle()
+    val deepseekApiKey by settingsViewModel.deepseekApiKey.collectAsStateWithLifecycle()
+    val deepseekModel by settingsViewModel.deepseekModel.collectAsStateWithLifecycle()
     val currentPath by settingsViewModel.currentPath.collectAsStateWithLifecycle()
     val directoryChildren by settingsViewModel.currentDirectoryChildren.collectAsStateWithLifecycle()
     val availableStorages by settingsViewModel.availableStorages.collectAsStateWithLifecycle()
