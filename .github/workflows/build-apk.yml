@@ -41,19 +41,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Phone release APK and AAB
-        run: ./gradlew :app:assembleRelease :app:bundleRelease
+      - name: Build Phone release APK
+        run: ./gradlew :app:assembleRelease
+
+      - name: Build Phone release AAB
+        run: ./gradlew :app:bundleRelease -PnoSplits
 
       - name: Generate Dynamic Keystore
         run: |
           keytool -genkey -v -keystore release.keystore -alias releaseAlias -keyalg RSA -keysize 2048 -validity 10000 -storepass pixelplayerkey -keypass pixelplayerkey -dname "CN=PixelPlayer, OU=Android, O=OpenSource, L=World, ST=Earth, C=US"
 
       - name: Sign APK and AAB
-        run: |
-          # Sign APK
-          $ANDROID_HOME/build-tools/35.0.0/apksigner sign --ks release.keystore --ks-key-alias releaseAlias --ks-pass pass:pixelplayerkey --key-pass pass:pixelplayerkey app/build/outputs/apk/release/app-release-unsigned.apk
-          # Rename for output
-          mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release.apk
+          # Sign all generated APKs
+          for apk in app/build/outputs/apk/release/*-unsigned.apk; do
+            echo "Signing $apk..."
+            $ANDROID_HOME/build-tools/35.0.0/apksigner sign --ks release.keystore --ks-key-alias releaseAlias --ks-pass pass:pixelplayerkey --key-pass pass:pixelplayerkey "$apk"
+            # Move to a clean named file (removing -unsigned)
+            signed_apk="${apk/-unsigned.apk/.apk}"
+            mv "$apk" "$signed_apk"
+          done
           
           # Sign AAB using jarsigner
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore release.keystore -storepass pixelplayerkey -keypass pixelplayerkey app/build/outputs/bundle/release/app-release.aab releaseAlias
@@ -61,8 +67,8 @@ jobs:
       - name: Upload Phone Signed Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: PixelPlay-phone-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          name: PixelPlay-phone-release-apks
+          path: app/build/outputs/apk/release/*.apk
 
       - name: Upload Phone Signed Release AAB
         uses: actions/upload-artifact@v4
