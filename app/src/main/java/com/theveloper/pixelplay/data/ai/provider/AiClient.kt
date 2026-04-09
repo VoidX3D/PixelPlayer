@@ -9,11 +9,12 @@ interface AiClient {
     /**
      * Generate text content based on a prompt
      * @param model The model identifier to use
+     * @param systemPrompt The system prompt instructions
      * @param prompt The input prompt
      * @return Generated text response
      * @throws Exception if generation fails
      */
-    suspend fun generateContent(model: String, prompt: String): String
+    suspend fun generateContent(model: String, systemPrompt: String, prompt: String): String
     
     /**
      * Get list of available models for this provider

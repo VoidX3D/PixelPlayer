@@ -30,9 +30,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         QqMusicPlaylistEntity::class,
         NavidromeSongEntity::class,
         NavidromePlaylistEntity::class,
-        TelegramTopicEntity::class
+        TelegramTopicEntity::class,
+        AiCacheEntity::class
     ],
-         version = 36, // Add songs FTS table for indexed title/artist search
+         version = 37, // Add ai cache table
 
     exportSchema = true
 )
@@ -50,6 +51,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun localPlaylistDao(): LocalPlaylistDao
     abstract fun qqmusicDao(): QqMusicDao
     abstract fun navidromeDao(): NavidromeDao
+    abstract fun aiCacheDao(): AiCacheDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -530,6 +532,18 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_playlist_id_sort_order ON playlist_songs(playlist_id, sort_order)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_playlist_songs_song_id ON playlist_songs(song_id)")
                 installFavoriteSyncTriggers(db)
+            }
+        }
+        
+        val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS ai_cache (
+                        promptHash TEXT NOT NULL PRIMARY KEY,
+                        responseJson TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
 

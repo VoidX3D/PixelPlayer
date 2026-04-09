@@ -10,38 +10,34 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
-/**
- * DeepSeek AI provider implementation
- * Uses OpenAI-compatible API
- */
-class DeepSeekAiClient(private val apiKey: String) : AiClient {
+class MistralAiClient(private val apiKey: String) : AiClient {
     
     companion object {
-        private const val DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
-        private const val BASE_URL = "https://api.deepseek.com"
+        private const val DEFAULT_MODEL = "mistral-large-latest"
+        private const val BASE_URL = "https://api.mistral.ai/v1"
     }
     
     @Serializable
-    data class ChatMessage(val role: String, val content: String)
+    private data class ChatMessage(val role: String, val content: String)
     
     @Serializable
-    data class ChatRequest(
+    private data class ChatRequest(
         val model: String,
         val messages: List<ChatMessage>,
         val temperature: Double = 0.7
     )
     
     @Serializable
-    data class ChatChoice(val message: ChatMessage)
+    private data class ChatChoice(val message: ChatMessage)
     
     @Serializable
-    data class ChatResponse(val choices: List<ChatChoice>)
+    private data class ChatResponse(val choices: List<ChatChoice>)
     
     @Serializable
-    data class ModelItem(val id: String)
+    private data class ModelItem(val id: String)
     
     @Serializable
-    data class ModelsResponse(val data: List<ModelItem>)
+    private data class ModelsResponse(val data: List<ModelItem>)
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -63,7 +59,7 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
             messagesList.add(ChatMessage(role = "user", content = prompt))
 
             val requestBody = ChatRequest(
-                model = model.ifBlank { DEFAULT_DEEPSEEK_MODEL },
+                model = model.ifBlank { DEFAULT_MODEL },
                 messages = messagesList
             )
             
@@ -80,15 +76,15 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
             val response = client.newCall(request).execute()
             
             if (!response.isSuccessful) {
-                throw Exception("DeepSeek API error: ${response.code} ${response.message}")
+                throw Exception("Mistral API error: ${response.code} ${response.message}")
             }
             
             val responseBody = response.body?.string() 
-                ?: throw Exception("DeepSeek returned empty response")
+                ?: throw Exception("Mistral returned empty response")
             
             val chatResponse = json.decodeFromString<ChatResponse>(responseBody)
             chatResponse.choices.firstOrNull()?.message?.content 
-                ?: throw Exception("DeepSeek response has no content")
+                ?: throw Exception("Mistral response has no content")
         }
     }
     
@@ -133,12 +129,14 @@ class DeepSeekAiClient(private val apiKey: String) : AiClient {
         }
     }
     
-    override fun getDefaultModel(): String = DEFAULT_DEEPSEEK_MODEL
+    override fun getDefaultModel(): String = DEFAULT_MODEL
     
     private fun getDefaultModels(): List<String> {
         return listOf(
-            "deepseek-chat",
-            "deepseek-reasoner"
+            "mistral-large-latest",
+            "mistral-small-latest",
+            "open-mixtral-8x22b",
+            "open-mixtral-8x7b"
         )
     }
 }
