@@ -903,7 +903,9 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private val deepseekModel: StateFlow<String> = aiPreferencesRepository.deepseekModel
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")    fun onGeminiModelChange(model: String) {
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    fun onGeminiModelChange(model: String) {
         viewModelScope.launch { aiPreferencesRepository.setGeminiModel(model) }
     }
 
