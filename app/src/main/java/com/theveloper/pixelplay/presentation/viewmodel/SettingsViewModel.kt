@@ -96,7 +96,8 @@ data class SettingsUiState(
     val collageAutoRotate: Boolean = false,
     val minSongDuration: Int = 10000,
     val replayGainEnabled: Boolean = false,
-    val replayGainUseAlbumGain: Boolean = false
+    val replayGainUseAlbumGain: Boolean = false,
+    val isSafeTokenLimitEnabled: Boolean = true
 )
 
 data class FailedSongInfo(
@@ -249,6 +250,9 @@ class SettingsViewModel @Inject constructor(
     // AI Provider Settings
     val aiProvider: StateFlow<String> = aiPreferencesRepository.aiProvider
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "GEMINI")
+
+    val isSafeTokenLimitEnabled: StateFlow<Boolean> = aiPreferencesRepository.isSafeTokenLimitEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val fileExplorerStateHolder = FileExplorerStateHolder(userPreferencesRepository, viewModelScope, context)
 
@@ -487,6 +491,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.replayGainUseAlbumGainFlow.collect { useAlbum ->
                 _uiState.update { it.copy(replayGainUseAlbumGain = useAlbum) }
+            }
+        }
+
+        viewModelScope.launch {
+            aiPreferencesRepository.isSafeTokenLimitEnabled.collect { enabled ->
+                _uiState.update { it.copy(isSafeTokenLimitEnabled = enabled) }
             }
         }
     }
@@ -792,6 +802,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             if (isSyncing.value) return@launch
             syncManager.forceRefresh()
+        }
+    }
+
+    fun setSafeTokenLimitEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            aiPreferencesRepository.setSafeTokenLimitEnabled(enabled)
         }
     }
 

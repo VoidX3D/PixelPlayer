@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.data.preferences
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
@@ -62,6 +63,7 @@ class AiPreferencesRepository @Inject constructor(
         val OPENAI_API_KEY = stringPreferencesKey("openai_api_key")
         val OPENAI_MODEL = stringPreferencesKey("openai_model")
         val OPENAI_SYSTEM_PROMPT = stringPreferencesKey("openai_system_prompt")
+        val SAFE_TOKEN_LIMIT = booleanPreferencesKey("safe_token_limit")
     }
 
     val geminiApiKey: Flow<String> =
@@ -154,6 +156,9 @@ class AiPreferencesRepository @Inject constructor(
         dataStore.data.map { preferences ->
             preferences[Keys.OPENAI_SYSTEM_PROMPT] ?: DEFAULT_OPENAI_SYSTEM_PROMPT
         }
+
+    val isSafeTokenLimitEnabled: Flow<Boolean> =
+        dataStore.data.map { preferences -> preferences[Keys.SAFE_TOKEN_LIMIT] ?: true }
 
     suspend fun setGeminiApiKey(apiKey: String) {
         dataStore.edit { preferences -> preferences[Keys.GEMINI_API_KEY] = apiKey }
@@ -301,5 +306,9 @@ class AiPreferencesRepository @Inject constructor(
         dataStore.edit { preferences ->
             preferences[Keys.OPENAI_SYSTEM_PROMPT] = DEFAULT_OPENAI_SYSTEM_PROMPT
         }
+    }
+
+    suspend fun setSafeTokenLimitEnabled(enabled: Boolean) {
+        dataStore.edit { preferences -> preferences[Keys.SAFE_TOKEN_LIMIT] = enabled }
     }
 }

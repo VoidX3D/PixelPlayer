@@ -14,12 +14,14 @@ class UserProfileDigestGenerator @Inject constructor(
     private val statsRepository: PlaybackStatsRepository,
     private val playlistDao: LocalPlaylistDao
 ) {
-    private val TARGET_CHAR_LIMIT = 15000 // Approx 3.5k-4k tokens
+    private val SAFE_TARGET_CHAR_LIMIT = 15000 // Approx 3.5k-4k tokens
+    private val MAX_TARGET_CHAR_LIMIT = 150000 // Large context for discovery
     /**
      * Computes a highly condensed representation of the user's listening profile.
      * Uses a compact key-value format to minimize token consumption while maximizing signal.
      */
-    suspend fun generateDigest(allSongs: List<Song>): String {
+    suspend fun generateDigest(allSongs: List<Song>, isSafeLimit: Boolean = true): String {
+        val targetLimit = if (isSafeLimit) SAFE_TARGET_CHAR_LIMIT else MAX_TARGET_CHAR_LIMIT
         val summary = statsRepository.loadSummary(StatsTimeRange.ALL, allSongs)
         val recentSummary = statsRepository.loadSummary(StatsTimeRange.WEEK, allSongs)
         val playlists = playlistDao.observePlaylistsWithSongs().first()
@@ -46,7 +48,9 @@ class UserProfileDigestGenerator @Inject constructor(
         }
         
         sb.append("DYNAMICS: variety=${"%.2f".format(if (summary.totalPlayCount > 0) summary.uniqueSongs.toDouble() / summary.totalPlayCount else 0.0)}\n")
-        sb.append("PLAYLISTS: ${playlists.take(10).joinToString(",") { it.playlist.name }}\n")
+        
+        val playlistLimit = if (isSafeLimit) 10 else 50
+        sb.append("PLAYLISTS: ${playlists.take(playlistLimit).joinToString(",") { it.playlist.name }}\n")
         
         // --- 2. Listened Tracks (Deep Stats) ---
         // Format: ID | PLAYS | TIME(m) | FAV(0/1) | TITLE - ARTIST
@@ -54,7 +58,7 @@ class UserProfileDigestGenerator @Inject constructor(
         sb.append("\nLISTENED_TRACKS_KEY: id|p(plays)|d(min)|f(fav)|meta\n")
         
         val songMap = allSongs.associateBy { it.id }
-        val playedSongs = summary.songs.takeWhile { sb.length < TARGET_CHAR_LIMIT * 0.7 }
+        val playedSongs = summary.songs.takeWhile { sb.length < targetLimit * 0.7 }
         
         playedSongs.forEach { s ->
             val song = songMap[s.songId]
@@ -69,7 +73,7 @@ class UserProfileDigestGenerator @Inject constructor(
         val playedIds = summary.songs.map { it.songId }.toSet()
         val unplayed = allSongs.filter { it.id !in playedIds }
             .shuffled()
-            .takeWhile { sb.length < TARGET_CHAR_LIMIT }
+            .takeWhile { sb.length < targetLimit }
         
         unplayed.forEach { s ->
             val fav = if (s.isFavorite) "1" else "0"

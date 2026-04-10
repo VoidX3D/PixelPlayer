@@ -16,100 +16,120 @@ enum class AiSystemPromptType {
 @Singleton
 class AiSystemPromptEngine @Inject constructor() {
 
+    // AI Optimization: Centralized universal constraints to prevent common LLM "chatter" behaviors.
+    private val UNIVERSAL_CONSTRAINTS = """
+        <universal_constraints>
+        - NEVER output markdown code blocks (e.g. no ```json or ```csv).
+        - NEVER include introductory conversational text (e.g. "Sure!", "Here is...").
+        - NEVER include explanatory text or closing remarks.
+        - NEVER include formatting characters like '*' or '#' unless required by the data format.
+        - STRICTLY return the raw data string ONLY.
+        - Failure to follow these formatting rules will break the application parser.
+        </universal_constraints>
+    """.trimIndent()
+
     fun buildPrompt(basePersona: String, type: AiSystemPromptType, context: String = ""): String {
         val requirementLayer = when (type) {
             AiSystemPromptType.PLAYLIST -> """
                 <instructions>
-                Create a cohesive musical journey. Prioritize track flow, harmonic compatibility, and genre-appropriate energy progression.
+                Act as a precision background process for a music application. Your task is to curate a list of song IDs.
+                Analyze the user's request and cross-reference it with their provided listening context.
+                Choose tracks that create a cohesive flow and align with the expressed vibe.
                 </instructions>
-                
-                <format_rules>
-                - Output MUST be a raw JSON array of song IDs.
-                - NO markdown, NO conversational text, NO explanations.
-                - Only return the JSON array.
-                - Example: ["id1", "id2", "id3"]
-                </format_rules>
                 
                 <strategy>
-                - Cross-reference user_context statistics.
-                - If the user asks for "new" or "unheard", prioritize IDs from the DISCOVERY_POOL.
-                - If the user asks for "favorites", prioritize IDs with high 'p' (plays) or 'f' (fav) flags.
+                - DISCOVERY: If the user asks for new/unheard/discovery music, you MUST select IDs from the [DISCOVERY_POOL].
+                - FAVORITES: If the user asks for favorites/vibe-matching, prioritize IDs with high [p] counts or [f:1] flags from [LISTENED_TRACKS].
+                - BALANCE: Mix both pools if the request is generic, favoring the user's top genres/artists.
                 </strategy>
+                
+                <output_format>
+                Return a RAW JSON ARRAY of song IDs.
+                Example: ["id_123", "id_456", "id_789"]
+                </output_format>
             """.trimIndent()
- 
+
             AiSystemPromptType.METADATA -> """
                 <instructions>
-                Provide accurate technical metadata. Use specifics (e.g. 'Nu-Jazz' instead of 'Jazz').
+                You are a technical metadata specialist. Provide the most accurate, industry-standard values for the given song.
+                Avoid generic genres; be specific (e.g. "Synthwave" instead of "Electronic").
                 </instructions>
                 
-                <format_rules>
-                - Output MUST be a raw JSON object matching this schema:
-                  {"title": "...", "artist": "...", "album": "...", "genre": "..."}
-                - NO markdown, NO conversational text, NO surrounding text.
-                - Example: {"title": "Levitating", "artist": "Dua Lipa", "album": "Future Nostalgia", "genre": "Dance-Pop"}
-                </format_rules>
+                <output_format>
+                Return a RAW JSON OBJECT.
+                Format: {"title": "Full Song Title", "artist": "Primary Artist", "album": "Official Album Name", "genre": "Specific Genre"}
+                </output_format>
             """.trimIndent()
- 
+
             AiSystemPromptType.TAGGING -> """
                 <instructions>
-                Provide 5-8 descriptive, evocative tags. Mix technical with atmospheric.
+                Generate 6 to 10 highly descriptive, atmospheric, and technical tags for the audio.
+                Tags should be lowercase and hyphenated (e.g. "ethereal-vocals", "lo-fi-beats").
                 </instructions>
                 
-                <format_rules>
-                - Output MUST be a raw CSV string. No JSON, no markdown.
-                - Example: lofi, chill, nocturnal, rainy, study, vinyl-crackle
-                </format_rules>
+                <output_format>
+                Return a RAW COMMA-SEPARATED list.
+                Example: cinematic, orchestral, tension-builder, dark-ambient, hybrid-score
+                </output_format>
             """.trimIndent()
- 
+
             AiSystemPromptType.MOOD_ANALYSIS -> """
                 <instructions>
-                Analyze the primary mood and core valence/energy metrics.
+                Perform a deep signal analysis of the song description/metadata to derive psychological and energetic metrics.
+                Metrics must be floats between 0.0 and 1.0. 
+                Possible Moods: Joyful, Aggressive, Calm, Melancholic, Radiant, Intense, Somber.
                 </instructions>
                 
-                <format_rules>
-                - Format: Mood | Energy:0.X | Valence:0.X | Danceability:0.X | Acousticness:0.X
-                - Example: Melancholic | Energy:0.3 | Valence:0.2 | Danceability:0.1 | Acousticness:0.8
-                </format_rules>
+                <output_format>
+                Tag | Value mapping.
+                Format: [Mood] | Energy:X.X | Valence:X.X | Danceability:X.X | Acousticness:X.X
+                Example: Intense | Energy:0.9 | Valence:0.1 | Danceability:0.4 | Acousticness:0.0
+                </output_format>
             """.trimIndent()
- 
+
             AiSystemPromptType.PERSONA -> """
                 <instructions>
-                Adopt the persona of a sophisticated sonic expert. Use poetic yet concise language.
-                Reference the user's metrics to make recommendations feel personal.
+                Respond as a poetic sonic oracle. Your tone is sophisticated, slightly enigmatic, yet deeply empathetic to the user's taste.
+                Reference the user's specific stats (e.g. "Your dedication to [Artist] is noted...") to personalize the interaction.
+                IMPORTANT: Even in persona mode, be concise.
                 </instructions>
             """.trimIndent()
- 
+
             AiSystemPromptType.GENERAL -> """
                 <instructions>
-                Respond clearly as a music-centric AI assistant.
+                You are the core logic engine of PixelPlayer. Help the user with music-related queries using their library context.
                 </instructions>
             """.trimIndent()
         }
- 
+
         val contextLayer = if (context.isNotBlank()) {
             """
-            <user_context>
+            <user_listening_context>
             $context
             
-            <playback_stats_key>
-            The user_context contains lists of tracks with stats using this compact notation:
-            id | p(plays) | d(listening_minutes) | f(is_favorite: 1 or 0) | meta(title-artist)
-            DISCOVERY_POOL tracks have 0 plays and should be used for recommendations of new/unheard music.
-            </playback_stats_key>
-            </user_context>
+            <stats_interpretation_protocol>
+            - [LISTENED_TRACKS]: Tracks the user has played.
+            - format: id | p(play_count) | d(total_minutes) | f(is_favorite:1/0) | meta(title-artist)
+            - [DISCOVERY_POOL]: Tracks in the user's library with 0 plays. Use these for discovery requests.
+            </stats_interpretation_protocol>
+            </user_listening_context>
             """.trimIndent()
         } else ""
- 
+
         return """
-            <persona>
+            <system_persona>
             $basePersona
-            </persona>
+            </system_persona>
+
+            $UNIVERSAL_CONSTRAINTS
             
             $contextLayer
             
-            <requirements>
+            <type_specific_requirements>
             $requirementLayer
-            </requirements>
+            </type_specific_requirements>
+            
+            FINAL WARNING: RETURN DATA ONLY. NO MARKDOWN. NO CHAT.
         """.trimIndent()
     }
 }

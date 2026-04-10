@@ -3,6 +3,8 @@ package com.theveloper.pixelplay.data.ai
 
 import com.theveloper.pixelplay.data.DailyMixManager
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import kotlin.math.max
@@ -11,6 +13,7 @@ class AiPlaylistGenerator @Inject constructor(
     private val dailyMixManager: DailyMixManager,
     private val aiOrchestrator: AiOrchestrator,
     private val digestGenerator: UserProfileDigestGenerator,
+    private val preferencesRepo: AiPreferencesRepository,
     private val json: Json
 ) {
 
@@ -54,7 +57,8 @@ class AiPlaylistGenerator @Inject constructor(
             }
 
             // Bring in the telemetry digest
-            val userDigest = digestGenerator.generateDigest(allSongs)
+            val isSafe = preferencesRepo.isSafeTokenLimitEnabled.first()
+            val userDigest = digestGenerator.generateDigest(allSongs, isSafe)
 
             val fullPrompt = """
             User Listening Profile Digest:

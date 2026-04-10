@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.presentation.screens
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 
 import android.content.Intent
 import android.net.Uri
@@ -1111,13 +1112,45 @@ fun SettingsCategoryScreen(
                                     "OPENAI" -> {
                                         GeminiSystemPromptItem(
                                             systemPrompt = openaiSystemPrompt,
-                                            defaultPrompt = com.theveloper.pixelplay.data.preferences.AiPreferencesRepository.DEFAULT_OPENAI_SYSTEM_PROMPT,
+                                            defaultPrompt = AiPreferencesRepository.DEFAULT_OPENAI_SYSTEM_PROMPT,
                                             onSystemPromptSave = { settingsViewModel.onOpenAiSystemPromptChange(it) },
                                             onReset = { settingsViewModel.resetOpenAiSystemPrompt() },
                                             title = "System Prompt",
                                             subtitle = "Customize how the AI behaves."
                                         )
                                     }
+                                }
+                            }
+
+                            // AI Performance & Context Section (Premium M3E Styling)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Context & Performance",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                            )
+
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                shape = RoundedCornerShape(24.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    SwitchSettingItem(
+                                        title = "Safe Token Limit",
+                                        subtitle = "When enabled, strictly limits data sent to AI to stay under 5,000 tokens. Disable for maximum personalization and better discovery results (higher latency).",
+                                        checked = uiState.isSafeTokenLimitEnabled,
+                                        onCheckedChange = { settingsViewModel.setSafeTokenLimitEnabled(it) },
+                                        leadingIcon = { 
+                                            Icon(
+                                                Icons.Rounded.Science, 
+                                                null, 
+                                                tint = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.size(24.dp)
+                                            ) 
+                                        }
+                                    )
                                 }
                             }
                         }
