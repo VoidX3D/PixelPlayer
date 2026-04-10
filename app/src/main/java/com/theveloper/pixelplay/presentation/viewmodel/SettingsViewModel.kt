@@ -17,6 +17,8 @@ import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.data.preferences.LibraryNavigationMode
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
+import com.theveloper.pixelplay.data.database.AiUsageDao
+import com.theveloper.pixelplay.data.database.AiUsageEntity
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
@@ -166,6 +168,7 @@ class SettingsViewModel @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
     private val syncManager: SyncManager,
     private val aiClientFactory: AiClientFactory,
+    private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
@@ -253,6 +256,21 @@ class SettingsViewModel @Inject constructor(
 
     val isSafeTokenLimitEnabled: StateFlow<Boolean> = aiPreferencesRepository.isSafeTokenLimitEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val recentAiUsage: StateFlow<List<AiUsageEntity>> = aiUsageDao.getRecentUsages(20)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val totalPromptTokens: StateFlow<Int> = aiUsageDao.getTotalPromptTokens()
+        .map { it ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val totalOutputTokens: StateFlow<Int> = aiUsageDao.getTotalOutputTokens()
+        .map { it ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val totalThoughtTokens: StateFlow<Int> = aiUsageDao.getTotalThoughtTokens()
+        .map { it ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     private val fileExplorerStateHolder = FileExplorerStateHolder(userPreferencesRepository, viewModelScope, context)
 
@@ -873,13 +891,17 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             aiPreferencesRepository.setAiProvider(provider)
 
-            // Update UI immediately
+            // Clear existing models immediately to show loading state
             _uiState.update {
                 it.copy(
                     availableModels = emptyList(),
-                    modelsFetchError = null
+                    modelsFetchError = null,
+                    isLoadingModels = false
                 )
             }
+
+            // Small delay to let the provider preference propagate to StateFlows
+            delay(100)
 
             // Fetch models for the newly selected provider if we have an API key
             val apiKey = when (provider) {
@@ -894,6 +916,34 @@ class SettingsViewModel @Inject constructor(
                 else -> ""
             }
 
+            if (apiKey.isNotBlank()) {
+                fetchAvailableModels(apiKey, provider)
+            }
+        }
+    }
+
+    /**
+     * Called by the UI on initial load to ensure models are loaded for the current provider.
+     * Prevents the "disappearing models" bug where switching away and back clears the list.
+     */
+    fun loadModelsForCurrentProvider() {
+        viewModelScope.launch {
+            if (_uiState.value.isLoadingModels) return@launch
+            if (_uiState.value.availableModels.isNotEmpty()) return@launch
+            
+            val provider = aiProvider.value
+            val apiKey = when (provider) {
+                "GEMINI" -> geminiApiKey.value
+                "DEEPSEEK" -> deepseekApiKey.value
+                "GROQ" -> groqApiKey.value
+                "MISTRAL" -> mistralApiKey.value
+                "NVIDIA" -> nvidiaApiKey.value
+                "KIMI" -> kimiApiKey.value
+                "GLM" -> glmApiKey.value
+                "OPENAI" -> openaiApiKey.value
+                else -> ""
+            }
+            
             if (apiKey.isNotBlank()) {
                 fetchAvailableModels(apiKey, provider)
             }
@@ -953,6 +1003,12 @@ class SettingsViewModel @Inject constructor(
             aiPreferencesRepository.setGlmApiKey(apiKey)
             if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, "GLM")
             else clearModelsState("GLM")
+        }
+    }
+
+    fun clearAiUsageData() {
+        viewModelScope.launch {
+            aiUsageDao.clearUsage()
         }
     }
 

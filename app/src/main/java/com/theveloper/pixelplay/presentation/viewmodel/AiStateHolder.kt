@@ -348,6 +348,49 @@ class AiStateHolder @Inject constructor(
             providerFailure?.isModelUnavailable() == true ->
                 context.getString(R.string.ai_error_model_unavailable)
 
+            // Timeout errors
+            detail.contains("timed out", ignoreCase = true) || 
+            detail.contains("timeout", ignoreCase = true) ->
+                "Request timed out. The AI provider is slow or overloaded. Try again in a moment."
+
+            // Network errors
+            detail.contains("network", ignoreCase = true) ||
+            detail.contains("connect", ignoreCase = true) ||
+            detail.contains("resolve host", ignoreCase = true) ||
+            detail.contains("SocketException", ignoreCase = true) ->
+                "Network error. Check your internet connection and try again."
+
+            // Rate limiting
+            detail.contains("rate limit", ignoreCase = true) ||
+            detail.contains("429", ignoreCase = true) ||
+            detail.contains("too many requests", ignoreCase = true) ->
+                "Rate limited. The AI provider needs a short break. Wait 30 seconds and try again."
+
+            // Safety filter
+            detail.contains("safety", ignoreCase = true) ||
+            detail.contains("blocked", ignoreCase = true) ||
+            detail.contains("filtered", ignoreCase = true) ->
+                "Content was blocked by the AI's safety filters. Try rephrasing your request."
+
+            // Invalid response format
+            detail.contains("valid playlist", ignoreCase = true) ||
+            detail.contains("JSON array", ignoreCase = true) ||
+            detail.contains("invalid response", ignoreCase = true) ->
+                "The AI returned an unexpected format. Try again or switch to a more capable model."
+
+            // No API key configured
+            detail.contains("No API key", ignoreCase = true) ||
+            detail.contains("not configured", ignoreCase = true) ->
+                context.getString(R.string.ai_error_api_key)
+
+            // Cooldown
+            detail.contains("cooldown", ignoreCase = true) ->
+                "AI providers are cooling down after recent errors. Wait a few minutes and try again."
+
+            // Empty response
+            detail.contains("empty response", ignoreCase = true) ->
+                "The AI returned an empty response. This typically means the model filtered the content. Try a different prompt."
+
             else ->
                 context.getString(R.string.ai_error_generic, detail)
         }

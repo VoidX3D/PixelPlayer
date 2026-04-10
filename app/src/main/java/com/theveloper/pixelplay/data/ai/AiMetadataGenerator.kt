@@ -31,13 +31,18 @@ class AiMetadataGenerator @Inject constructor(
         return try {
             val fieldsJson = fieldsToComplete.joinToString(separator = ", ") { "\"$it\"" }
 
-            val albumInfo = if (song.album.isNotBlank()) "Album: \"${song.album}\"" else ""
+            val albumInfo = if (song.album.isNotBlank()) "<album>${song.album}</album>" else ""
 
             val fullPrompt = """
-            Song title: "${song.title}"
-            Song artist: "${song.displayArtist}"
+            <target_song>
+            <title>${song.title}</title>
+            <artist>${song.displayArtist}</artist>
             $albumInfo
-            Fields to complete: [$fieldsJson]
+            </target_song>
+            <task>
+            Complete the following fields using your music knowledge:
+            <fields_to_complete>[$fieldsJson]</fields_to_complete>
+            </task>
             """.trimIndent()
 
             val responseText = aiOrchestrator.generateContent(fullPrompt, AiSystemPromptType.METADATA)

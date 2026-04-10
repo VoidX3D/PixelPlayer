@@ -22,6 +22,7 @@ import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.GDriveDao
 import com.theveloper.pixelplay.data.database.LyricsDao
 import com.theveloper.pixelplay.data.database.AiCacheDao
+import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.LocalPlaylistDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.PixelPlayDatabase
@@ -228,6 +229,11 @@ object AppModule {
     @Provides
     fun provideAiCacheDao(database: PixelPlayDatabase): AiCacheDao {
         return database.aiCacheDao()
+    }
+
+    @Provides
+    fun provideAiUsageDao(database: PixelPlayDatabase): AiUsageDao {
+        return database.aiUsageDao()
     }
 
     @Singleton

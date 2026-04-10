@@ -33,9 +33,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TelegramTopicEntity::class,
         JellyfinSongEntity::class,
         JellyfinPlaylistEntity::class,
-        AiCacheEntity::class
+        AiCacheEntity::class,
+        AiUsageEntity::class
     ],
-    version = 37,
+    version = 38,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -54,6 +55,7 @@ abstract class PixelPlayDatabase : RoomDatabase() {
     abstract fun navidromeDao(): NavidromeDao
     abstract fun jellyfinDao(): JellyfinDao
     abstract fun aiCacheDao(): AiCacheDao
+    abstract fun aiUsageDao(): AiUsageDao
 
     companion object {
         // Gap-bridging no-op migrations for missing version ranges.
@@ -582,6 +584,23 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                         `duration` INTEGER NOT NULL,
                         `last_sync_time` INTEGER NOT NULL,
                         PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS ai_usage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        provider TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        promptType TEXT NOT NULL,
+                        promptTokens INTEGER NOT NULL,
+                        outputTokens INTEGER NOT NULL,
+                        thoughtTokens INTEGER NOT NULL
                     )
                 """.trimIndent())
             }
