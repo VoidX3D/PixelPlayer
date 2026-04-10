@@ -127,7 +127,7 @@ android {
     // TDLib 单架构约 15~25MB，四架构合计 87MB，开启后每个 APK 只含对应架构
     splits {
         abi {
-            isEnable = true
+            isEnable = project.findProperty("enableSplits") == "true"
             reset()
             // 覆盖市面上 >99% 设备：arm64-v8a（现代手机）+ armeabi-v7a（旧设备）
             // x86 / x86_64 仅模拟器使用，发布阶段可不包含
