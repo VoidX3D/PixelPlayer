@@ -171,7 +171,7 @@ object CloudStreamSecurity {
         }
     }
 
-    private fun isPrivateIpv4Literal(host: String): Boolean {
+    internal fun isPrivateIpv4Literal(host: String): Boolean {
         val parts = host.split('.')
         if (parts.size != 4) return false
 

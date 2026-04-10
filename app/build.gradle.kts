@@ -387,6 +387,9 @@ dependencies {
 
     // Pinyin
     implementation(libs.pinyin4j.core)
+
+    // Encrypted credentials storage
+    implementation(libs.androidx.security.crypto)
 }
 
 tasks.withType<Test> {

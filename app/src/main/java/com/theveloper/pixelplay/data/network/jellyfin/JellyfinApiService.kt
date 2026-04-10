@@ -58,6 +58,8 @@ class JellyfinApiService @Inject constructor(
 
     fun getServerUrl(): String? = credentials?.normalizedServerUrl
 
+    fun getAuthorizationHeader(): String? = credentials?.let { buildAuthorizationHeader() }
+
     // ─── Authentication ─────────────────────────────────────────────────
 
     private fun buildAuthorizationHeader(): String {
@@ -330,7 +332,7 @@ class JellyfinApiService @Inject constructor(
     fun getImageUrl(itemId: String, imageType: String = "Primary", maxWidth: Int = 500): String {
         val cred = credentials ?: throw IllegalStateException("No credentials configured")
         return "${cred.normalizedServerUrl}/Items/$itemId/Images/$imageType" +
-                "?maxWidth=$maxWidth&quality=90&api_key=${cred.accessToken}"
+                "?maxWidth=$maxWidth&quality=90"
     }
 
     // ─── Lyrics API ──────────────────────────────────────────────────────

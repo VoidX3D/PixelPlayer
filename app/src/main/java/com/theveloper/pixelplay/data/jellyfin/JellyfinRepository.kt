@@ -2,6 +2,8 @@ package com.theveloper.pixelplay.data.jellyfin
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.theveloper.pixelplay.data.database.AlbumEntity
 import com.theveloper.pixelplay.data.database.ArtistEntity
 import com.theveloper.pixelplay.data.database.JellyfinDao
@@ -48,7 +50,6 @@ class JellyfinRepository @Inject constructor(
         private const val PREFS_NAME = "jellyfin_prefs"
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_USERNAME = "username"
-        private const val KEY_PASSWORD = "password"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_USER_ID = "user_id"
 
@@ -61,7 +62,21 @@ class JellyfinRepository @Inject constructor(
         private const val LIBRARY_PLAYLIST_ID = "__library__"
     }
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "$TAG: Failed to create EncryptedSharedPreferences, falling back to plain")
+        context.getSharedPreferences("${PREFS_NAME}_plain", Context.MODE_PRIVATE)
+    }
 
     private val _isLoggedInFlow = MutableStateFlow(false)
     val isLoggedInFlow: StateFlow<Boolean> = _isLoggedInFlow.asStateFlow()
@@ -75,13 +90,12 @@ class JellyfinRepository @Inject constructor(
     private fun initFromSavedCredentials() {
         val serverUrl = prefs.getString(KEY_SERVER_URL, null)
         val username = prefs.getString(KEY_USERNAME, null)
-        val password = prefs.getString(KEY_PASSWORD, null)
         val accessToken = prefs.getString(KEY_ACCESS_TOKEN, null)
         val userId = prefs.getString(KEY_USER_ID, null)
 
         if (!serverUrl.isNullOrBlank() && !username.isNullOrBlank() &&
             !accessToken.isNullOrBlank() && !userId.isNullOrBlank()) {
-            val credentials = JellyfinCredentials(serverUrl, username, password ?: "", accessToken, userId)
+            val credentials = JellyfinCredentials(serverUrl, username, "", accessToken, userId)
             val validationError = credentials.connectionValidationError()
             if (validationError != null) {
                 Timber.w("$TAG: Ignoring invalid saved Jellyfin server URL: $validationError")
@@ -100,6 +114,8 @@ class JellyfinRepository @Inject constructor(
 
     val serverUrl: String?
         get() = prefs.getString(KEY_SERVER_URL, null)
+
+    fun getAuthorizationHeader(): String? = api.getAuthorizationHeader()
 
     val username: String?
         get() = prefs.getString(KEY_USERNAME, null)
@@ -131,11 +147,10 @@ class JellyfinRepository @Inject constructor(
                 val fullCredentials = credentials.copy(accessToken = accessToken, userId = userId)
                 api.setCredentials(fullCredentials)
 
-                // Save credentials
+                // Save credentials (password is never persisted — token is sufficient)
                 prefs.edit()
                     .putString(KEY_SERVER_URL, fullCredentials.normalizedServerUrl)
                     .putString(KEY_USERNAME, username)
-                    .putString(KEY_PASSWORD, password)
                     .putString(KEY_ACCESS_TOKEN, accessToken)
                     .putString(KEY_USER_ID, userId)
                     .apply()

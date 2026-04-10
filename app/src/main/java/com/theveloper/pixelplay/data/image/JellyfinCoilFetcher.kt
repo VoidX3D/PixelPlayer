@@ -83,8 +83,10 @@ class JellyfinCoilFetcher(
             return null
         }
 
+        val authHeader = repository.getAuthorizationHeader()
+
         return try {
-            downloadImage(imageUrl, cachedFile)
+            downloadImage(imageUrl, cachedFile, authHeader)
         } catch (e: Exception) {
             if (shouldLogFailure("download_$itemId")) {
                 Timber.w(e, "$TAG: Failed to download cover art for $itemId")
@@ -93,9 +95,10 @@ class JellyfinCoilFetcher(
         }
     }
 
-    private fun downloadImage(url: String, cacheFile: File): FetchResult? {
+    private fun downloadImage(url: String, cacheFile: File, authHeader: String? = null): FetchResult? {
         val request = Request.Builder()
             .url(url)
+            .apply { if (authHeader != null) header("Authorization", authHeader) }
             .get()
             .build()
 

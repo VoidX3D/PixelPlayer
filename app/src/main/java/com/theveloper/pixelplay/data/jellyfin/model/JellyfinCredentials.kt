@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.jellyfin.model
 
+import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -57,15 +58,8 @@ data class JellyfinCredentials(
             val host = parsed.host
             val isPrivate = host == "localhost" ||
                     host == "127.0.0.1" ||
-                    host.startsWith("192.168.") ||
-                    host.startsWith("10.") ||
-                    host.startsWith("172.16.") ||
-                    host.startsWith("172.17.") ||
-                    host.startsWith("172.18.") ||
-                    host.startsWith("172.19.") ||
-                    host.startsWith("172.2") ||
-                    host.startsWith("172.3") ||
-                    host.endsWith(".local")
+                    host.endsWith(".local") ||
+                    CloudStreamSecurity.isPrivateIpv4Literal(host)
             if (!isPrivate) {
                 return "Use https:// for remote Jellyfin servers. HTTP is only allowed for local network addresses."
             }
