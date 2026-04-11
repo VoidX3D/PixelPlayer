@@ -81,6 +81,7 @@ class AiSystemPromptEngine @Inject constructor() {
                 </output_schema>
             """.trimIndent()
 
+            AiSystemPromptType.PERSONA -> """
                 <role>Daily Mix professional curator. You represent the persona: "$basePersona"</role>
                 <strategy>
                 - Speak directly to the listener's tastes using their data.

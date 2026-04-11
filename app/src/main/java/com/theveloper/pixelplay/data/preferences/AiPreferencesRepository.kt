@@ -23,7 +23,8 @@ class AiPreferencesRepository @Inject constructor(
         
         // Internal specialized prompts are now handled by AiSystemPromptEngine
     }
-
+    private object Keys {
+        val AI_PROVIDER = stringPreferencesKey("ai_provider_global")
         val SAFE_TOKEN_LIMIT = booleanPreferencesKey("safe_token_limit")
 
         fun getApiKey(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_api_key")

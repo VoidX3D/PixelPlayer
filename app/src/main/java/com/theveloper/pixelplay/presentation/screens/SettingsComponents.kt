@@ -675,7 +675,6 @@ fun ActionSettingsItem(
             }
         }
     }
-    }
 }
 
 @Composable
