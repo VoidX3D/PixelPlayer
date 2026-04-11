@@ -21,10 +21,17 @@ class AiPreferencesRepository @Inject constructor(
             Always prioritize flow, emotional resonance, and discovery.
         """.trimIndent()
         
-        // Internal specialized prompts are now handled by AiSystemPromptEngine
+        val DEFAULT_DEEPSEEK_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_GROQ_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_MISTRAL_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_NVIDIA_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_KIMI_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_GLM_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
+        val DEFAULT_OPENAI_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
     }
+
     private object Keys {
-        val AI_PROVIDER = stringPreferencesKey("ai_provider_global")
+        val AI_PROVIDER = stringPreferencesKey("ai_provider")
         val SAFE_TOKEN_LIMIT = booleanPreferencesKey("safe_token_limit")
 
         fun getApiKey(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_api_key")
@@ -32,6 +39,7 @@ class AiPreferencesRepository @Inject constructor(
         fun getSystemPrompt(provider: AiProvider) = stringPreferencesKey("${provider.name.lowercase()}_system_prompt")
     }
 
+    // Generic accessors for AiOrchestrator
     fun getApiKey(provider: AiProvider): Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.getApiKey(provider)] ?: "" }
 
@@ -39,8 +47,8 @@ class AiPreferencesRepository @Inject constructor(
         dataStore.data.map { preferences -> preferences[Keys.getModel(provider)] ?: "" }
 
     fun getSystemPrompt(provider: AiProvider): Flow<String> =
-        dataStore.data.map { preferences -> 
-            preferences[Keys.getSystemPrompt(provider)] ?: DEFAULT_SYSTEM_PROMPT 
+        dataStore.data.map { preferences ->
+            preferences[Keys.getSystemPrompt(provider)] ?: DEFAULT_SYSTEM_PROMPT
         }
 
     suspend fun setApiKey(provider: AiProvider, apiKey: String) {
@@ -60,6 +68,39 @@ class AiPreferencesRepository @Inject constructor(
             preferences[Keys.getSystemPrompt(provider)] = DEFAULT_SYSTEM_PROMPT
         }
     }
+
+    // Convenience properties for legacy compatibility (e.g. PlayerViewModel)
+    val geminiApiKey: Flow<String> = getApiKey(AiProvider.GEMINI)
+    val geminiModel: Flow<String> = getModel(AiProvider.GEMINI)
+    val geminiSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.GEMINI)
+
+    val deepseekApiKey: Flow<String> = getApiKey(AiProvider.DEEPSEEK)
+    val deepseekModel: Flow<String> = getModel(AiProvider.DEEPSEEK)
+    val deepseekSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.DEEPSEEK)
+
+    val groqApiKey: Flow<String> = getApiKey(AiProvider.GROQ)
+    val groqModel: Flow<String> = getModel(AiProvider.GROQ)
+    val groqSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.GROQ)
+
+    val mistralApiKey: Flow<String> = getApiKey(AiProvider.MISTRAL)
+    val mistralModel: Flow<String> = getModel(AiProvider.MISTRAL)
+    val mistralSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.MISTRAL)
+
+    val nvidiaApiKey: Flow<String> = getApiKey(AiProvider.NVIDIA)
+    val nvidiaModel: Flow<String> = getModel(AiProvider.NVIDIA)
+    val nvidiaSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.NVIDIA)
+
+    val kimiApiKey: Flow<String> = getApiKey(AiProvider.KIMI)
+    val kimiModel: Flow<String> = getModel(AiProvider.KIMI)
+    val kimiSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.KIMI)
+
+    val glmApiKey: Flow<String> = getApiKey(AiProvider.GLM)
+    val glmModel: Flow<String> = getModel(AiProvider.GLM)
+    val glmSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.GLM)
+
+    val openaiApiKey: Flow<String> = getApiKey(AiProvider.OPENAI)
+    val openaiModel: Flow<String> = getModel(AiProvider.OPENAI)
+    val openaiSystemPrompt: Flow<String> = getSystemPrompt(AiProvider.OPENAI)
 
     val aiProvider: Flow<String> =
         dataStore.data.map { preferences -> preferences[Keys.AI_PROVIDER] ?: "GEMINI" }

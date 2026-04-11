@@ -687,7 +687,6 @@ fun AiApiKeyItem(
     var localApiKey by remember(apiKey) { mutableStateOf(apiKey) }
     val hasChanges = localApiKey != apiKey
     var showSaved by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(showSaved) {
         if (showSaved) {
@@ -730,7 +729,6 @@ fun AiApiKeyItem(
                     onClick = {
                         onApiKeySave(localApiKey)
                         showSaved = true
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     },
                     enabled = hasChanges
                 ) {
@@ -842,7 +840,6 @@ fun AiSystemPromptItem(
                 if (!isDefault) {
                     OutlinedButton(onClick = {
                         onReset()
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     }) {
                         Text("Reset")
                     }
