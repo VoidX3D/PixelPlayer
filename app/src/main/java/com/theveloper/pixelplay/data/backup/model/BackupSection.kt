@@ -71,6 +71,13 @@ enum class BackupSection(
         iconRes = R.drawable.rounded_person_24,
         sinceVersion = 3
     ),
+    EQUALIZER(
+        key = "equalizer",
+        label = "Equalizer",
+        description = "Your custom equalizer presets and audio profiles.",
+        iconRes = R.drawable.rounded_surround_sound_24,
+        sinceVersion = 3
+    ),
     AI_USAGE_LOGS(
         key = "ai_usage_logs",
         label = "AI Activity Logs",
