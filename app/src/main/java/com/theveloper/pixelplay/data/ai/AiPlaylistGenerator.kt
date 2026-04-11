@@ -112,18 +112,22 @@ class AiPlaylistGenerator @Inject constructor(
             
             combinedMessages.contains("network", ignoreCase = true) ||
             combinedMessages.contains("connect", ignoreCase = true) ||
-            combinedMessages.contains("SocketException", ignoreCase = true) ->
-                "Network error. Check your internet connection and try again."
-            
-            combinedMessages.contains("429", ignoreCase = true) ||
-            combinedMessages.contains("rate limit", ignoreCase = true) ->
-                "Rate limited by the AI provider. Wait a moment and try again."
-            
+            combinedMessages.contains("SocketException", ignoreCase = true) ||
+            combinedMessages.contains("no internet", ignoreCase = true) ||
+            combinedMessages.contains("offline", ignoreCase = true) ||
+            combinedMessages.contains("wifi", ignoreCase = true) ->
+                "No Internet Connection. Check your WiFi or mobile data and try again."
+
+            combinedMessages.contains("airplane", ignoreCase = true) ->
+                "Airplane mode is active. Please turn it off to use AI."
+
             combinedMessages.contains("401", ignoreCase = true) ||
             combinedMessages.contains("403", ignoreCase = true) ||
-            combinedMessages.contains("invalid", ignoreCase = true) && 
-            combinedMessages.contains("key", ignoreCase = true) ->
-                "API key is invalid or expired. Check your AI settings."
+            combinedMessages.contains("permission", ignoreCase = true) ||
+            combinedMessages.contains("denied", ignoreCase = true) ||
+            combinedMessages.contains("forbidden", ignoreCase = true) ||
+            combinedMessages.contains("unauthorized", ignoreCase = true) ->
+                "Permission Denied. Your API key might be invalid or restricted."
             
             combinedMessages.contains("safety", ignoreCase = true) ||
             combinedMessages.contains("blocked", ignoreCase = true) ->

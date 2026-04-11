@@ -174,8 +174,8 @@ class AiStateHolder @Inject constructor(
                 )
 
                 // Step 2: Invoke AI Generation Engine
-                _aiStatus.value = "Consulting the sonic oracle..."
-                notificationManager.showProgress("AI Curation", "Synthesizing your sonic journey...", 50)
+                _aiStatus.value = "Consulting the Daily Mix guide..."
+                notificationManager.showProgress("AI Curation", "Synthesizing your Daily Mix...", 50)
                 
                 val result = aiPlaylistGenerator.generate(
                     userPrompt = prompt,
@@ -353,12 +353,28 @@ class AiStateHolder @Inject constructor(
             detail.contains("timeout", ignoreCase = true) ->
                 "Request timed out. The AI provider is slow or overloaded. Try again in a moment."
 
-            // Network errors
+            // Network/WiFi errors
             detail.contains("network", ignoreCase = true) ||
             detail.contains("connect", ignoreCase = true) ||
             detail.contains("resolve host", ignoreCase = true) ||
-            detail.contains("SocketException", ignoreCase = true) ->
-                "Network error. Check your internet connection and try again."
+            detail.contains("SocketException", ignoreCase = true) ||
+            detail.contains("no internet", ignoreCase = true) ||
+            detail.contains("offline", ignoreCase = true) ||
+            detail.contains("wifi", ignoreCase = true) ->
+                "No Internet Connection. Please check your WiFi or mobile data and try again."
+
+            // Airplane mode specific
+            detail.contains("airplane", ignoreCase = true) ->
+                "Airplane mode is on. Turn it off to use AI features."
+
+            // Permission/Auth errors
+            detail.contains("permission", ignoreCase = true) ||
+            detail.contains("denied", ignoreCase = true) ||
+            detail.contains("forbidden", ignoreCase = true) ||
+            detail.contains("unauthorized", ignoreCase = true) ||
+            detail.contains("401", ignoreCase = true) ||
+            detail.contains("403", ignoreCase = true) ->
+                "Permission Denied. Your API key might be invalid, or it lacks the necessary permissions for this model."
 
             // Rate limiting
             detail.contains("rate limit", ignoreCase = true) ||

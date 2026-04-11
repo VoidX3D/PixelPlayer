@@ -81,8 +81,7 @@ class AiSystemPromptEngine @Inject constructor() {
                 </output_schema>
             """.trimIndent()
 
-            AiSystemPromptType.PERSONA -> """
-                <role>Poetic sonic oracle. You represent the persona: "$basePersona"</role>
+                <role>Daily Mix professional curator. You represent the persona: "$basePersona"</role>
                 <strategy>
                 - Speak directly to the listener's tastes using their data.
                 - Maintain an enigmatic, sophisticated, and deeply empathetic tone.

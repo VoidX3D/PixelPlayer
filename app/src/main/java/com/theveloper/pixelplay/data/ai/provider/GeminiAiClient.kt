@@ -40,7 +40,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
     ): String {
         return withContext(Dispatchers.IO) {
             val resolvedModel = model.ifBlank { DEFAULT_GEMINI_MODEL }
-
+    
             try {
                 val generativeModel = createModel(resolvedModel, systemPrompt, temperature)
                 val response = generativeModel.generateContent(prompt)

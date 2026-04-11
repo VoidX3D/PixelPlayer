@@ -71,12 +71,15 @@ enum class BackupSection(
         iconRes = R.drawable.rounded_person_24,
         sinceVersion = 3
     ),
-    EQUALIZER(
-        key = "equalizer",
-        label = "Equalizer Presets",
-        description = "Custom equalizer presets and pinned order.",
         iconRes = R.drawable.rounded_surround_sound_24,
         sinceVersion = 3
+    ),
+    AI_USAGE_LOGS(
+        key = "ai_usage_logs",
+        label = "AI Activity Logs",
+        description = "History of AI requests and token consumption.",
+        iconRes = R.drawable.rounded_monitoring_24,
+        sinceVersion = 4
     );
 
     companion object {

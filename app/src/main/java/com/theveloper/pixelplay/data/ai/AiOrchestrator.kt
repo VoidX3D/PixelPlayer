@@ -42,56 +42,20 @@ class AiOrchestrator @Inject constructor(
     }
 
     private suspend fun getBasePersona(provider: AiProvider): String {
-        val prompt = when (provider) {
-            AiProvider.GEMINI -> preferencesRepo.geminiSystemPrompt.first()
-            AiProvider.DEEPSEEK -> preferencesRepo.deepseekSystemPrompt.first()
-            AiProvider.GROQ -> preferencesRepo.groqSystemPrompt.first()
-            AiProvider.MISTRAL -> preferencesRepo.mistralSystemPrompt.first()
-            AiProvider.NVIDIA -> preferencesRepo.nvidiaSystemPrompt.first()
-            AiProvider.KIMI -> preferencesRepo.kimiSystemPrompt.first()
-            AiProvider.GLM -> preferencesRepo.glmSystemPrompt.first()
-            AiProvider.OPENAI -> preferencesRepo.openaiSystemPrompt.first()
-        }
-        return prompt.ifBlank { AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT }
+        return preferencesRepo.getSystemPrompt(provider).first()
+            .ifBlank { AiPreferencesRepository.DEFAULT_SYSTEM_PROMPT }
     }
 
     private suspend fun getApiKey(provider: AiProvider): String {
-        return when (provider) {
-            AiProvider.GEMINI -> preferencesRepo.geminiApiKey.first()
-            AiProvider.DEEPSEEK -> preferencesRepo.deepseekApiKey.first()
-            AiProvider.GROQ -> preferencesRepo.groqApiKey.first()
-            AiProvider.MISTRAL -> preferencesRepo.mistralApiKey.first()
-            AiProvider.NVIDIA -> preferencesRepo.nvidiaApiKey.first()
-            AiProvider.KIMI -> preferencesRepo.kimiApiKey.first()
-            AiProvider.GLM -> preferencesRepo.glmApiKey.first()
-            AiProvider.OPENAI -> preferencesRepo.openaiApiKey.first()
-        }
+        return preferencesRepo.getApiKey(provider).first()
     }
 
     private suspend fun getModel(provider: AiProvider): String {
-        return when (provider) {
-            AiProvider.GEMINI -> preferencesRepo.geminiModel.first()
-            AiProvider.DEEPSEEK -> preferencesRepo.deepseekModel.first()
-            AiProvider.GROQ -> preferencesRepo.groqModel.first()
-            AiProvider.MISTRAL -> preferencesRepo.mistralModel.first()
-            AiProvider.NVIDIA -> preferencesRepo.nvidiaModel.first()
-            AiProvider.KIMI -> preferencesRepo.kimiModel.first()
-            AiProvider.GLM -> preferencesRepo.glmModel.first()
-            AiProvider.OPENAI -> preferencesRepo.openaiModel.first()
-        }
+        return preferencesRepo.getModel(provider).first()
     }
 
     private suspend fun setModel(provider: AiProvider, model: String) {
-        when (provider) {
-            AiProvider.GEMINI -> preferencesRepo.setGeminiModel(model)
-            AiProvider.DEEPSEEK -> preferencesRepo.setDeepseekModel(model)
-            AiProvider.GROQ -> preferencesRepo.setGroqModel(model)
-            AiProvider.MISTRAL -> preferencesRepo.setMistralModel(model)
-            AiProvider.NVIDIA -> preferencesRepo.setNvidiaModel(model)
-            AiProvider.KIMI -> preferencesRepo.setKimiModel(model)
-            AiProvider.GLM -> preferencesRepo.setGlmModel(model)
-            AiProvider.OPENAI -> preferencesRepo.setOpenAiModel(model)
-        }
+        preferencesRepo.setModel(provider, model)
     }
 
     private suspend fun generateWithRecovery(
