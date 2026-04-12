@@ -235,8 +235,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getAlbums(filter)
             }.collect { albums ->
-                _albums.value = albums.toImmutableList()
-                sortAlbums(_currentAlbumSortOption.value, persist = false)
+                val sortedAlbums = withContext(Dispatchers.Default) {
+                    sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()
+                }
+                _albums.value = sortedAlbums
                 _isLoadingCategories.value = false
             }
         }
@@ -247,8 +249,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
             }.collect { artists ->
-                _artists.value = artists.toImmutableList()
-                sortArtists(_currentArtistSortOption.value, persist = false)
+                val sortedArtists = withContext(Dispatchers.Default) {
+                    sortArtistsList(artists, _currentArtistSortOption.value).toImmutableList()
+                }
+                _artists.value = sortedArtists
                 _isLoadingCategories.value = false
             }
         }
@@ -258,8 +262,10 @@ class LibraryStateHolder @Inject constructor(
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
             }.collect { folders ->
-                _musicFolders.value = folders.toImmutableList()
-                sortFolders(_currentFolderSortOption.value, persist = false)
+                val sortedFolders = withContext(Dispatchers.Default) {
+                    sortFoldersList(folders, _currentFolderSortOption.value).toImmutableList()
+                }
+                _musicFolders.value = sortedFolders
             }
         }
     }
@@ -325,55 +331,10 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentAlbumSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.AlbumTitleAZ -> _albums.value.sortedWith(
-                    compareBy<Album> { it.title.lowercase() }
-                        .thenBy { it.artist.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumTitleZA -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.title.lowercase() }
-                        .thenBy { it.artist.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumArtist -> _albums.value.sortedWith(
-                    compareBy<Album> { it.artist.lowercase() }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumArtistDesc -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.artist.lowercase() }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumReleaseYear -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.year }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumReleaseYearAsc -> _albums.value.sortedWith(
-                    compareBy<Album> { it.year }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumDateAdded -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.dateAdded }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumSizeAsc -> _albums.value.sortedWith(
-                    compareBy<Album> { it.songCount }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.AlbumSizeDesc -> _albums.value.sortedWith(
-                    compareByDescending<Album> { it.songCount }
-                        .thenBy { it.title.lowercase() }
-                        .thenBy { it.id }
-                )
-                else -> _albums.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortAlbumsList(_albums.value, sortOption).toImmutableList()
             }
-            _albums.value = sorted.toImmutableList()
+            _albums.value = sorted
         }
     }
 
@@ -387,23 +348,10 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentArtistSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.ArtistNameAZ -> _artists.value.sortedWith(
-                    compareBy<Artist> { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.ArtistNameZA -> _artists.value.sortedWith(
-                    compareByDescending<Artist> { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                SortOption.ArtistNumSongs -> _artists.value.sortedWith(
-                    compareByDescending<Artist> { it.songCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.id }
-                )
-                else -> _artists.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortArtistsList(_artists.value, sortOption).toImmutableList()
             }
-            _artists.value = sorted.toImmutableList()
+            _artists.value = sorted
         }
     }
 
@@ -417,38 +365,114 @@ class LibraryStateHolder @Inject constructor(
             }
             _currentFolderSortOption.value = sortOption
 
-            val sorted = when (sortOption) {
-                SortOption.FolderNameAZ -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderNameZA -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSongCountAsc -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.totalSongCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSongCountDesc -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.totalSongCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSubdirCountAsc -> _musicFolders.value.sortedWith(
-                    compareBy<MusicFolder> { it.totalSubFolderCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                SortOption.FolderSubdirCountDesc -> _musicFolders.value.sortedWith(
-                    compareByDescending<MusicFolder> { it.totalSubFolderCount }
-                        .thenBy { it.name.lowercase() }
-                        .thenBy { it.path }
-                )
-                else -> _musicFolders.value
+            val sorted = withContext(Dispatchers.Default) {
+                sortFoldersList(_musicFolders.value, sortOption).toImmutableList()
             }
-            _musicFolders.value = sorted.toImmutableList()
+            _musicFolders.value = sorted
+        }
+    }
+
+    private fun sortAlbumsList(albums: Iterable<Album>, sortOption: SortOption): List<Album> {
+        return when (sortOption) {
+            SortOption.AlbumTitleAZ -> albums.sortedWith(
+                compareBy<Album> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumTitleZA -> albums.sortedWith(
+                compareByDescending<Album> { it.title.lowercase() }
+                    .thenBy { it.artist.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumArtist -> albums.sortedWith(
+                compareBy<Album> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumArtistDesc -> albums.sortedWith(
+                compareByDescending<Album> { it.artist.lowercase() }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumReleaseYear -> albums.sortedWith(
+                compareByDescending<Album> { it.year }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumReleaseYearAsc -> albums.sortedWith(
+                compareBy<Album> { it.year }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumDateAdded -> albums.sortedWith(
+                compareByDescending<Album> { it.dateAdded }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumSizeAsc -> albums.sortedWith(
+                compareBy<Album> { it.songCount }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.AlbumSizeDesc -> albums.sortedWith(
+                compareByDescending<Album> { it.songCount }
+                    .thenBy { it.title.lowercase() }
+                    .thenBy { it.id }
+            )
+            else -> albums.toList()
+        }
+    }
+
+    private fun sortArtistsList(artists: Iterable<Artist>, sortOption: SortOption): List<Artist> {
+        return when (sortOption) {
+            SortOption.ArtistNameAZ -> artists.sortedWith(
+                compareBy<Artist> { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.ArtistNameZA -> artists.sortedWith(
+                compareByDescending<Artist> { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            SortOption.ArtistNumSongs -> artists.sortedWith(
+                compareByDescending<Artist> { it.songCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.id }
+            )
+            else -> artists.toList()
+        }
+    }
+
+    private fun sortFoldersList(folders: Iterable<MusicFolder>, sortOption: SortOption): List<MusicFolder> {
+        return when (sortOption) {
+            SortOption.FolderNameAZ -> folders.sortedWith(
+                compareBy<MusicFolder> { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderNameZA -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSongCountAsc -> folders.sortedWith(
+                compareBy<MusicFolder> { it.totalSongCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSongCountDesc -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.totalSongCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSubdirCountAsc -> folders.sortedWith(
+                compareBy<MusicFolder> { it.totalSubFolderCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            SortOption.FolderSubdirCountDesc -> folders.sortedWith(
+                compareByDescending<MusicFolder> { it.totalSubFolderCount }
+                    .thenBy { it.name.lowercase() }
+                    .thenBy { it.path }
+            )
+            else -> folders.toList()
         }
     }
 
