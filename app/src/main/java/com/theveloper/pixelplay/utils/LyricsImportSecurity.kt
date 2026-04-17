@@ -121,7 +121,7 @@ object LyricsImportSecurity {
         }
 
         val parsed = LyricsUtils.parseLyrics(sanitized)
-        if (parsed.synced.isNullOrEmpty()) {
+        if (parsed.synced.isNullOrEmpty() && parsed.plain.isNullOrEmpty()) {
             return LyricsImportValidationResult.Invalid(LyricsImportFailureReason.INVALID_LYRICS_CONTENT)
         }
 
@@ -136,7 +136,7 @@ object LyricsImportSecurity {
     fun messageFor(reason: LyricsImportFailureReason): String {
         return when (reason) {
             LyricsImportFailureReason.UNSUPPORTED_EXTENSION ->
-                "Only synced .lrc and .ttml lyrics files are supported."
+                "Only .lrc and .ttml lyrics files are supported."
             LyricsImportFailureReason.UNSUPPORTED_MIME_TYPE ->
                 "The selected file type is not a supported lyrics file."
             LyricsImportFailureReason.FILE_TOO_LARGE ->
@@ -146,7 +146,7 @@ object LyricsImportSecurity {
             LyricsImportFailureReason.INVALID_ENCODING ->
                 "Lyrics file could not be decoded safely."
             LyricsImportFailureReason.INVALID_LYRICS_CONTENT ->
-                "File does not contain valid synced lyrics."
+                "File does not contain valid lyrics."
         }
     }
 

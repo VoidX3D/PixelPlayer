@@ -660,8 +660,6 @@ fun PlaylistDetailScreen(
 
     if (showAddSongsSheet && currentPlaylist != null && !isFolderPlaylist) {
         SongPickerBottomSheet(
-            allSongs = uiState.songSelectionForPlaylist,
-            isLoading = uiState.isLoadingSongSelection,
             initiallySelectedSongIds = currentPlaylist.songIds.toSet(),
             onDismiss = { showAddSongsSheet = false },
             onConfirm = { selectedIds ->

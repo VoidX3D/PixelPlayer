@@ -67,6 +67,8 @@ class DualPlayerEngine @Inject constructor(
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    var hiFiModeEnabled: Boolean = false
+        private set
     private var transitionJob: Job? = null
     private var transitionRunning = false
 
@@ -299,7 +301,7 @@ class DualPlayerEngine @Inject constructor(
             ): AudioSink {
                 // Keep Media3's default renderer wiring intact and only customize the sink.
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(false) // Disable Float output to fix CCodec/Hardware errors on some devices
+                    .setEnableFloatOutput(hiFiModeEnabled)
                     .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
                     .setAudioProcessorChain(
                         // Downsample >192 kHz before AudioTrack to avoid ultra-hi-res device hangs,
@@ -311,7 +313,7 @@ class DualPlayerEngine @Inject constructor(
                     )
                     .build()
             }
-        }.setEnableAudioFloatOutput(false) // Disable Float output helper
+        }.setEnableAudioFloatOutput(hiFiModeEnabled) // Disable Float output helper
          .setMediaCodecSelector(mediaCodecSelector)
          .setEnableDecoderFallback(true)
          .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
@@ -396,6 +398,53 @@ class DualPlayerEngine @Inject constructor(
      */
     fun setPauseAtEndOfMediaItems(shouldPause: Boolean) {
         playerA.pauseAtEndOfMediaItems = shouldPause
+    }
+
+    /**
+     * Applies Hi-Fi mode (float output) setting. Rebuilds both players to apply the change.
+     * Must be called from the main thread.
+     */
+    fun setHiFiMode(enabled: Boolean) {
+        if (hiFiModeEnabled == enabled) return
+        if (enabled && !HiFiCapabilityChecker.isSupported()) {
+            Timber.tag("DualPlayerEngine").w("Hi-Fi mode requested but device does not support PCM_FLOAT AudioTrack — ignoring")
+            return
+        }
+        hiFiModeEnabled = enabled
+
+        // Save full queue and playback state before releasing
+        val wasPlaying = playerA.isPlaying
+        val positionMs = playerA.currentPosition
+        val currentIndex = playerA.currentMediaItemIndex.coerceAtLeast(0)
+        val mediaItems = (0 until playerA.mediaItemCount).map { playerA.getMediaItemAt(it) }
+        val repeatMode = playerA.repeatMode
+        val shuffleMode = playerA.shuffleModeEnabled
+
+        playerA.removeListener(masterPlayerListener)
+        playerA.release()
+        playerB.release()
+
+        playerA = buildPlayer(handleAudioFocus = false)
+        playerB = buildPlayer(handleAudioFocus = false)
+
+        // Re-attach listener to new master player
+        playerA.addListener(masterPlayerListener)
+
+        // Restore queue and position so playback continues seamlessly
+        if (mediaItems.isNotEmpty()) {
+            playerA.setMediaItems(mediaItems, currentIndex, positionMs)
+            playerA.repeatMode = repeatMode
+            playerA.shuffleModeEnabled = shuffleMode
+            playerA.prepare()
+            playerA.playWhenReady = wasPlaying
+        }
+
+        _activeAudioSessionId.value = playerA.audioSessionId
+
+        // Notify MusicService to reconnect MediaSession to the new player instance
+        onPlayerSwappedListeners.forEach { it(playerA) }
+
+        Timber.tag("DualPlayerEngine").d("Hi-Fi mode set to $enabled — players rebuilt")
     }
 
     /**
@@ -680,8 +729,12 @@ class DualPlayerEngine @Inject constructor(
 
         // 1. Start Player B (Next Song) paused with volume=0 then immediately request play so overlap is audible
         // NOTE: playerA is currently playing "Old Song". playerB is "Next Song".
+        // Capture the outgoing track's current volume (may be ReplayGain-adjusted) so the
+        // fade-out envelope starts from the correct level instead of jumping back to 1.0.
+        val outgoingStartVolume = playerA.volume.coerceIn(0f, 1f)
         playerB.volume = 0f
-        playerA.volume = 1f
+        // Do NOT force playerA.volume = 1f here — it would override the RG-adjusted value and
+        // cause an audible jump on the outgoing track at the crossfade start.
         if (!playerA.isPlaying && playerA.playbackState == Player.STATE_READY) {
             // Ensure the outgoing track keeps rendering during the crossfade window
             playerA.play()
@@ -791,11 +844,13 @@ class DualPlayerEngine @Inject constructor(
 
         while (elapsed <= duration) {
             val progress = (elapsed.toFloat() / duration).coerceIn(0f, 1f)
-            val volIn = envelope(progress, settings.curveIn)  // Incoming (Now A)
-            val volOut = 1f - envelope(progress, settings.curveOut) // Outgoing (Now B)
+            val volIn = envelope(progress, settings.curveIn)  // Incoming (Now A): 0 → 1
+            val volOut = 1f - envelope(progress, settings.curveOut) // Outgoing (Now B): 1 → 0
 
             playerA.volume = volIn
-            playerB.volume = volOut.coerceIn(0f, 1f)
+            // Scale fade-out by the outgoing track's starting volume so a ReplayGain-adjusted
+            // track (e.g. 0.75) fades from 0.75 → 0 instead of jumping to 1.0 first.
+            playerB.volume = (volOut * outgoingStartVolume).coerceIn(0f, 1f)
 
             if (elapsed - lastLog >= 250) {
                 Timber.tag("TransitionDebug").v("Loop: Progress=%.2f, VolNew=%.2f (Act: %.2f), VolOld=%.2f (Act: %.2f)",

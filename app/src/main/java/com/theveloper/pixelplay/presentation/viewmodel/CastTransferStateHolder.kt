@@ -62,8 +62,8 @@ class CastTransferStateHolder @Inject constructor(
     private var getCurrentQueue: (() -> List<Song>)? = null
     // Syncs queue updates back to UI
     private var updateQueue: ((List<Song>) -> Unit)? = null
-    // Provides master song list for resolution
-    private var getMasterAllSongs: (() -> List<Song>)? = null
+    // Provides song lookups without rebuilding maps on every remote status update
+    private var getSongsByIdMap: (() -> Map<String, Song>)? = null
     // Callback when transfer is finished
     private var onTransferBackComplete: (() -> Unit)? = null
     // Callback to ensure UI sheet is visible
@@ -125,7 +125,7 @@ class CastTransferStateHolder @Inject constructor(
         scope: CoroutineScope,
         getCurrentQueue: () -> List<Song>,
         updateQueue: (List<Song>) -> Unit,
-        getMasterAllSongs: () -> List<Song>,
+        getSongsByIdMap: () -> Map<String, Song>,
         onTransferBackComplete: () -> Unit,
         onSheetVisible: () -> Unit,
         onDisconnect: () -> Unit,
@@ -135,7 +135,7 @@ class CastTransferStateHolder @Inject constructor(
         this.scope = scope
         this.getCurrentQueue = getCurrentQueue
         this.updateQueue = updateQueue
-        this.getMasterAllSongs = getMasterAllSongs
+        this.getSongsByIdMap = getSongsByIdMap
         this.onTransferBackComplete = onTransferBackComplete
         this.onSheetVisible = onSheetVisible
         this.onDisconnect = onDisconnect
@@ -262,7 +262,7 @@ class CastTransferStateHolder @Inject constructor(
 
         lastRemoteMediaStatus = mediaStatus
         
-        val songMap = getMasterAllSongs?.invoke()?.associateBy { it.id } ?: emptyMap()
+        val songMap = getSongsByIdMap?.invoke() ?: emptyMap()
         
         val newQueue = mediaStatus.queueItems.mapNotNull { item ->
             item.customData?.optString("songId")?.let { songId -> songMap[songId] }
@@ -850,14 +850,14 @@ class CastTransferStateHolder @Inject constructor(
                 val fallbackQueue = if (transferSnapshot.lastKnownStatus?.queueItems?.isNotEmpty() == true) {
                     transferSnapshot.lastKnownStatus.queueItems.mapNotNull { item ->
                         item.customData?.optString("songId")?.let { songId ->
-                            getMasterAllSongs?.invoke()?.firstOrNull { it.id == songId }
+                            getSongsByIdMap?.invoke()?.get(songId)
                         }
                     }.toImmutableList()
                 } else {
                     transferSnapshot.lastRemoteQueue
                 }
                 val chosenQueue = if (fallbackQueue.isEmpty()) transferSnapshot.lastRemoteQueue else fallbackQueue
-                val songMap = getMasterAllSongs?.invoke()?.associateBy { it.id } ?: emptyMap()
+                val songMap = getSongsByIdMap?.invoke() ?: emptyMap()
                 val finalQueue = chosenQueue.mapNotNull { song -> songMap[song.id] }
 
                 val targetSongId = transferSnapshot.lastKnownStatus
@@ -1282,7 +1282,7 @@ class CastTransferStateHolder @Inject constructor(
         remoteProgressListener = null
         getCurrentQueue = null
         updateQueue = null
-        getMasterAllSongs = null
+        getSongsByIdMap = null
         onTransferBackComplete = null
         onSheetVisible = null
         onDisconnect = null

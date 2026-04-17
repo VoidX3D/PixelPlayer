@@ -53,6 +53,7 @@ import coil.request.ImageRequest
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.presentation.components.GenreSortBottomSheet
@@ -791,13 +792,23 @@ fun GenreAlbumHeader(
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = album.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.SemiBold
-                )
+                val shouldScroll = album.name.length > 20
+                if (shouldScroll) {
+                    AutoScrollingTextOnDemand(
+                        text = album.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        gradientEdgeColor = MaterialTheme.colorScheme.surface,
+                        expansionFractionProvider = { 1f },
+                    )
+                } else {
+                    Text(
+                        text = album.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Text(
                     text = "${album.songs.size} songs",
                     style = MaterialTheme.typography.bodySmall,

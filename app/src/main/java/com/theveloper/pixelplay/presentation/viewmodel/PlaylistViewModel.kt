@@ -51,12 +51,6 @@ data class PlaylistUiState(
     val isLoading: Boolean = false,
     val playlistNotFound: Boolean = false,
 
-    // Para el diálogo/pantalla de selección de canciones
-    val songSelectionPage: Int = 1, // Nuevo: para rastrear la página actual de selección
-    val songSelectionForPlaylist: List<Song> = emptyList(),
-    val isLoadingSongSelection: Boolean = false,
-    val canLoadMoreSongsForSelection: Boolean = true, // Nuevo: para saber si hay más canciones para cargar
-
     //Sort option
     val currentPlaylistSortOption: SortOption = SortOption.PlaylistNameAZ,
     val currentPlaylistSongsSortOption: SortOption = SortOption.SongTitleAZ,
@@ -93,8 +87,6 @@ class PlaylistViewModel @Inject constructor(
     val playlistCreationEvent: SharedFlow<Boolean> = _playlistCreationEvent.asSharedFlow()
 
     companion object {
-        private const val SONG_SELECTION_PAGE_SIZE =
-            100 // Cargar 100 canciones a la vez para el selector
         const val FOLDER_PLAYLIST_PREFIX = "folder_playlist:"
         private const val MANUAL_ORDER_MODE = "manual"
         private const val SMART_PLAYLIST_MAX_ITEMS = 100
@@ -113,7 +105,6 @@ class PlaylistViewModel @Inject constructor(
         loadPlaylistsAndInitialSortOption()
         observeTelegramCloudPlaylistVisibility()
         observeTelegramTopicDisplayMode()
-        loadMoreSongsForSelection(isInitialLoad = true)
         observePlaylistOrderModes()
     }
 
@@ -177,81 +168,6 @@ class PlaylistViewModel @Inject constructor(
             playlistPreferencesRepository.setTelegramTopicDisplayMode(mode)
         }
     }
-
-    // Nueva función para cargar canciones para el selector de forma paginada
-    fun loadMoreSongsForSelection(isInitialLoad: Boolean = false) {
-        val currentState = _uiState.value
-        if (currentState.isLoadingSongSelection && !isInitialLoad) {
-            Log.d("PlaylistVM", "loadMoreSongsForSelection: Already loading. Skipping.")
-            return
-        }
-        if (!currentState.canLoadMoreSongsForSelection && !isInitialLoad) {
-            Log.d("PlaylistVM", "loadMoreSongsForSelection: Cannot load more. Skipping.")
-            return
-        }
-
-        viewModelScope.launch {
-            val initialPageForLoad = if (isInitialLoad) 1 else _uiState.value.songSelectionPage
-
-            _uiState.update {
-                it.copy(
-                    isLoadingSongSelection = true,
-                    songSelectionPage = initialPageForLoad // Establecer la página correcta antes de la llamada
-                )
-            }
-
-            // Usar el songSelectionPage del estado que acabamos de actualizar para la llamada al repo
-            val pageToLoad = _uiState.value.songSelectionPage // Esta ahora es la página correcta
-
-            Log.d(
-                "PlaylistVM",
-                "Loading songs for selection. Page: $pageToLoad, PageSize: $SONG_SELECTION_PAGE_SIZE"
-            )
-
-            try {
-                // Colectar la lista de canciones del Flow en un hilo de IO
-                val actualNewSongsList: List<Song> =
-                    withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        musicRepository.getAudioFiles().first()
-                    }
-                Log.d("PlaylistVM", "Loaded ${actualNewSongsList.size} songs for selection.")
-
-                // La actualización del UI se hace en el hilo principal (contexto por defecto de viewModelScope.launch)
-                _uiState.update { currentStateAfterLoad ->
-                    val updatedSongSelectionList = if (isInitialLoad) {
-                        actualNewSongsList
-                    } else {
-                        // Evitar duplicados si por alguna razón se recarga la misma página
-                        val currentSongIds =
-                            currentStateAfterLoad.songSelectionForPlaylist.map { it.id }.toSet()
-                        val uniqueNewSongs =
-                            actualNewSongsList.filterNot { currentSongIds.contains(it.id) }
-                        currentStateAfterLoad.songSelectionForPlaylist + uniqueNewSongs
-                    }
-
-                    currentStateAfterLoad.copy(
-                        songSelectionForPlaylist = updatedSongSelectionList,
-                        isLoadingSongSelection = false,
-                        canLoadMoreSongsForSelection = actualNewSongsList.size == SONG_SELECTION_PAGE_SIZE,
-                        // Incrementar la página solo si se cargaron canciones y se espera que haya más
-                        songSelectionPage = if (actualNewSongsList.isNotEmpty() && actualNewSongsList.size == SONG_SELECTION_PAGE_SIZE) {
-                            currentStateAfterLoad.songSelectionPage + 1
-                        } else {
-                            currentStateAfterLoad.songSelectionPage // No incrementar si no hay más o si la carga fue parcial
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("PlaylistVM", "Error loading songs for selection. Page: $pageToLoad", e)
-                _uiState.update {
-                    it.copy(
-                        isLoadingSongSelection = false
-                    )
-                }
-            }
-        }
-    }
-
 
     fun loadPlaylistDetails(playlistId: String) {
         viewModelScope.launch {
@@ -435,7 +351,7 @@ class PlaylistViewModel @Inject constructor(
         rule: SmartPlaylistRule,
         limit: Int
     ): List<String> {
-        val allSongs = musicRepository.getAudioFiles().first()
+        val allSongs = musicRepository.getAllSongsOnce()
         if (allSongs.isEmpty()) return emptyList()
 
         val engagements = dailyMixManager.getAllEngagementStats()
@@ -1014,9 +930,8 @@ class PlaylistViewModel @Inject constructor(
             _uiState.update { it.copy(isAiGenerating = true, aiGenerationError = null) }
 
             try {
-                // Fetch all library songs
                 val allSongs = withContext(Dispatchers.IO) {
-                    musicRepository.getAudioFiles().first()
+                    musicRepository.getAllSongsOnce()
                 }
 
                 // Call AiPlaylistGenerator

@@ -187,7 +187,6 @@ class MusicService : MediaLibraryService() {
 
         private const val APP_PACKAGE_PREFIX = "com.theveloper.pixelplay"
         private val BLOCKED_WEAR_CONTROLLER_PREFIXES = listOf(
-            "android.media.session.MediaController",
             "com.google.android.wearable",
             "com.google.android.clockwork",
             "com.google.android.apps.wearable",
@@ -249,6 +248,12 @@ class MusicService : MediaLibraryService() {
             Timber.tag("MusicService").d("Swapped MediaSession player to new instance.")
             requestWidgetFullUpdate(force = true)
             mediaSession?.let { refreshMediaSessionUi(it) }
+
+            // Pre-compute ReplayGain for the incoming track while the crossfade is still running.
+            // isTransitionRunning() is true here, so applyReplayGain stores the result as
+            // pendingReplayGainVolume. onTransitionFinished() applies it cleanly once the fade
+            // loop ends, avoiding any volume jump on the incoming track.
+            applyReplayGain(newPlayer.currentMediaItem)
         }
     }
 
@@ -344,6 +349,12 @@ class MusicService : MediaLibraryService() {
         serviceScope.launch {
             userPreferencesRepository.keepPlayingInBackgroundFlow.collect { enabled ->
                 keepPlayingInBackground = enabled
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.hiFiModeEnabledFlow.collect { enabled ->
+                engine.setHiFiMode(enabled)
             }
         }
 

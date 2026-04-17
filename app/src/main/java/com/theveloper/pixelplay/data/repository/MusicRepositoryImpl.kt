@@ -183,7 +183,7 @@ class MusicRepositoryImpl @Inject constructor(
             }.flatMapLatest { it }
         }.map { entities ->
             entities.map { it.toSong() }
-        }.distinctUntilChanged().flowOn(Dispatchers.IO)
+        }.distinctUntilChanged().conflate().flowOn(Dispatchers.IO)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -266,6 +266,23 @@ class MusicRepositoryImpl @Inject constructor(
         return songRepository.getFavoriteSongsOnce(storageFilter)
     }
 
+    override suspend fun getFavoriteSongsPage(
+        limit: Int,
+        offset: Int,
+        sortOption: SortOption,
+        storageFilter: StorageFilter
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val filter = cachedDirFilter.value
+        musicDao.getFavoriteSongsPage(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = storageFilter.toFilterMode(),
+            limit = limit,
+            offset = offset
+        ).map { it.toSong() }
+    }
+
     override fun getFavoriteSongCountFlow(storageFilter: StorageFilter): Flow<Int> {
         return songRepository.getFavoriteSongCountFlow(storageFilter)
     }
@@ -277,6 +294,68 @@ class MusicRepositoryImpl @Inject constructor(
     override suspend fun getRandomSongs(limit: Int): List<Song> = withContext(Dispatchers.IO) {
         val filter = cachedDirFilter.value
         musicDao.getRandomSongs(limit, filter.allowedParentDirs, filter.applyFilter).map { it.toSong() }
+    }
+
+    override suspend fun getSongsPage(
+        limit: Int,
+        offset: Int,
+        sortOption: SortOption,
+        storageFilter: StorageFilter
+    ): List<Song> = withContext(Dispatchers.IO) {
+        val filter = cachedDirFilter.value
+        musicDao.getSongsPage(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = storageFilter.toFilterMode(),
+            limit = limit,
+            offset = offset
+        ).map { it.toSong() }
+    }
+
+    override suspend fun getAlbumsPage(
+        limit: Int,
+        offset: Int,
+        sortOption: SortOption,
+        storageFilter: StorageFilter
+    ): List<Album> = withContext(Dispatchers.IO) {
+        val filter = cachedDirFilter.value
+        musicDao.getAlbumsPage(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = storageFilter.toFilterMode(),
+            limit = limit,
+            offset = offset
+        ).map { it.toAlbum() }
+    }
+
+    override suspend fun getArtistsPage(
+        limit: Int,
+        offset: Int,
+        sortOption: SortOption,
+        storageFilter: StorageFilter
+    ): List<Artist> = withContext(Dispatchers.IO) {
+        val filter = cachedDirFilter.value
+        musicDao.getArtistsPage(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            sortOrder = sortOption.storageKey,
+            filterMode = storageFilter.toFilterMode(),
+            limit = limit,
+            offset = offset
+        ).map { it.toArtist() }
+    }
+
+    override suspend fun getFirstPlayableSong(): Song? = withContext(Dispatchers.IO) {
+        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
+        val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
+        val (allowedParentDirs, applyDirectoryFilter) =
+            computeAllowedDirs(allowedDirs, blockedDirs)
+        musicDao.getFirstPlayableSong(
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter
+        )?.toSong()
     }
 
     override suspend fun saveTelegramSongs(songs: List<Song>) {
@@ -340,7 +419,7 @@ class MusicRepositoryImpl @Inject constructor(
             musicDao.getAlbums(allowedParentDirs, applyFilter, storageFilter.toFilterMode())
                 .map { entities -> entities.map { it.toAlbum() } }
                 .distinctUntilChanged()
-        }.flowOn(Dispatchers.IO)
+        }.conflate().flowOn(Dispatchers.IO)
     }
 
     override fun getAlbumById(id: Long): Flow<Album?> {
@@ -377,7 +456,7 @@ class MusicRepositoryImpl @Inject constructor(
                     }
                     artists
                 }
-        }.flowOn(Dispatchers.IO)
+        }.conflate().flowOn(Dispatchers.IO)
     }
 
     override fun getSongsForAlbum(albumId: Long): Flow<List<Song>> {
@@ -451,8 +530,25 @@ class MusicRepositoryImpl @Inject constructor(
 
     override fun searchSongs(query: String): Flow<List<Song>> {
         if (query.isBlank()) return flowOf(emptyList())
-        // Use limited search to avoid loading thousands of results into memory
-        return musicDao.searchSongsLimited(query, emptyList(), false, SEARCH_RESULTS_LIMIT).map { entities ->
+        return combine(
+            userPreferencesRepository.allowedDirectoriesFlow,
+            userPreferencesRepository.blockedDirectoriesFlow
+        ) { allowedDirs, blockedDirs ->
+            allowedDirs to blockedDirs
+        }.flatMapLatest { (allowedDirs, blockedDirs) ->
+            flow {
+                val (allowedParentDirs, applyDirectoryFilter) =
+                    computeAllowedDirs(allowedDirs, blockedDirs)
+                emit(
+                    musicDao.searchSongsLimited(
+                        query = query,
+                        allowedParentDirs = allowedParentDirs,
+                        applyDirectoryFilter = applyDirectoryFilter,
+                        limit = SEARCH_RESULTS_LIMIT
+                    )
+                )
+            }.flatMapLatest { it }
+        }.map { entities ->
             entities.map { it.toSong() }
         }.flowOn(Dispatchers.IO)
     }
@@ -587,7 +683,14 @@ class MusicRepositoryImpl @Inject constructor(
 
     // Implementación de las nuevas funciones suspend para carga única
     override suspend fun getAllSongsOnce(): List<Song> = withContext(Dispatchers.IO) {
-        musicDao.getAllSongsList().map { it.toSong() }
+        val allowedDirs = userPreferencesRepository.allowedDirectoriesFlow.first()
+        val blockedDirs = userPreferencesRepository.blockedDirectoriesFlow.first()
+        val (allowedParentDirs, applyDirectoryFilter) =
+            computeAllowedDirs(allowedDirs, blockedDirs)
+        musicDao.getAllSongs(
+            allowedParentDirs = allowedParentDirs,
+            applyDirectoryFilter = applyDirectoryFilter
+        ).first().map { it.toSong() }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -638,11 +741,20 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAllAlbumsOnce(): List<Album> = withContext(Dispatchers.IO) {
-        musicDao.getAllAlbumsList(emptyList(), false).map { it.toAlbum() }
+        val filter = cachedDirFilter.value
+        musicDao.getAllAlbumsList(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter
+        ).map { it.toAlbum() }
     }
 
     override suspend fun getAllArtistsOnce(): List<Artist> = withContext(Dispatchers.IO) {
-        musicDao.getAllArtistsListRaw().map { it.toArtist() }
+        val filter = cachedDirFilter.value
+        musicDao.getArtistsWithSongCountsFiltered(
+            allowedParentDirs = filter.allowedParentDirs,
+            applyDirectoryFilter = filter.applyFilter,
+            filterMode = StorageFilter.ALL.toFilterMode()
+        ).first().map { it.toArtist() }
     }
 
     override suspend fun setFavoriteStatus(songId: String, isFavorite: Boolean) = withContext(Dispatchers.IO) {

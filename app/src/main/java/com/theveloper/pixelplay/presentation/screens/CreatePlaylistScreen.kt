@@ -107,7 +107,7 @@ import com.theveloper.pixelplay.presentation.components.ImageCropView
 import com.theveloper.pixelplay.data.model.PlaylistShapeType
 import com.theveloper.pixelplay.data.model.SmartPlaylistRule
 // import com.theveloper.pixelplay.presentation.screens.ShapeType // Removed local enum
-import com.theveloper.pixelplay.presentation.components.SongPickerList
+import com.theveloper.pixelplay.presentation.components.SongPickerSelectionPane
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.material3.Slider
 import androidx.compose.material3.FilterChip
@@ -156,7 +156,6 @@ private enum class PlaylistCreationMode {
 @Composable
 fun CreatePlaylistDialog(
     visible: Boolean,
-    allSongs: List<Song>,
     onDismiss: () -> Unit,
     onGenerateClick: () -> Unit,
     onCreate: (String, String?, Int?, String?, List<String>, Float, Float, Float, String?, Float?, Float?, Float?, Float?, String?) -> Unit
@@ -179,7 +178,6 @@ fun CreatePlaylistDialog(
                 label = "create_playlist_dialog"
             ) {
                 CreatePlaylistContent(
-                    allSongs = allSongs,
                     onDismiss = onDismiss,
                     onGenerateClick = onGenerateClick,
                     onCreate = onCreate
@@ -241,9 +239,9 @@ fun EditPlaylistDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreatePlaylistContent(
-    allSongs: List<Song>,
     onDismiss: () -> Unit,
     onGenerateClick: () -> Unit,
     onCreate: (String, String?, Int?, String?, List<String>, Float, Float, Float, String?, Float?, Float?, Float?, Float?, String?) -> Unit
@@ -308,8 +306,6 @@ private fun CreatePlaylistContent(
              cropOffset = androidx.compose.ui.geometry.Offset.Zero
          }
     }
-    var searchQuery by remember { mutableStateOf("") }
-
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -530,61 +526,13 @@ private fun CreatePlaylistContent(
                      onGenerateClick = onGenerateClick
                  )
             } else {
-                 val filteredSongs = remember(searchQuery, allSongs) {
-                      if (searchQuery.isBlank()) allSongs 
-                      else allSongs.filter { 
-                          it.title.contains(searchQuery, ignoreCase = true) || 
-                          it.artist.contains(searchQuery, ignoreCase = true) 
-                      }
-                 }
-
-                 val animatedAlbumCornerRadius = 60.dp
-                 val albumShape = remember(animatedAlbumCornerRadius) {
-                     AbsoluteSmoothCornerShape(
-                         cornerRadiusTL = animatedAlbumCornerRadius,
-                         smoothnessAsPercentTR = 60,
-                         cornerRadiusTR = animatedAlbumCornerRadius,
-                         smoothnessAsPercentBR = 60,
-                         cornerRadiusBL = animatedAlbumCornerRadius,
-                         smoothnessAsPercentBL = 60,
-                         cornerRadiusBR = animatedAlbumCornerRadius,
-                         smoothnessAsPercentTL = 60
-                     )
-                 }
-                 
-                 Column(modifier = Modifier.fillMaxSize()) {
-                      OutlinedTextField(
-                           value = searchQuery,
-                           onValueChange = { searchQuery = it },
-                           modifier = Modifier
-                               .fillMaxWidth()
-                               .padding(16.dp),
-                           label = { Text("Search songs") },
-                           leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                           trailingIcon = if (searchQuery.isNotEmpty()) {
-                               { IconButton(onClick = { searchQuery = "" }) { Icon(Icons.Rounded.Clear, null) } }
-                           } else null,
-                           singleLine = true,
-                           shape = RoundedCornerShape(16.dp),
-                           colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent
-                           )
-                      )
-                      
-                      SongPickerList(
-                          filteredSongs = filteredSongs,
-                          isLoading = false,
-                          selectedSongIds = selectedSongIds,
-                          albumShape = albumShape,
-                          modifier = Modifier
-                              .fillMaxSize()
-                              .imePadding()
-                      )
-                 }
+                SongPickerSelectionPane(
+                    selectedSongIds = selectedSongIds,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+                    contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp)
+                )
             }
         }
     }

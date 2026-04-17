@@ -28,7 +28,7 @@ class HiResSampleRateCapAudioProcessor(
     private var inputEnded = false
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
-        val shouldDownsample = inputAudioFormat.encoding == C.ENCODING_PCM_16BIT &&
+        val shouldDownsample = (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT || inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT) &&
             inputAudioFormat.channelCount > 0 &&
             inputAudioFormat.sampleRate > maxOutputSampleRateHz
 
@@ -48,7 +48,7 @@ class HiResSampleRateCapAudioProcessor(
         outputFormat = AudioFormat(
             inputAudioFormat.sampleRate / downsampleFactor,
             inputAudioFormat.channelCount,
-            C.ENCODING_PCM_16BIT
+            inputAudioFormat.encoding
         )
         pendingBytes = ByteArray(0)
         return outputFormat
@@ -57,21 +57,23 @@ class HiResSampleRateCapAudioProcessor(
     override fun isActive(): Boolean = outputFormat != AudioFormat.NOT_SET
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (!isActive()) {
-            return
-        }
+        if (!isActive()) return
 
         val newBytes = ByteArray(inputBuffer.remaining())
         inputBuffer.get(newBytes)
 
         val combinedBytes = ByteArray(pendingBytes.size + newBytes.size)
-        if (pendingBytes.isNotEmpty()) {
-            pendingBytes.copyInto(combinedBytes, endIndex = pendingBytes.size)
-        }
-        if (newBytes.isNotEmpty()) {
-            newBytes.copyInto(combinedBytes, destinationOffset = pendingBytes.size)
-        }
+        if (pendingBytes.isNotEmpty()) pendingBytes.copyInto(combinedBytes, endIndex = pendingBytes.size)
+        if (newBytes.isNotEmpty()) newBytes.copyInto(combinedBytes, destinationOffset = pendingBytes.size)
 
+        if (inputFormat.encoding == C.ENCODING_PCM_FLOAT) {
+            processFloat(combinedBytes)
+        } else {
+            process16Bit(combinedBytes)
+        }
+    }
+
+    private fun process16Bit(combinedBytes: ByteArray) {
         val bytesPerFrame = inputFormat.channelCount * Short.SIZE_BYTES
         val processableFrameCount = (combinedBytes.size / bytesPerFrame) / downsampleFactor
         val processableBytes = processableFrameCount * downsampleFactor * bytesPerFrame
@@ -79,41 +81,50 @@ class HiResSampleRateCapAudioProcessor(
 
         pendingBytes = combinedBytes.copyOfRange(processableBytes, combinedBytes.size)
 
-        if (processableFrameCount == 0) {
-            outputBuffer = AudioProcessor.EMPTY_BUFFER
-            return
-        }
+        if (processableFrameCount == 0) { outputBuffer = AudioProcessor.EMPTY_BUFFER; return }
 
-        outputBuffer = if (outputBuffer.capacity() < requiredCapacity) {
+        outputBuffer = if (outputBuffer.capacity() < requiredCapacity)
             ByteBuffer.allocateDirect(requiredCapacity).order(ByteOrder.nativeOrder())
-        } else {
-            outputBuffer.clear()
-            outputBuffer
-        }
+        else { outputBuffer.clear(); outputBuffer }
 
-        val shortInput = ByteBuffer
-            .wrap(combinedBytes, 0, processableBytes)
-            .order(ByteOrder.nativeOrder())
-            .asShortBuffer()
-
-        val channelAccumulator = IntArray(inputFormat.channelCount)
+        val shortInput = ByteBuffer.wrap(combinedBytes, 0, processableBytes)
+            .order(ByteOrder.nativeOrder()).asShortBuffer()
+        val acc = IntArray(inputFormat.channelCount)
 
         repeat(processableFrameCount) {
-            java.util.Arrays.fill(channelAccumulator, 0)
-
-            repeat(downsampleFactor) {
-                for (channel in 0 until inputFormat.channelCount) {
-                    channelAccumulator[channel] += shortInput.get().toInt()
-                }
-            }
-
-            for (channel in 0 until inputFormat.channelCount) {
-                val averaged = (channelAccumulator[channel] / downsampleFactor)
-                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                outputBuffer.putShort(averaged.toShort())
-            }
+            java.util.Arrays.fill(acc, 0)
+            repeat(downsampleFactor) { for (ch in 0 until inputFormat.channelCount) acc[ch] += shortInput.get().toInt() }
+            for (ch in 0 until inputFormat.channelCount)
+                outputBuffer.putShort((acc[ch] / downsampleFactor).coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
         }
+        outputBuffer.flip()
+    }
 
+    private fun processFloat(combinedBytes: ByteArray) {
+        val bytesPerSample = Float.SIZE_BYTES
+        val bytesPerFrame = inputFormat.channelCount * bytesPerSample
+        val processableFrameCount = (combinedBytes.size / bytesPerFrame) / downsampleFactor
+        val processableBytes = processableFrameCount * downsampleFactor * bytesPerFrame
+        val requiredCapacity = processableFrameCount * bytesPerFrame  // same channel count, same bytes/sample
+
+        pendingBytes = combinedBytes.copyOfRange(processableBytes, combinedBytes.size)
+
+        if (processableFrameCount == 0) { outputBuffer = AudioProcessor.EMPTY_BUFFER; return }
+
+        outputBuffer = if (outputBuffer.capacity() < requiredCapacity)
+            ByteBuffer.allocateDirect(requiredCapacity).order(ByteOrder.nativeOrder())
+        else { outputBuffer.clear(); outputBuffer }
+
+        val floatInput = ByteBuffer.wrap(combinedBytes, 0, processableBytes)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        val acc = FloatArray(inputFormat.channelCount)
+
+        repeat(processableFrameCount) {
+            java.util.Arrays.fill(acc, 0f)
+            repeat(downsampleFactor) { for (ch in 0 until inputFormat.channelCount) acc[ch] += floatInput.get() }
+            for (ch in 0 until inputFormat.channelCount)
+                outputBuffer.putFloat((acc[ch] / downsampleFactor).coerceIn(-1f, 1f))
+        }
         outputBuffer.flip()
     }
 

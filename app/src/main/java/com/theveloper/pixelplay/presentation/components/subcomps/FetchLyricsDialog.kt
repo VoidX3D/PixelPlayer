@@ -474,7 +474,7 @@ fun NotFoundContent(
     Spacer(Modifier.height(12.dp))
 
     Text(
-        text = stringResource(R.string.custom_search_hint),
+        text = stringResource(R.string.lyrics_custom_search_hint),
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -522,29 +522,35 @@ fun NotFoundContent(
 
     Spacer(Modifier.height(24.dp))
 
-    Button(
-        onClick = {
-            onManualSearch(
-                title,
-                artist.takeIf { it.isNotBlank() }
-            )
-        },
-        enabled = title.isNotBlank(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Icon(Icons.Rounded.Search, null)
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.search))
-    }
-
-    TextButton(
-        onClick = onCancel,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(stringResource(R.string.cancel))
+        Button(
+            onClick = {
+                onManualSearch(
+                    title,
+                    artist.takeIf { it.isNotBlank() }
+                )
+            },
+            enabled = title.isNotBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Icon(Icons.Rounded.Search, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.search))
+        }
+
+        TextButton(
+            onClick = onCancel,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Text(stringResource(R.string.cancel))
+        }
     }
 }
 

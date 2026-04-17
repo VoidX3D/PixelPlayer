@@ -66,7 +66,7 @@ class AiStateHolder @Inject constructor(
     private var _lastMetadataFields: List<String>? = null
 
     private var scope: CoroutineScope? = null
-    private var allSongsProvider: (() -> List<Song>)? = null
+    private var allSongsProvider: (suspend () -> List<Song>)? = null
     private var favoriteSongIdsProvider: (() -> Set<String>)? = null
     
     // Callbacks to interact with PlayerViewModel/UI
@@ -86,7 +86,7 @@ class AiStateHolder @Inject constructor(
 
     fun initialize(
         scope: CoroutineScope,
-        allSongsProvider: () -> List<Song>,
+        allSongsProvider: suspend () -> List<Song>,
         favoriteSongIdsProvider: () -> Set<String>,
         toastEmitter: (String) -> Unit,
         playSongsCallback: (List<Song>, Song, String) -> Unit,
@@ -149,10 +149,10 @@ class AiStateHolder @Inject constructor(
         _lastMaxLength = maxLength
 
         val scope = this.scope ?: return
-        val allSongs = allSongsProvider?.invoke() ?: emptyList()
-        val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
 
         scope.launch {
+            val allSongs = allSongsProvider?.invoke() ?: emptyList()
+            val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
             _isGeneratingAiPlaylist.value = true
             _aiError.value = null
             _aiSuccess.value = false
@@ -239,11 +239,11 @@ class AiStateHolder @Inject constructor(
      */
     fun regenerateDailyMixWithPrompt(prompt: String) {
         val scope = this.scope ?: return
-        val allSongs = allSongsProvider?.invoke() ?: emptyList()
-        val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
         val currentDailyMixSongs = dailyMixStateHolder.dailyMixSongs.value
 
         scope.launch {
+            val allSongs = allSongsProvider?.invoke() ?: emptyList()
+            val favoriteIds = favoriteSongIdsProvider?.invoke() ?: emptySet()
             if (prompt.isBlank()) {
                 toastEmitter?.invoke(context.getString(R.string.ai_prompt_empty))
                 return@launch

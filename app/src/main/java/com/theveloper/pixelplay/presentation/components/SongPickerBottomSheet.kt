@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,53 +46,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import kotlinx.coroutines.flow.map
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongPickerBottomSheet(
-    allSongs: List<Song>,
-    isLoading: Boolean,
     initiallySelectedSongIds: Set<String>,
     onDismiss: () -> Unit,
-    onConfirm: (Set<String>) -> Unit
+    onConfirm: (Set<String>) -> Unit,
+    playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val selectedSongIds = remember {
         mutableStateMapOf<String, Boolean>().apply {
             initiallySelectedSongIds.forEach { put(it, true) }
         }
-    }
-    var searchQuery by remember { mutableStateOf("") }
-    val filteredSongs = remember(searchQuery, allSongs) {
-        if (searchQuery.isBlank()) allSongs
-        else allSongs.filter {
-            it.title.contains(searchQuery, true) || it.artist.contains(
-                searchQuery,
-                true
-            )
-        }
-    }
-
-    val animatedAlbumCornerRadius = 60.dp
-
-    val albumShape = remember(animatedAlbumCornerRadius) {
-        AbsoluteSmoothCornerShape(
-            cornerRadiusTL = animatedAlbumCornerRadius,
-            smoothnessAsPercentTR = 60,
-            cornerRadiusTR = animatedAlbumCornerRadius,
-            smoothnessAsPercentBR = 60,
-            cornerRadiusBL = animatedAlbumCornerRadius,
-            smoothnessAsPercentBL = 60,
-            cornerRadiusBR = animatedAlbumCornerRadius,
-            smoothnessAsPercentTL = 60
-        )
     }
 
     ModalBottomSheet(
@@ -100,70 +84,35 @@ fun SongPickerBottomSheet(
         modifier = Modifier.fillMaxSize()
     ) {
         SongPickerContent(
-            filteredSongs = filteredSongs,
-            isLoading = isLoading,
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
             selectedSongIds = selectedSongIds,
-            albumShape = albumShape,
-            onConfirm = onConfirm
+            onConfirm = onConfirm,
+            playerViewModel = playerViewModel
         )
     }
 }
 
 @Composable
 fun SongPickerContent(
-    filteredSongs: List<Song>,
-    isLoading: Boolean,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
     selectedSongIds: MutableMap<String, Boolean>,
-    albumShape: androidx.compose.ui.graphics.Shape,
-    onConfirm: (Set<String>) -> Unit
+    onConfirm: (Set<String>) -> Unit,
+    playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         Scaffold(
             topBar = {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 26.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Add Songs",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontFamily = GoogleSansRounded
-                        )
-                    }
-                    OutlinedTextField(
-                        value = searchQuery,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            unfocusedTrailingIconColor = Color.Transparent,
-                            focusedSupportingTextColor = Color.Transparent,
-                        ),
-                        onValueChange = onSearchQueryChange,
-                        label = { Text("Search for songs...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = CircleShape,
-                        singleLine = true,
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) IconButton(onClick = {
-                                onSearchQueryChange("")
-                            }) { Icon(Icons.Filled.Clear, null) }
-                        }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 26.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Add Songs",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontFamily = GoogleSansRounded
                     )
                 }
             },
@@ -172,17 +121,16 @@ fun SongPickerContent(
                     modifier = Modifier.padding(bottom = 18.dp, end = 8.dp),
                     shape = CircleShape,
                     onClick = { onConfirm(selectedSongIds.filterValues { it }.keys) },
-                    icon = { Icon(Icons.Rounded.Check, "Añadir canciones") },
+                    icon = { Icon(Icons.Rounded.Check, "Add songs") },
                     text = { Text("Add") },
                 )
             }
         ) { innerPadding ->
-            SongPickerList(
-                filteredSongs = filteredSongs,
-                isLoading = isLoading,
+            SongPickerSelectionPane(
                 selectedSongIds = selectedSongIds,
-                albumShape = albumShape,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp),
+                playerViewModel = playerViewModel
             )
         }
         Box(
@@ -198,8 +146,330 @@ fun SongPickerContent(
                         )
                     )
                 )
-        ) {
+        )
+    }
+}
 
+@Composable
+fun SongPickerSelectionPane(
+    selectedSongIds: MutableMap<String, Boolean>,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(bottom = 100.dp, top = 20.dp),
+    playerViewModel: PlayerViewModel = hiltViewModel()
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val pagedSongs = playerViewModel.playlistPickerSongs.collectAsLazyPagingItems()
+    val searchResultsInitialValue: List<Song>? = remember(searchQuery) {
+        if (searchQuery.isBlank()) emptyList() else null
+    }
+    val searchResults by remember(searchQuery, playerViewModel) {
+        playerViewModel.searchSongs(searchQuery)
+            .map<List<Song>, List<Song>?> { it }
+    }.collectAsStateWithLifecycle(initialValue = searchResultsInitialValue)
+
+    val animatedAlbumCornerRadius = 60.dp
+    val albumShape = remember(animatedAlbumCornerRadius) {
+        AbsoluteSmoothCornerShape(
+            cornerRadiusTL = animatedAlbumCornerRadius,
+            smoothnessAsPercentTR = 60,
+            cornerRadiusTR = animatedAlbumCornerRadius,
+            smoothnessAsPercentBR = 60,
+            cornerRadiusBL = animatedAlbumCornerRadius,
+            smoothnessAsPercentBL = 60,
+            cornerRadiusBR = animatedAlbumCornerRadius,
+            smoothnessAsPercentTL = 60
+        )
+    }
+
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        SongPickerSearchField(
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it }
+        )
+
+        if (searchQuery.isBlank()) {
+            SongPickerPagingList(
+                pagedSongs = pagedSongs,
+                selectedSongIds = selectedSongIds,
+                albumShape = albumShape,
+                modifier = Modifier.weight(1f),
+                contentPadding = contentPadding
+            )
+        } else {
+            SongPickerList(
+                filteredSongs = searchResults ?: emptyList(),
+                isLoading = searchResults == null,
+                selectedSongIds = selectedSongIds,
+                albumShape = albumShape,
+                modifier = Modifier.weight(1f),
+                contentPadding = contentPadding
+            )
+        }
+    }
+}
+
+@Composable
+private fun SongPickerSearchField(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            unfocusedTrailingIconColor = Color.Transparent,
+            focusedSupportingTextColor = Color.Transparent,
+        ),
+        onValueChange = onSearchQueryChange,
+        label = { Text("Search for songs...") },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = CircleShape,
+        singleLine = true,
+        trailingIcon = {
+            if (searchQuery.isNotEmpty()) {
+                IconButton(onClick = { onSearchQueryChange("") }) {
+                    Icon(Icons.Filled.Clear, null)
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun SongPickerPagingList(
+    pagedSongs: LazyPagingItems<Song>,
+    selectedSongIds: MutableMap<String, Boolean>,
+    albumShape: androidx.compose.ui.graphics.Shape,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(bottom = 100.dp, top = 20.dp)
+) {
+    when {
+        pagedSongs.loadState.refresh is LoadState.Loading && pagedSongs.itemCount == 0 -> {
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        pagedSongs.loadState.refresh is LoadState.Error && pagedSongs.itemCount == 0 -> {
+            val error = (pagedSongs.loadState.refresh as LoadState.Error).error
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = error.localizedMessage ?: "Failed to load songs",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(onClick = { pagedSongs.retry() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+        }
+
+        else -> {
+            val listState = rememberLazyListState()
+            Box(
+                modifier = modifier
+                    .padding(horizontal = 14.dp)
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        bottom = contentPadding.calculateBottomPadding(),
+                        top = contentPadding.calculateTopPadding(),
+                        start = contentPadding.calculateLeftPadding(LayoutDirection.Ltr),
+                        end = if (listState.canScrollForward || listState.canScrollBackward) 12.dp else 0.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        count = pagedSongs.itemCount,
+                        key = { index -> pagedSongs.peek(index)?.id ?: "song_picker_paged_$index" },
+                        contentType = pagedSongs.itemContentType { "song_picker_song" }
+                    ) { index ->
+                        val song = pagedSongs[index]
+                        if (song != null) {
+                            SongPickerRow(
+                                song = song,
+                                selectedSongIds = selectedSongIds,
+                                albumShape = albumShape
+                            )
+                        } else {
+                            SongPickerPlaceholderRow()
+                        }
+                    }
+
+                    if (pagedSongs.loadState.append is LoadState.Loading) {
+                        item(key = "song_picker_append_loading") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+
+                    if (pagedSongs.loadState.append is LoadState.Error) {
+                        item(key = "song_picker_append_error") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Button(onClick = { pagedSongs.retry() }) {
+                                    Text("Load more")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ExpressiveScrollBar(
+                    listState = listState,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(
+                            bottom = contentPadding.calculateBottomPadding(),
+                            top = contentPadding.calculateTopPadding() + 10.dp
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SongPickerRow(
+    song: Song,
+    selectedSongIds: MutableMap<String, Boolean>,
+    albumShape: androidx.compose.ui.graphics.Shape
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(CircleShape)
+            .clickable {
+                val currentSelection = selectedSongIds[song.id] ?: false
+                selectedSongIds[song.id] = !currentSelection
+            }
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                shape = CircleShape
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = selectedSongIds[song.id] ?: false,
+            onCheckedChange = { isChecked ->
+                selectedSongIds[song.id] = isChecked
+            }
+        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    CircleShape
+                )
+        ) {
+            SmartImage(
+                model = song.albumArtUriString,
+                contentDescription = song.title,
+                shape = albumShape,
+                targetSize = Size(168, 168),
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                song.displayArtist,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun SongPickerPlaceholderRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CircleShape)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                shape = CircleShape
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape
+                )
+        )
+        Spacer(Modifier.width(18.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    CircleShape
+                )
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                modifier = Modifier
+                    .width(132.dp)
+                    .height(14.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = CircleShape
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .width(96.dp)
+                    .height(12.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = CircleShape
+                    )
+            )
         }
     }
 }
@@ -216,10 +486,13 @@ fun SongPickerList(
     if (isLoading) {
         Box(
             modifier
-                .fillMaxSize(), Alignment.Center
-        ) { CircularProgressIndicator() }
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
     } else {
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val listState = rememberLazyListState()
         Box(
             modifier = modifier
                 .padding(horizontal = 14.dp)
@@ -230,71 +503,28 @@ fun SongPickerList(
                 contentPadding = PaddingValues(
                     bottom = contentPadding.calculateBottomPadding(),
                     top = contentPadding.calculateTopPadding(),
-                    start = contentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                    start = contentPadding.calculateLeftPadding(LayoutDirection.Ltr),
                     end = if (listState.canScrollForward || listState.canScrollBackward) 12.dp else 0.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredSongs, key = { it.id }) { song ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(CircleShape)
-                            .clickable {
-                                val currentSelection = selectedSongIds[song.id] ?: false
-                                selectedSongIds[song.id] = !currentSelection
-                            }
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                shape = CircleShape
-                            )
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = selectedSongIds[song.id] ?: false,
-                            onCheckedChange = { isChecked ->
-                                selectedSongIds[song.id] = isChecked
-                            }
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    CircleShape
-                                )
-                        ) {
-                            SmartImage(
-                                model = song.albumArtUriString,
-                                contentDescription = song.title,
-                                shape = albumShape,
-                                targetSize = Size(
-                                    168,
-                                    168
-                                ), // 56dp * 3 (para densidad xxhdpi)
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                song.displayArtist,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+                    SongPickerRow(
+                        song = song,
+                        selectedSongIds = selectedSongIds,
+                        albumShape = albumShape
+                    )
                 }
             }
-            
+
             ExpressiveScrollBar(
                 listState = listState,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(bottom = contentPadding.calculateBottomPadding(), top = contentPadding.calculateTopPadding() + 10.dp)
+                    .padding(
+                        bottom = contentPadding.calculateBottomPadding(),
+                        top = contentPadding.calculateTopPadding() + 10.dp
+                    )
             )
         }
     }

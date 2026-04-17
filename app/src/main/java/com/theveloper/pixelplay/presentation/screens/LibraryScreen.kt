@@ -100,8 +100,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.AnnotatedString
@@ -429,6 +431,7 @@ fun LibraryScreen(
 ) {
     // La recolección de estados de alto nivel se mantiene mínima.
     val context = LocalContext.current // Added context
+    val haptic = LocalHapticFeedback.current
     val lastTabIndex by playerViewModel.lastLibraryTabIndexFlow.collectAsStateWithLifecycle()
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle() // Reintroducir favoriteIds aquí
     val scope = rememberCoroutineScope() // Mantener si se usa para acciones de UI
@@ -516,8 +519,11 @@ fun LibraryScreen(
     var foldersLocateAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     // Multi-selection callbacks
-    val onSongLongPress: (Song) -> Unit = remember(multiSelectionState) {
-        { song -> multiSelectionState.toggleSelection(song) }
+    val onSongLongPress: (Song) -> Unit = remember(multiSelectionState, haptic) {
+        { song -> 
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            multiSelectionState.toggleSelection(song) 
+        }
     }
 
     val onSongSelectionToggle: (Song) -> Unit = remember(multiSelectionState) {
@@ -537,8 +543,11 @@ fun LibraryScreen(
         }
     }
 
-    val onAlbumLongPress: (Album) -> Unit = remember(toggleAlbumSelection) {
-        { album -> toggleAlbumSelection(album) }
+    val onAlbumLongPress: (Album) -> Unit = remember(toggleAlbumSelection, haptic) {
+        { album -> 
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            toggleAlbumSelection(album) 
+        }
     }
 
     val onAlbumSelectionToggle: (Album) -> Unit = remember(toggleAlbumSelection) {
@@ -561,8 +570,9 @@ fun LibraryScreen(
     var showMergePlaylistDialog by remember { mutableStateOf(false) }
     var pendingMergePlaylistIds by remember { mutableStateOf(emptyList<String>()) }
 
-    val onPlaylistLongPress: (com.theveloper.pixelplay.data.model.Playlist) -> Unit = remember(playlistMultiSelectionState) {
+    val onPlaylistLongPress: (com.theveloper.pixelplay.data.model.Playlist) -> Unit = remember(playlistMultiSelectionState, haptic) {
         { playlist ->
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             // Only toggle selection, don't show sheet immediately (similar to songs multi-selection)
             playlistMultiSelectionState.toggleSelection(playlist)
             android.util.Log.d("PlaylistMultiSelect", "Toggled: ${playlist.name}, total selected: ${playlistMultiSelectionState.selectedPlaylists.value.size}")
@@ -931,11 +941,11 @@ fun LibraryScreen(
         }.collectAsStateWithLifecycle(initialValue = LibraryScreenPlayerProjection())
         val isLibraryContentEmpty by remember(playerViewModel) {
             combine(
-                playerViewModel.allSongsFlow,
+                playerViewModel.songCountFlow,
                 playerViewModel.albumsFlow,
                 playerViewModel.artistsFlow
-            ) { allSongs, albums, artists ->
-                allSongs.isEmpty() && albums.isEmpty() && artists.isEmpty()
+            ) { songCount, albums, artists ->
+                songCount == 0 && albums.isEmpty() && artists.isEmpty()
             }.distinctUntilChanged()
         }.collectAsStateWithLifecycle(initialValue = true)
 
@@ -1150,21 +1160,24 @@ fun LibraryScreen(
                                     SelectionActionRow(
                                         selectedCount = selectedSongs.size,
                                         onSelectAll = {
-                                            val songsToSelect = when (tabTitles.getOrNull(currentTabIndex)?.toLibraryTabIdOrNull()) {
-                                                LibraryTabId.LIKED -> favoritePagingItems.itemSnapshotList.items
-                                                LibraryTabId.FOLDERS -> {
-                                                    // If we are deep in a folder, select songs of that folder.
-                                                    // If we are at root, there are no songs to select.
-                                                    playerViewModel.playerUiState.value.currentFolder?.songs ?: emptyList()
+                                            when (tabTitles.getOrNull(currentTabIndex)?.toLibraryTabIdOrNull()) {
+                                                LibraryTabId.LIKED -> {
+                                                    multiSelectionState.selectAll(favoritePagingItems.itemSnapshotList.items)
                                                 }
-                                                // For SONGS and others fallback to all songs?
-                                                // Actually ALBUMS/ARTISTS don't show songs list directly, they show items.
-                                                // Selection mode is likely disabled there or not reachable.
-                                                // But for SONGS tab:
-                                                LibraryTabId.SONGS -> playerViewModel.allSongsFlow.value
-                                                else -> emptyList()
+                                                LibraryTabId.FOLDERS -> {
+                                                    val songsToSelect =
+                                                        playerViewModel.playerUiState.value.currentFolder?.songs ?: emptyList()
+                                                    multiSelectionState.selectAll(songsToSelect)
+                                                }
+                                                LibraryTabId.SONGS -> {
+                                                    scope.launch {
+                                                        val songsToSelect =
+                                                            playerViewModel.getSongsForCurrentLibrarySelection()
+                                                        multiSelectionState.selectAll(songsToSelect)
+                                                    }
+                                                }
+                                                else -> Unit
                                             }
-                                            multiSelectionState.selectAll(songsToSelect)
                                         },
                                         onDeselect = { multiSelectionState.clearSelection() },
                                         onOptionsClick = { showMultiSelectionSheet = true }
@@ -1667,10 +1680,8 @@ fun LibraryScreen(
         }
     )
 
-    val allSongsForPlaylistDialog by playerViewModel.allSongsFlow.collectAsStateWithLifecycle()
     CreatePlaylistDialog(
         visible = showCreatePlaylistDialog,
-        allSongs = allSongsForPlaylistDialog,
         onDismiss = { showCreatePlaylistDialog = false },
         onGenerateClick = {
             showCreatePlaylistDialog = false

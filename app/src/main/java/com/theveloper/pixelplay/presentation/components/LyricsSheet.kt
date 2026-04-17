@@ -122,7 +122,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.theveloper.pixelplay.data.preferences.dataStore
 import androidx.compose.ui.graphics.TransformOrigin
 
-import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
@@ -166,6 +165,7 @@ fun LyricsSheet(
     immersiveLyricsTimeout: Long,
     isImmersiveTemporarilyDisabled: Boolean,
     onSetImmersiveTemporarilyDisabled: (Boolean) -> Unit,
+    onSaveLyricsToFile: (Song, Lyrics, Boolean) -> Unit,
     // BottomToggleRow Params
     isShuffleEnabled: Boolean,
     repeatMode: Int,
@@ -365,11 +365,10 @@ fun LyricsSheet(
                         FilledTonalButton(
                             onClick = {
                                 showSaveLyricsDialog = false
-                                saveLyricsToFile(
-                                    context = context,
-                                    song = currentSong!!,
-                                    lyrics = lyrics!!,
-                                    preferSynced = true
+                                onSaveLyricsToFile(
+                                    currentSong!!,
+                                    lyrics!!,
+                                    true
                                 )
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -382,11 +381,10 @@ fun LyricsSheet(
                         OutlinedButton(
                             onClick = {
                                 showSaveLyricsDialog = false
-                                saveLyricsToFile(
-                                    context = context,
-                                    song = currentSong!!,
-                                    lyrics = lyrics!!,
-                                    preferSynced = false
+                                onSaveLyricsToFile(
+                                    currentSong!!,
+                                    lyrics!!,
+                                    false
                                 )
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -1740,66 +1738,6 @@ internal fun resolveCurrentLineIndex(
     }?.index ?: -1
 }
 
-/**
- * Saves lyrics to a .lrc file in the same directory as the song.
- * @param context The Android context.
- * @param song The song whose lyrics are being saved.
- * @param lyrics The lyrics to save.
- * @param preferSynced Whether to prefer synced lyrics over plain.
- */
-private fun saveLyricsToFile(
-    context: android.content.Context,
-    song: Song,
-    lyrics: Lyrics,
-    preferSynced: Boolean
-) {
-    try {
-        val songFile = File(song.path)
-        val songDir = songFile.parentFile
-        
-        if (songDir == null || !songDir.exists()) {
-            Toast.makeText(
-                context,
-                context.getString(R.string.lyrics_save_failed),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        
-        // Create .lrc filename based on song filename
-        val songNameWithoutExtension = songFile.nameWithoutExtension
-        val lrcFileName = "$songNameWithoutExtension.lrc"
-        val lrcFile = File(songDir, lrcFileName)
-        
-        // Convert lyrics to LRC format
-        val lrcContent = LyricsUtils.toLrcString(lyrics, preferSynced)
-        
-        if (lrcContent.isEmpty()) {
-            Toast.makeText(
-                context,
-                context.getString(R.string.no_lyrics_to_save),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        
-        // Write to file
-        lrcFile.writeText(lrcContent, Charsets.UTF_8)
-        
-        Toast.makeText(
-            context,
-            context.getString(R.string.lyrics_saved_successfully),
-            Toast.LENGTH_SHORT
-        ).show()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            context.getString(R.string.lyrics_save_failed),
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-}
 
 @Composable
 private fun LyricsTrackInfo(

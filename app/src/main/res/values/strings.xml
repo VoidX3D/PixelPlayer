@@ -4,19 +4,26 @@
     <string name="app_name_change_message">We have changed our app\'s name from PixelPlay to PixelPlayer due to a trademark-related issue. Keep playing!</string>
     <string name="do_not_show_again">Do not show again</string>
     <string name="dismiss">Dismiss</string>
+    <string name="all_files_access_title">Permiso Especial Requerido</string>
+    <string name="all_files_access_description">Para poder editar los metadatos de tus canciones (archivos .mp3), PixelPlayer necesita un permiso especial de acceso a todos los archivos. Esto nos permitirá modificar las etiquetas de tus pistas directamente. Por favor, concede este permiso en la siguiente pantalla para habilitar la edición de metadatos.</string>
+    <string name="grant_permission_button">Conceder Permiso</string>
+    <string name="all_files_access_setting">All Files Access</string>
+    <string name="error">Error</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="import_file">Import</string>
+    <string name="search">Search</string>
+
+    <!-- Lyrics -->
     <string name="lyrics">Lyrics</string>
     <string name="close_lyrics_sheet">Close Lyrics Sheet</string>
     <string name="loading_lyrics">Loading lyrics…</string>
     <string name="cant_find_lyrics">Couldn\'t find lyrics for this song.</string>
     <string name="lyrics_provided_by">Lyrics provided by</string>
     <string name="lrclib_uri">https://lrclib.net/</string>
-    <string name="all_files_access_title">Permiso Especial Requerido</string>
-    <string name="all_files_access_description">Para poder editar los metadatos de tus canciones (archivos .mp3), PixelPlayer necesita un permiso especial de acceso a todos los archivos. Esto nos permitirá modificar las etiquetas de tus pistas directamente. Por favor, concede este permiso en la siguiente pantalla para habilitar la edición de metadatos.</string>
-    <string name="grant_permission_button">Conceder Permiso</string>
-    <string name="all_files_access_setting">All Files Access</string>
     <string name="lyrics_not_found">Lyrics not found</string>
     <string name="search_lyrics_online_prompt">Would you like to search for lyrics online?</string>
-    <string name="custom_search_hint">We couldn’t find lyrics automatically. You can edit the title or artist and try searching manually.</string>
+    <string name="lyrics_custom_search_hint">We couldn\'t find lyrics automatically. You can edit the title or artist and try searching manually.</string>
     <string name="failed_to_search_for_lyrics">Failed to search for lyrics</string>
     <string name="failed_to_fetch_lyrics_from_remote">Failed to fetch lyrics from remote</string>
     <string name="lyrics_fetch_timeout">Connection timed out. Please check your internet connection.</string>
@@ -24,16 +31,25 @@
     <string name="lyrics_server_error">Server error (code %d). Please try again later.</string>
     <string name="found_n_matches_format">Found %d match(es)</string>
     <string name="searched_for_x_format">Searched for \"%s\"</string>
-    <string name="search">Search</string>
     <string name="searching_lyrics">Searching for lyrics…</string>
     <string name="lyrics_embedded_already_available">Embedded lyrics already found. Online fetch skipped.</string>
     <string name="local_lrc_already_available">Local (.lrc) lyrics already found. Online fetch skipped.</string>
     <string name="fetch_lyrics_show_options_title">Show lyric options</string>
     <string name="fetch_lyrics_show_options_subtitle">Always open the picker instead of auto-applying the first match</string>
-    <string name="error">Error</string>
-    <string name="ok">OK</string>
-    <string name="cancel">Cancel</string>
-    <string name="import_file">Import</string>
+    <string name="save_lyrics_as_lrc">Save lyrics as .lrc</string>
+    <string name="save_lyrics_dialog_title">Save Lyrics</string>
+    <string name="save_lyrics_dialog_message">Choose which version to save:</string>
+    <string name="save_synced_lyrics">Synced (with timestamps)</string>
+    <string name="save_plain_lyrics">Plain (text only)</string>
+    <string name="lyrics_saved_successfully">Lyrics saved successfully</string>
+    <string name="lyrics_save_failed">Failed to save lyrics</string>
+    <string name="no_lyrics_to_save">No lyrics available to save</string>
+    <string name="reset_imported_lyrics">Reset imported lyrics</string>
+    <string name="lyrics_sync_offset">Lyrics sync offset</string>
+    <string name="lyrics_sync_offset_format">%+.1fs</string>
+    <string name="lyrics_sync_offset_reset">Reset</string>
+    <string name="lyrics_earlier">Earlier</string>
+    <string name="lyrics_later">Later</string>
 
     <!-- Sync/Progress strings -->
     <string name="sync_scanning">Scanning music files…</string>
@@ -62,20 +78,6 @@
     <string name="pause_playback">Pause playback</string>
     <string name="play_playback">Play</string>
     <string name="playlist_not_found">Playlist not found.</string>
-    <string name="save_lyrics_as_lrc">Save lyrics as .lrc</string>
-    <string name="save_lyrics_dialog_title">Save Lyrics</string>
-    <string name="save_lyrics_dialog_message">Choose which version to save:</string>
-    <string name="save_synced_lyrics">Synced (with timestamps)</string>
-    <string name="save_plain_lyrics">Plain (text only)</string>
-    <string name="lyrics_saved_successfully">Lyrics saved successfully</string>
-    <string name="lyrics_save_failed">Failed to save lyrics</string>
-    <string name="no_lyrics_to_save">No lyrics available to save</string>
-    <string name="reset_imported_lyrics">Reset imported lyrics</string>
-    <string name="lyrics_sync_offset">Lyrics sync offset</string>
-    <string name="lyrics_sync_offset_format">%+.1fs</string>
-    <string name="lyrics_sync_offset_reset">Reset</string>
-    <string name="lyrics_earlier">Earlier</string>
-    <string name="lyrics_later">Later</string>
 
     <!-- AI Playlist -->
     <string name="ai_error_api_key">Please configure a valid API key for the selected AI provider in Settings.</string>

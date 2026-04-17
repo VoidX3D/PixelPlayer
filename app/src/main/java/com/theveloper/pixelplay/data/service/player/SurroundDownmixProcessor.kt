@@ -60,14 +60,14 @@ class SurroundDownmixProcessor : AudioProcessor {
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
         val isSupported = (inputAudioFormat.channelCount == 6 || inputAudioFormat.channelCount == 8)
-                && inputAudioFormat.encoding == C.ENCODING_PCM_16BIT
+                && (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT || inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT)
 
         return if (isSupported) {
             inputFormat = inputAudioFormat
             outputFormat = AudioFormat(
                 inputAudioFormat.sampleRate,
                 /* channelCount = */ 2,
-                C.ENCODING_PCM_16BIT
+                inputAudioFormat.encoding
             )
             outputFormat
         } else {
@@ -83,28 +83,41 @@ class SurroundDownmixProcessor : AudioProcessor {
         if (!isActive()) return
 
         val channelCount = inputFormat.channelCount
-        val bytesPerFrame = channelCount * Short.SIZE_BYTES
-        val frameCount = inputBuffer.remaining() / bytesPerFrame
 
-        // Stereo output: 2 channels × 2 bytes per frame
-        val requiredCapacity = frameCount * 2 * Short.SIZE_BYTES
-        if (outputBuffer.capacity() < requiredCapacity) {
-            outputBuffer = ByteBuffer.allocateDirect(requiredCapacity).order(ByteOrder.nativeOrder())
+        if (inputFormat.encoding == C.ENCODING_PCM_FLOAT) {
+            val bytesPerFrame = channelCount * Float.SIZE_BYTES
+            val frameCount = inputBuffer.remaining() / bytesPerFrame
+            val requiredCapacity = frameCount * 2 * Float.SIZE_BYTES
+            if (outputBuffer.capacity() < requiredCapacity)
+                outputBuffer = ByteBuffer.allocateDirect(requiredCapacity).order(ByteOrder.nativeOrder())
+            else outputBuffer.clear()
+
+            val floatInput = inputBuffer.asFloatBuffer()
+            repeat(frameCount) {
+                val samples = FloatArray(channelCount) { floatInput.get() }
+                val (left, right) = if (channelCount == 6) downmix51Float(samples) else downmix71Float(samples)
+                outputBuffer.putFloat(left.coerceIn(-1f, 1f))
+                outputBuffer.putFloat(right.coerceIn(-1f, 1f))
+            }
+            inputBuffer.position(inputBuffer.position() + frameCount * bytesPerFrame)
         } else {
-            outputBuffer.clear()
+            // existing 16-bit logic — keep exactly as is
+            val bytesPerFrame = channelCount * Short.SIZE_BYTES
+            val frameCount = inputBuffer.remaining() / bytesPerFrame
+            val requiredCapacity = frameCount * 2 * Short.SIZE_BYTES
+            if (outputBuffer.capacity() < requiredCapacity)
+                outputBuffer = ByteBuffer.allocateDirect(requiredCapacity).order(ByteOrder.nativeOrder())
+            else outputBuffer.clear()
+
+            val shortInput = inputBuffer.asShortBuffer()
+            repeat(frameCount) {
+                val samples = ShortArray(channelCount) { shortInput.get() }
+                val (left, right) = if (channelCount == 6) downmix51(samples) else downmix71(samples)
+                outputBuffer.putShort(left.toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
+                outputBuffer.putShort(right.toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
+            }
+            inputBuffer.position(inputBuffer.position() + frameCount * bytesPerFrame)
         }
-
-        val shortInput = inputBuffer.asShortBuffer()
-
-        repeat(frameCount) {
-            val samples = ShortArray(channelCount) { shortInput.get() }
-            val (left, right) = if (channelCount == 6) downmix51(samples) else downmix71(samples)
-
-            outputBuffer.putShort(left.toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
-            outputBuffer.putShort(right.toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort())
-        }
-
-        inputBuffer.position(inputBuffer.position() + frameCount * bytesPerFrame)
         outputBuffer.flip()
     }
 
@@ -146,6 +159,18 @@ class SurroundDownmixProcessor : AudioProcessor {
      * @return A [Pair] of (left, right) float samples ready for stereo output.
      */
     private fun downmix71(s: ShortArray): Pair<Float, Float> {
+        val left  = s[FL_71]  + COEFF_SURROUND * s[FC_71]  + COEFF_SURROUND * s[SL_71]  + COEFF_SURROUND * s[SBL_71] + COEFF_LFE * s[LFE_71]
+        val right = s[FR_71]  + COEFF_SURROUND * s[FC_71]  + COEFF_SURROUND * s[SR_71]  + COEFF_SURROUND * s[SBR_71] + COEFF_LFE * s[LFE_71]
+        return Pair(left, right)
+    }
+
+    private fun downmix51Float(s: FloatArray): Pair<Float, Float> {
+        val left  = s[FL_51]  + COEFF_SURROUND * s[FC_51]  + COEFF_SURROUND * s[SL_51]  + COEFF_LFE * s[LFE_51]
+        val right = s[FR_51]  + COEFF_SURROUND * s[FC_51]  + COEFF_SURROUND * s[SR_51]  + COEFF_LFE * s[LFE_51]
+        return Pair(left, right)
+    }
+
+    private fun downmix71Float(s: FloatArray): Pair<Float, Float> {
         val left  = s[FL_71]  + COEFF_SURROUND * s[FC_71]  + COEFF_SURROUND * s[SL_71]  + COEFF_SURROUND * s[SBL_71] + COEFF_LFE * s[LFE_71]
         val right = s[FR_71]  + COEFF_SURROUND * s[FC_71]  + COEFF_SURROUND * s[SR_71]  + COEFF_SURROUND * s[SBR_71] + COEFF_LFE * s[LFE_71]
         return Pair(left, right)

@@ -342,7 +342,7 @@ fun EnhancedSongListItem(
                     modifier = Modifier
                         .weight(1f)
                 ) {
-                    if (applyTextMarquee && !isSelectionMode) {
+                    if (isHighlighted && !isSelectionMode) {
                         AutoScrollingTextOnDemand(
                             text = song.title,
                             style = MaterialTheme.typography.bodyLarge,

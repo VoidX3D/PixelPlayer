@@ -87,7 +87,7 @@ class ReplayGainManager @Inject constructor() {
     fun gainDbToVolume(gainDb: Float, preAmpDb: Float = DEFAULT_PRE_AMP_DB): Float {
         val totalGainDb = gainDb + preAmpDb
         val linear = 10f.pow(totalGainDb / 20f)
-        return linear.coerceIn(0f, 1f)
+        return linear.coerceIn(0f, 2f)  // allow up to +6 dB boost for quiet tracks
     }
 
     /**

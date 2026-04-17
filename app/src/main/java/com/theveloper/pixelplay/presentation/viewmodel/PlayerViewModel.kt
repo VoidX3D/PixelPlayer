@@ -183,7 +183,7 @@ private data class PreparedPlaybackQueue(
 )
 
 private data class PendingMetadataEdit(
-    val song: com.theveloper.pixelplay.data.model.Song,
+    val song: Song,
     val title: String,
     val artist: String,
     val album: String,
@@ -194,6 +194,12 @@ private data class PendingMetadataEdit(
     val replayGainTrackGainDb: String?,
     val replayGainAlbumGainDb: String?,
     val coverArtUpdate: CoverArtUpdate?
+)
+
+private data class PendingLyricsSave(
+    val song: Song,
+    val lyrics: Lyrics,
+    val preferSynced: Boolean
 )
 
 @UnstableApi
@@ -284,6 +290,16 @@ class PlayerViewModel @Inject constructor(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val paginatedSongs: Flow<PagingData<Song>> = libraryStateHolder.songsPagingFlow
+        .cachedIn(viewModelScope)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val playlistPickerSongs: Flow<PagingData<Song>> = libraryStateHolder.currentSongSortOption
+        .flatMapLatest { sortOption ->
+            musicRepository.getPaginatedSongs(
+                sortOption = sortOption,
+                storageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+            )
+        }
         .cachedIn(viewModelScope)
 
     private val offlinePlaybackObserverJob = viewModelScope.launch {
@@ -613,6 +629,7 @@ class PlayerViewModel @Inject constructor(
     val deletePermissionRequest: SharedFlow<android.content.IntentSender> = _deletePermissionRequest.asSharedFlow()
 
     private var pendingMetadataEdit: PendingMetadataEdit? = null
+    private var pendingLyricsSave: PendingLyricsSave? = null
     private var pendingDeleteSong: Song? = null
     private var pendingDeleteCallback: ((Boolean) -> Unit)? = null
 
@@ -692,6 +709,13 @@ class PlayerViewModel @Inject constructor(
             val storageFilter = playerUiState.value.currentStorageFilter
             musicRepository.getFavoriteSongIdsSorted(sortOption, storageFilter)
         }
+    }
+
+    suspend fun getSongsForCurrentLibrarySelection(): List<Song> {
+        val sortOption = playerUiState.value.currentSongSortOption
+        val storageFilter = playerUiState.value.currentStorageFilter
+        val sortedIds = musicRepository.getSongIdsSorted(sortOption, storageFilter)
+        return resolvePlaybackQueueFromSortedIds(sortedIds)
     }
 
     private fun launchLatestFullQueuePlayback(
@@ -1067,6 +1091,13 @@ class PlayerViewModel @Inject constructor(
             initialValue = persistentListOf()
         )
 
+    val songCountFlow: StateFlow<Int> = musicRepository.getSongCountFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     val albumsFlow: StateFlow<ImmutableList<Album>> = libraryStateHolder.albums
     val artistsFlow: StateFlow<ImmutableList<Artist>> = libraryStateHolder.artists
 
@@ -1322,7 +1353,6 @@ class PlayerViewModel @Inject constructor(
     private fun updateDailyMix() {
         // Delegate to DailyMixStateHolder
         dailyMixStateHolder.updateDailyMix(
-            allSongsFlow = allSongsFlow,
             favoriteSongIdsFlow = favoriteSongIds
         )
     }
@@ -1344,34 +1374,38 @@ class PlayerViewModel @Inject constructor(
      * fresh playback regardless of current state, and correctly handles the case
      * where the MediaController isn't ready yet (cold start from tile).
      *
-     * Uses allSongsFlow (StateFlow populated after resetAndLoadInitialData) instead
-     * of querying the DB directly, which can be empty on cold start before sync runs.
+     * Queries a bounded random sample directly from the repository so the tile does
+     * not depend on the eager in-memory song cache being populated first.
      */
     fun triggerShuffleAllFromTile() {
         Timber.d("[TileDebug] triggerShuffleAllFromTile called. mediaController=${mediaController != null}")
         val action: () -> Unit = {
             Timber.d("[TileDebug] action() invoked")
             viewModelScope.launch {
-                // If the in-memory library is already loaded, use it immediately
-                var songs = allSongsFlow.value
-                Timber.d("[TileDebug] allSongsFlow has ${songs.size} songs immediately")
+                var songs = musicRepository.getRandomSongs(limit = 500)
+                Timber.d("[TileDebug] Repository returned ${songs.size} random songs immediately")
 
                 if (songs.isEmpty()) {
-                    // Library not loaded yet — trigger a sync and wait up to 30s
-                    Timber.d("[TileDebug] Library empty, triggering sync and waiting for allSongsFlow")
+                    // Cold start or stale DB state: trigger a sync and retry the bounded query.
+                    Timber.d("[TileDebug] No songs available yet, triggering sync and retrying repository sample")
                     syncManager.sync()
-                    val result = withTimeoutOrNull(30_000L) {
-                        allSongsFlow.first { it.isNotEmpty() }
+                    songs = withTimeoutOrNull(30_000L) {
+                        var refreshedSongs = emptyList<Song>()
+                        while (refreshedSongs.isEmpty()) {
+                            refreshedSongs = musicRepository.getRandomSongs(limit = 500)
+                            if (refreshedSongs.isEmpty()) {
+                                delay(500L)
+                            }
+                        }
+                        refreshedSongs
                     }
-                    songs = result ?: persistentListOf()
-                    Timber.d("[TileDebug] After wait, allSongsFlow has ${songs.size} songs")
+                        ?: emptyList()
+                    Timber.d("[TileDebug] After retry, repository returned ${songs.size} songs")
                 }
 
                 if (songs.isNotEmpty()) {
-                    // Shuffle a random subset (up to 500) to avoid loading entire library
-                    val subset = if (songs.size > 500) songs.shuffled().take(500) else songs.toList()
-                    Timber.d("[TileDebug] Calling playSongsShuffled with ${subset.size} songs")
-                    playSongsShuffled(subset, "All Songs (Shuffled)", startAtZero = true)
+                    Timber.d("[TileDebug] Calling playSongsShuffled with ${songs.size} songs")
+                    playSongsShuffled(songs, "All Songs (Shuffled)", startAtZero = true)
                 } else {
                     Timber.w("[TileDebug] No songs found even after sync - library may be empty")
                     sendToast("No songs found in library")
@@ -1438,13 +1472,12 @@ class PlayerViewModel @Inject constructor(
 
     private fun loadPersistedDailyMix() {
         // Delegate to DailyMixStateHolder
-        dailyMixStateHolder.loadPersistedDailyMix(allSongsFlow)
+        dailyMixStateHolder.loadPersistedDailyMix()
     }
 
     fun forceUpdateDailyMix() {
         // Delegate to DailyMixStateHolder
         dailyMixStateHolder.forceUpdate(
-            allSongsFlow = allSongsFlow,
             favoriteSongIdsFlow = favoriteSongIds
         )
     }
@@ -1765,7 +1798,7 @@ class PlayerViewModel @Inject constructor(
             toastEmitter = { msg -> _toastEvents.emit(msg) },
             mediaControllerProvider = { mediaController },
             currentSongIdProvider = { stablePlayerState.map { it.currentSong?.id }.stateIn(viewModelScope, SharingStarted.Eagerly, null) },
-            songTitleResolver = { songId -> libraryStateHolder.allSongs.value.find { it.id == songId }?.title ?: "Unknown" }
+            songTitleResolver = { songId -> libraryStateHolder.allSongsById.value[songId]?.title ?: "Unknown" }
         )
 
         // Initialize SearchStateHolder
@@ -1793,7 +1826,7 @@ class PlayerViewModel @Inject constructor(
         // Initialize AiStateHolder
         aiStateHolder.initialize(
             scope = viewModelScope,
-            allSongsProvider = { libraryStateHolder.allSongs.value },
+            allSongsProvider = { musicRepository.getAllSongsOnce() },
             favoriteSongIdsProvider = { favoriteSongIds.value },
             toastEmitter = { msg -> viewModelScope.launch { _toastEvents.emit(msg) } },
             playSongsCallback = { songs, startSong, queueName -> playSongs(songs, startSong, queueName) },
@@ -1887,7 +1920,7 @@ class PlayerViewModel @Inject constructor(
                     it.copy(currentPlaybackQueue = newQueue.toPlaybackQueue())
                 }
             },
-            getMasterAllSongs = { libraryStateHolder.allSongs.value },
+            getSongsByIdMap = { libraryStateHolder.allSongsById.value },
             onTransferBackComplete = { startProgressUpdates() },
             onSheetVisible = { _isSheetVisible.value = true },
             onDisconnect = { disconnect() },
@@ -1955,7 +1988,6 @@ class PlayerViewModel @Inject constructor(
     private fun checkAndUpdateDailyMixIfNeeded() {
         // Delegate to DailyMixStateHolder
         dailyMixStateHolder.checkAndUpdateIfNeeded(
-            allSongsFlow = allSongsFlow,
             favoriteSongIdsFlow = favoriteSongIds
         )
     }
@@ -2649,7 +2681,7 @@ class PlayerViewModel @Inject constructor(
                             playerCtrl.seekTo(0L)
                             playerCtrl.pause()
 
-                            val finishedSongTitle = libraryStateHolder.allSongs.value.find { it.id == previousSongId }?.title
+                            val finishedSongTitle = libraryStateHolder.allSongsById.value[previousSongId]?.title
                                 ?: "Track"
 
                             viewModelScope.launch {
@@ -3564,8 +3596,11 @@ class PlayerViewModel @Inject constructor(
             // On Android 11+, use the system delete confirmation dialog via MediaStore.createDeleteRequest()
             // which both confirms AND handles deletion in one step (no MANAGE_EXTERNAL_STORAGE needed).
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                val intentSender = com.theveloper.pixelplay.utils.FileDeletionUtils
-                    .getDeleteRequestIntentSender(activity, song.path)
+                val songLongId = song.id.toLongOrNull()
+                val intentSender = if (songLongId != null && songLongId > 0) {
+                    com.theveloper.pixelplay.utils.MediaStorePermissionHelper
+                        .createDeleteRequestForSong(activity, songLongId)
+                } else null
                 if (intentSender != null) {
                     pendingDeleteSong = song
                     pendingDeleteCallback = onResult
@@ -3802,11 +3837,15 @@ class PlayerViewModel @Inject constructor(
                             currentSong != null -> {
                                 loadAndPlaySong(currentSong)
                             }
-                            libraryStateHolder.allSongs.value.isNotEmpty() -> {
-                                loadAndPlaySong(libraryStateHolder.allSongs.value.first())
-                            }
                             else -> {
-                                controller.play()
+                                viewModelScope.launch {
+                                    val fallbackSong = musicRepository.getFirstPlayableSong()
+                                    if (fallbackSong != null) {
+                                        loadAndPlaySong(fallbackSong)
+                                    } else {
+                                        controller.play()
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -3839,6 +3878,10 @@ class PlayerViewModel @Inject constructor(
 
     fun observeSongs(songIds: List<String>): Flow<List<Song>> {
         return musicRepository.getSongsByIds(songIds)
+    }
+
+    fun searchSongs(query: String): Flow<List<Song>> {
+        return musicRepository.searchSongs(query)
     }
 
     suspend fun getSongs(songIds: List<String>) : List<Song>{
@@ -4260,6 +4303,18 @@ class PlayerViewModel @Inject constructor(
             return
         }
 
+        // Handle lyrics save retry
+        val pendingLyrics = pendingLyricsSave
+        if (pendingLyrics != null) {
+            pendingLyricsSave = null
+            if (!granted) {
+                viewModelScope.launch { _toastEvents.emit("Permission denied – cannot save lyrics") }
+                return
+            }
+            performLyricsSave(pendingLyrics.song, pendingLyrics.lyrics, pendingLyrics.preferSynced)
+            return
+        }
+
         // Handle single metadata edit
         val pending = pendingMetadataEdit ?: return
         pendingMetadataEdit = null
@@ -4275,6 +4330,53 @@ class PlayerViewModel @Inject constructor(
                 pending.genre, pending.lyrics, pending.trackNumber, pending.discNumber,
                 pending.replayGainTrackGainDb, pending.replayGainAlbumGainDb, pending.coverArtUpdate
             )
+        }
+    }
+
+    fun saveLyricsToFile(song: Song, lyrics: Lyrics, preferSynced: Boolean) {
+        val lrcContent = LyricsUtils.toLrcString(lyrics, preferSynced)
+        if (lrcContent.isEmpty()) {
+            viewModelScope.launch { _toastEvents.emit(context.getString(R.string.no_lyrics_to_save)) }
+            return
+        }
+
+        val songFile = java.io.File(song.path)
+        val lrcFile = java.io.File(songFile.parentFile, "${songFile.nameWithoutExtension}.lrc")
+
+        // Android 11+ check: if file exists and we might not have permission
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R && lrcFile.exists() && !lrcFile.canWrite()) {
+            val uri = com.theveloper.pixelplay.utils.MediaStorePermissionHelper.getMediaStoreUri(context, lrcFile.absolutePath)
+            if (uri != null) {
+                val intentSender = com.theveloper.pixelplay.utils.MediaStorePermissionHelper.createWriteRequestIntentSender(context, listOf(uri))
+                if (intentSender != null) {
+                    pendingLyricsSave = PendingLyricsSave(song, lyrics, preferSynced)
+                    viewModelScope.launch { _writePermissionRequest.emit(intentSender) }
+                    return
+                }
+            }
+        }
+
+        performLyricsSave(song, lyrics, preferSynced)
+    }
+
+    private fun performLyricsSave(song: Song, lyrics: Lyrics, preferSynced: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val songFile = java.io.File(song.path)
+                val lrcFile = java.io.File(songFile.parentFile, "${songFile.nameWithoutExtension}.lrc")
+                val lrcContent = LyricsUtils.toLrcString(lyrics, preferSynced)
+
+                lrcFile.writeText(lrcContent, Charsets.UTF_8)
+                _toastEvents.emit(context.getString(R.string.lyrics_saved_successfully))
+                
+                // If it was the current song, we might want to refresh the lyrics in state if it migrated from remote to local
+                if (playbackStateHolder.stablePlayerState.value.currentSong?.id == song.id) {
+                    // This could trigger a reload if needed, but for now we just confirmed it's saved.
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to save lyrics to file")
+                _toastEvents.emit(context.getString(R.string.lyrics_save_failed))
+            }
         }
     }
 

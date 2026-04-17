@@ -711,7 +711,8 @@ object LyricsUtils {
      * @return A string with each line separated by newline.
      */
     fun plainToString(plainLines: List<String>): String {
-        return plainLines.joinToString("\n")
+        // Strip auto-generated romanization (if present after \n) when converting back to string for storage.
+        return plainLines.joinToString("\n") { it.substringBefore('\n') }
     }
 
     /**

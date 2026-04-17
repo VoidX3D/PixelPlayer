@@ -1,8 +1,6 @@
 package com.theveloper.pixelplay.data.ai
 
-
-import com.theveloper.pixelplay.data.database.MusicDao
-import com.theveloper.pixelplay.data.database.toSongs
+import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.worker.AiWorkerManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +17,7 @@ data class GeminiModel(
 class GeminiModelService @Inject constructor(
     private val orchestrator: AiOrchestrator,
     private val digestGenerator: UserProfileDigestGenerator,
-    private val musicDao: MusicDao,
+    private val musicRepository: MusicRepository,
     private val workerManager: AiWorkerManager
 ) {
 
@@ -133,7 +131,7 @@ class GeminiModelService @Inject constructor(
             workerManager.enqueueAiTask(prompt, type, temperature)
             return null
         } else {
-            val allSongs = musicDao.getAllSongsList().toSongs()
+            val allSongs = musicRepository.getAllSongsOnce()
             val context = if (type == AiSystemPromptType.PLAYLIST || 
                             type == AiSystemPromptType.TAGGING || 
                             type == AiSystemPromptType.PERSONA) {

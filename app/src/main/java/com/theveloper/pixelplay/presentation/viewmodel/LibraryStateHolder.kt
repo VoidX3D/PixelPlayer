@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.ComponentCallbacks2
 import android.os.Trace
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.ui.graphics.toArgb
@@ -32,8 +33,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val ENABLE_FOLDERS_STORAGE_FILTER = false
-private const val UNKNOWN_GENRE_NAME = "Unknown Genre"
-
 private data class GenreSeed(
     val id: String,
     val name: String
@@ -155,9 +154,15 @@ class LibraryStateHolder @Inject constructor(
         .flatMapLatest { filter -> musicRepository.getFavoriteSongCountFlow(filter) }
         .flowOn(Dispatchers.IO)
 
-    val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> = _allSongs
-        .map { songs ->
-            songs.toGenreSeeds()
+    val genres: kotlinx.coroutines.flow.Flow<ImmutableList<com.theveloper.pixelplay.data.model.Genre>> =
+        musicRepository.getGenres()
+        .map { genres ->
+            genres.map { genre ->
+                GenreSeed(
+                    id = genre.id,
+                    name = genre.name
+                )
+            }
         }
         .distinctUntilChanged()
         .map { seeds ->
@@ -241,7 +246,7 @@ class LibraryStateHolder @Inject constructor(
 
         songsJob = scope?.launch {
             _isLoadingLibrary.value = true
-            musicRepository.getAudioFiles().collect { songs ->
+            musicRepository.getAudioFiles().conflate().collect { songs ->
                 // Process heavy list conversions on Default dispatcher to avoid blocking UI
                 val immutableSongs = withContext(Dispatchers.Default) { songs.toImmutableList() }
                 val songsMap = withContext(Dispatchers.Default) { songs.associateBy { it.id } }
@@ -262,7 +267,7 @@ class LibraryStateHolder @Inject constructor(
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getAlbums(filter)
-            }.collect { albums ->
+            }.conflate().collect { albums ->
                 val sortedAlbums = withContext(Dispatchers.Default) {
                     sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()
                 }
@@ -276,7 +281,7 @@ class LibraryStateHolder @Inject constructor(
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getArtists(filter)
-            }.collect { artists ->
+            }.conflate().collect { artists ->
                 val sortedArtists = withContext(Dispatchers.Default) {
                     sortArtistsList(artists, _currentArtistSortOption.value).toImmutableList()
                 }
@@ -289,7 +294,7 @@ class LibraryStateHolder @Inject constructor(
             @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
             effectiveStorageFilter.flatMapLatest { filter ->
                 musicRepository.getMusicFolders(effectiveFoldersStorageFilter(filter))
-            }.collect { folders ->
+            }.conflate().collect { folders ->
                 val sortedFolders = withContext(Dispatchers.Default) {
                     sortFoldersList(folders, _currentFolderSortOption.value).toImmutableList()
                 }
@@ -586,37 +591,4 @@ class LibraryStateHolder @Inject constructor(
 
 private fun androidx.compose.ui.graphics.Color.toHexString(): String {
     return String.format("#%08X", this.toArgb())
-}
-
-private fun Iterable<Song>.toGenreSeeds(): List<GenreSeed> {
-    val canonicalNamesById = linkedMapOf<String, String>()
-
-    for (song in this) {
-        val genreName = song.genre?.trim().takeUnless { it.isNullOrBlank() } ?: UNKNOWN_GENRE_NAME
-        val genreId = genreName.toGenreId()
-        val currentCanonicalName = canonicalNamesById[genreId]
-        canonicalNamesById[genreId] = if (currentCanonicalName == null) {
-            genreName
-        } else {
-            chooseCanonicalGenreName(currentCanonicalName, genreName)
-        }
-    }
-
-    return canonicalNamesById.entries
-        .map { (id, name) -> GenreSeed(id = id, name = name) }
-        .sortedBy { it.name.lowercase() }
-}
-
-private fun String.toGenreId(): String {
-    return if (equals(UNKNOWN_GENRE_NAME, ignoreCase = true)) {
-        "unknown"
-    } else {
-        lowercase().replace(" ", "_").replace("/", "_")
-    }
-}
-
-private fun chooseCanonicalGenreName(current: String, candidate: String): String {
-    val currentKey = current.lowercase()
-    val candidateKey = candidate.lowercase()
-    return if (candidateKey < currentKey) candidate else current
 }

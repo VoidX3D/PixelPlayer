@@ -10,7 +10,6 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
@@ -68,7 +67,7 @@ class DailyMixStateHolder @Inject constructor(
      * Update the daily mix with new songs.
      * Uses getAllSongsOnce() to load songs on-demand instead of keeping a permanent subscription.
      */
-    fun updateDailyMix(allSongsFlow: Flow<List<Song>>, favoriteSongIdsFlow: Flow<Set<String>>) {
+    fun updateDailyMix(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         updateJob?.cancel()
         updateJob = scope?.launch(Dispatchers.IO) {
             val allSongs = musicRepository.getAllSongsOnce()
@@ -94,7 +93,7 @@ class DailyMixStateHolder @Inject constructor(
      * Load persisted daily mix from storage using direct DB queries by IDs
      * instead of combining with the full allSongs flow.
      */
-    fun loadPersistedDailyMix(allSongsFlow: Flow<List<Song>>) {
+    fun loadPersistedDailyMix() {
         // Load Daily Mix
         scope?.launch {
             val dailyMixIds = userPreferencesRepository.dailyMixSongIdsFlow.first()
@@ -130,9 +129,9 @@ class DailyMixStateHolder @Inject constructor(
     /**
      * Force update the daily mix regardless of day.
      */
-    fun forceUpdate(allSongsFlow: Flow<List<Song>>, favoriteSongIdsFlow: Flow<Set<String>>) {
+    fun forceUpdate(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         scope?.launch {
-            updateDailyMix(allSongsFlow, favoriteSongIdsFlow)
+            updateDailyMix(favoriteSongIdsFlow)
             userPreferencesRepository.saveLastDailyMixUpdateTimestamp(System.currentTimeMillis())
         }
     }
@@ -140,7 +139,7 @@ class DailyMixStateHolder @Inject constructor(
     /**
      * Check if daily mix needs updating (new day) and update if so.
      */
-    fun checkAndUpdateIfNeeded(allSongsFlow: Flow<List<Song>>, favoriteSongIdsFlow: Flow<Set<String>>) {
+    fun checkAndUpdateIfNeeded(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         scope?.launch {
             val lastUpdate = userPreferencesRepository.lastDailyMixUpdateFlow.first()
             val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
@@ -149,7 +148,7 @@ class DailyMixStateHolder @Inject constructor(
             }.get(Calendar.DAY_OF_YEAR)
 
             if (today != lastUpdateDay) {
-                updateDailyMix(allSongsFlow, favoriteSongIdsFlow)
+                updateDailyMix(favoriteSongIdsFlow)
                 userPreferencesRepository.saveLastDailyMixUpdateTimestamp(System.currentTimeMillis())
             }
         }

@@ -750,6 +750,17 @@ fun SettingsCategoryScreen(
                                     )
                                 }
                                 SwitchSettingItem(
+                                    title = "Hi-Fi Mode",
+                                    subtitle = if (uiState.hiFiModeDeviceSupported)
+                                        "Float 32-bit audio output. Disable if playback stutters on your device."
+                                    else
+                                        "Not supported on this device (PCM_FLOAT AudioTrack unavailable).",
+                                    checked = uiState.hiFiModeEnabled,
+                                    onCheckedChange = { settingsViewModel.setHiFiModeEnabled(it) },
+                                    enabled = uiState.hiFiModeDeviceSupported,
+                                    leadingIcon = { Icon(painterResource(R.drawable.outline_high_quality_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
                                     title = "Persistent Shuffle",
                                     subtitle = "Remember shuffle setting even after closing the app.",
                                     checked = uiState.persistentShuffleEnabled,

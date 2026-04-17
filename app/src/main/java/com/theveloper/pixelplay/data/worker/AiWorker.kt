@@ -10,9 +10,8 @@ import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiOrchestrator
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
 import com.theveloper.pixelplay.data.ai.UserProfileDigestGenerator
-import com.theveloper.pixelplay.data.database.MusicDao
-import com.theveloper.pixelplay.data.database.toSongs
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.repository.MusicRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +25,7 @@ class AiWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val orchestrator: AiOrchestrator,
     private val notificationManager: AiNotificationManager,
-    private val musicDao: MusicDao,
+    private val musicRepository: MusicRepository,
     private val digestGenerator: UserProfileDigestGenerator,
     private val preferencesRepo: com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 ) : CoroutineWorker(appContext, workerParams) {
@@ -54,7 +53,7 @@ class AiWorker @AssistedInject constructor(
             val context = if (type == AiSystemPromptType.PLAYLIST || 
                             type == AiSystemPromptType.TAGGING || 
                             type == AiSystemPromptType.PERSONA) {
-                val allSongs = musicDao.getAllSongsList().toSongs()
+                val allSongs = musicRepository.getAllSongsOnce()
                 val isSafe = preferencesRepo.isSafeTokenLimitEnabled.first()
                 digestGenerator.generateDigest(allSongs, isSafe)
             } else ""

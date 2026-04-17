@@ -28,6 +28,26 @@ object MediaStorePermissionHelper {
     }
 
     /**
+     * Returns the MediaStore content URI for a given file path.
+     * Useful for non-audio files like .lrc that are indexed by MediaStore.
+     */
+    fun getMediaStoreUri(context: Context, filePath: String): Uri? {
+        val projection = arrayOf(MediaStore.Files.FileColumns._ID)
+        val selection = "${MediaStore.Files.FileColumns.DATA} = ?"
+        val selectionArgs = arrayOf(filePath)
+        val queryUri = MediaStore.Files.getContentUri("external")
+
+        return context.contentResolver.query(queryUri, projection, selection, selectionArgs, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
+                ContentUris.withAppendedId(queryUri, id)
+            } else {
+                null
+            }
+        }
+    }
+
+    /**
      * Creates an IntentSender that, when launched, asks the user to grant
      * write access to the given MediaStore URIs.
      *

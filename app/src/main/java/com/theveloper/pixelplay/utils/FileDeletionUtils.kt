@@ -47,7 +47,7 @@ object FileDeletionUtils {
                 if (!file.exists()) return@withContext true
 
                 // Try to get MediaStore URI for the file
-                val uri = getMediaStoreUri(context, filePath)
+                val uri = MediaStorePermissionHelper.getMediaStoreUri(context, filePath)
                 if (uri != null) {
                     // Use MediaStore for deletion
                     val rowsDeleted = context.contentResolver.delete(uri, null, null)
@@ -72,7 +72,7 @@ object FileDeletionUtils {
      */
     @RequiresApi(Build.VERSION_CODES.R)
     fun getDeleteRequestIntentSender(context: Context, filePath: String): android.content.IntentSender? {
-        val uri = getMediaStoreUri(context, filePath) ?: return null
+        val uri = MediaStorePermissionHelper.getMediaStoreUri(context, filePath) ?: return null
         return MediaStore.createDeleteRequest(context.contentResolver, listOf(uri)).intentSender
     }
 
@@ -87,7 +87,7 @@ object FileDeletionUtils {
                 if (!file.exists()) return@withContext true
 
                 // For Android 10, we can still use MediaStore for media files
-                val uri = getMediaStoreUri(context, filePath)
+                val uri = MediaStorePermissionHelper.getMediaStoreUri(context, filePath)
                 return@withContext if (uri != null) {
                     val rowsDeleted = context.contentResolver.delete(uri, null, null)
                     rowsDeleted > 0
@@ -117,36 +117,6 @@ object FileDeletionUtils {
         }
     }
 
-    /**
-     * Get MediaStore URI for a file path
-     */
-    private fun getMediaStoreUri(context: Context, filePath: String): Uri? {
-        return try {
-            val file = File(filePath)
-            if (!file.exists()) return null
-
-            val projection = arrayOf(MediaStore.Files.FileColumns._ID)
-            val selection = "${MediaStore.Files.FileColumns.DATA} = ?"
-            val selectionArgs = arrayOf(filePath)
-
-            context.contentResolver.query(
-                MediaStore.Files.getContentUri("external"),
-                projection,
-                selection,
-                selectionArgs,
-                null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
-                    ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id)
-                } else {
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
 
     /**
      * Delete multiple files at once
