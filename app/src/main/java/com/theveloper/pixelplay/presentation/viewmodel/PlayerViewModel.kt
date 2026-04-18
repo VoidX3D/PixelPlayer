@@ -421,9 +421,9 @@ class PlayerViewModel @Inject constructor(
     val aiStatus: StateFlow<String?> = aiStateHolder.aiStatus
     val aiError: StateFlow<String?> = aiStateHolder.aiError
 
-    // AI Metadata Generation States
-    val isGeneratingAiMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
-    val aiMetadataSuccess: StateFlow<Boolean> = aiStateHolder.aiMetadataSuccess
+    // Metadata Generation States
+    val isGeneratingMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
+    val metadataSuccess: StateFlow<Boolean> = aiStateHolder.metadataSuccess
 
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()

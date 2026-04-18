@@ -391,7 +391,7 @@ private data class LibraryScreenPlayerProjection(
     val isSdCardAvailable: Boolean = false,
     val musicFolders: ImmutableList<MusicFolder> = persistentListOf(),
     val isLoadingLibraryCategories: Boolean = true,
-    val isGeneratingAiMetadata: Boolean = false,
+    val isGeneratingMetadata: Boolean = false,
     val isSyncingLibrary: Boolean = false,
     val isLoadingInitialSongs: Boolean = true,
     val hideLocalMedia: Boolean = false
@@ -413,7 +413,7 @@ private fun PlayerUiState.toLibraryScreenProjection(): LibraryScreenPlayerProjec
         isSdCardAvailable = isSdCardAvailable,
         musicFolders = musicFolders,
         isLoadingLibraryCategories = isLoadingLibraryCategories,
-        isGeneratingAiMetadata = isGeneratingAiMetadata,
+        isGeneratingMetadata = isGeneratingMetadata,
         isSyncingLibrary = isSyncingLibrary,
         isLoadingInitialSongs = isLoadingInitialSongs,
         hideLocalMedia = hideLocalMedia

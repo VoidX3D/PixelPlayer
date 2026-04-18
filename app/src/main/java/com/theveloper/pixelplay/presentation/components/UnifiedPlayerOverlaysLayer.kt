@@ -230,8 +230,8 @@ internal fun UnifiedPlayerSongInfoLayer(
                     )
                     onDismissSongInfo()
                 },
-                generateAiMetadata = { fields ->
-                    playerViewModel.generateAiMetadata(liveSong, fields)
+                generateMetadata = { fields ->
+                    playerViewModel.generateMetadata(liveSong, fields)
                 },
                 removeFromListTrigger = {
                     playerViewModel.removeSongFromQueue(liveSong.id)

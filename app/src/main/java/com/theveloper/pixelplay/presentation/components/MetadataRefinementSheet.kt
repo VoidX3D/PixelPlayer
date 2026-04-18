@@ -37,7 +37,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AiMetadataSheet(
+fun MetadataRefinementSheet(
     onDismiss: () -> Unit,
     onApply: (SongMetadata) -> Unit,
     initialMetadata: SongMetadata?,
@@ -67,7 +67,7 @@ fun AiMetadataSheet(
         )
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "ai_meta_animation")
+    val infiniteTransition = rememberInfiniteTransition(label = "metadata_refine_animation")
     val iconRotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -144,12 +144,12 @@ fun AiMetadataSheet(
                 }
                 Column {
                     Text(
-                        text = if (isSuccess) "Perfectly Tagged!" else "AI Metadata",
+                        text = if (isSuccess) "Perfectly Tagged!" else "Metadata Engine",
                         style = ExpTitleTypography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = colors.onSurface
                     )
                     Text(
-                        text = if (isGenerating) "Consulting the Daily Mix guide..." else "Review and refine generated details",
+                        text = if (isGenerating) "Consulting metadata providers..." else "Review and refine suggested details",
                         style = MaterialTheme.typography.bodyMedium,
                         fontFamily = GoogleSansRounded,
                         color = colors.onSurfaceVariant

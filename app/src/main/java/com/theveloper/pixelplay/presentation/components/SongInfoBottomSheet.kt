@@ -111,10 +111,10 @@ fun SongInfoBottomSheet(
         replayGainAlbumGainDb: String,
         coverArtUpdate: CoverArtUpdate?
     ) -> Unit,
-    generateAiMetadata: suspend (List<String>) -> Result<SongMetadata>,
+    generateMetadata: suspend (List<String>) -> Result<SongMetadata>,
     removeFromListTrigger: () -> Unit,
     isGeneratingMetadata: Boolean = false,
-    aiMetadataSuccess: Boolean = false,
+    metadataSuccess: Boolean = false,
     aiError: String? = null,
     onRetryMetadata: () -> Unit = {},
     songInfoViewModel: SongInfoBottomSheetViewModel = hiltViewModel()
@@ -807,9 +807,9 @@ fun SongInfoBottomSheet(
             )
             showEditSheet = false
         },
-        generateAiMetadata = generateAiMetadata,
-        isGeneratingAiMetadata = isGeneratingMetadata,
-        aiMetadataSuccess = aiMetadataSuccess,
+        generateMetadata = generateMetadata,
+        isGeneratingMetadata = isGeneratingMetadata,
+        metadataSuccess = metadataSuccess,
         aiError = aiError,
         onRetryMetadata = onRetryMetadata
     )

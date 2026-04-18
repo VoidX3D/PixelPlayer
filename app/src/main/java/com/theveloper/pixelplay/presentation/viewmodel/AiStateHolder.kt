@@ -47,8 +47,8 @@ class AiStateHolder @Inject constructor(
     private val _isGeneratingMetadata = MutableStateFlow(false)
     val isGeneratingMetadata = _isGeneratingMetadata.asStateFlow()
 
-    private val _aiMetadataSuccess = MutableStateFlow(false)
-    val aiMetadataSuccess = _aiMetadataSuccess.asStateFlow()
+    private val _metadataSuccess = MutableStateFlow(false)
+    val metadataSuccess = _metadataSuccess.asStateFlow()
 
     private val _aiSuccess = MutableStateFlow(false)
     val aiSuccess = _aiSuccess.asStateFlow()
@@ -110,7 +110,7 @@ class AiStateHolder @Inject constructor(
         _showAiPlaylistSheet.value = false
         _aiError.value = null
         _aiSuccess.value = false
-        _aiMetadataSuccess.value = false
+        _metadataSuccess.value = false
         _isGeneratingAiPlaylist.value = false
         _aiStatus.value = null
     }
@@ -127,7 +127,7 @@ class AiStateHolder @Inject constructor(
         val fields = _lastMetadataFields ?: return
         
         scope?.launch {
-            generateAiMetadata(song, fields)
+            generateMetadata(song, fields)
         }
     }
 
@@ -296,10 +296,10 @@ class AiStateHolder @Inject constructor(
     }
 
     /**
-     * Fetches AI-generated metadata (tags, genre, lyrics) for a specific song.
+     * Fetches generated metadata (tags, genre, lyrics) for a specific song using the selected engine.
      * Updates internal success and error states for UI feedback.
      */
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
+    suspend fun generateMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
         _lastMetadataSong = song
         _lastMetadataFields = fields
         
@@ -311,7 +311,7 @@ class AiStateHolder @Inject constructor(
             val providerId = userPreferencesRepository.metadataProviderFlow.first()
             val result = metadataEditor.getMetadata(song, providerId)
             if (result.isSuccess) {
-                _aiMetadataSuccess.value = true
+                _metadataSuccess.value = true
                 notificationManager.showCompletion("Metadata Enhanced", "Applied tags and genre refinements.")
             } else {
                 result.exceptionOrNull()?.let {

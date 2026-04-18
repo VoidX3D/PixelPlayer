@@ -111,9 +111,9 @@ fun EditSongSheet(
         replayGainAlbumGainDb: String,
         coverArtUpdate: CoverArtUpdate?
     ) -> Unit,
-    generateAiMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>,
-    isGeneratingAiMetadata: Boolean = false,
-    aiMetadataSuccess: Boolean = false,
+    generateMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>,
+    isGeneratingMetadata: Boolean = false,
+    metadataSuccess: Boolean = false,
     aiError: String? = null,
     onRetryMetadata: () -> Unit = {}
 ) {
@@ -137,9 +137,9 @@ fun EditSongSheet(
                     song = song,
                     onDismiss = onDismiss,
                     onSave = onSave,
-                    generateAiMetadata = generateAiMetadata,
-                    isGeneratingAiMetadata = isGeneratingAiMetadata,
-                    aiMetadataSuccess = aiMetadataSuccess,
+                    generateMetadata = generateMetadata,
+                    isGeneratingMetadata = isGeneratingMetadata,
+                    metadataSuccess = metadataSuccess,
                     aiError = aiError,
                     onRetryMetadata = onRetryMetadata
                 )
@@ -165,9 +165,9 @@ private fun EditSongContent(
         replayGainAlbumGainDb: String,
         coverArtUpdate: CoverArtUpdate?
     ) -> Unit,
-    generateAiMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>,
-    isGeneratingAiMetadata: Boolean,
-    aiMetadataSuccess: Boolean,
+    generateMetadata: suspend (List<String>) -> Result<com.theveloper.pixelplay.data.ai.SongMetadata>,
+    isGeneratingMetadata: Boolean,
+    metadataSuccess: Boolean,
     aiError: String?,
     onRetryMetadata: () -> Unit
 ) {
@@ -239,15 +239,15 @@ private fun EditSongContent(
     }
 
     if (showAiSheet) {
-        // AI Integration: Use premium bottom sheet for metadata generation workflow
-        AiMetadataSheet(
+        // Metadata Integration: Use premium bottom sheet for metadata generation workflow
+        MetadataRefinementSheet(
             onDismiss = { 
                 showAiSheet = false
                 aiMetadata = null
             },
             initialMetadata = aiMetadata,
-            isGenerating = isGeneratingAiMetadata,
-            isSuccess = aiMetadataSuccess,
+            isGenerating = isGeneratingMetadata,
+            isSuccess = metadataSuccess,
             error = aiError,
             onApply = { metadata ->
                 // Apply generated metadata with fallbacks
@@ -263,8 +263,8 @@ private fun EditSongContent(
 
         // Trigger generation if not already done
         LaunchedEffect(Unit) {
-            if (aiMetadata == null && !isGeneratingAiMetadata && !aiMetadataSuccess) {
-                generateAiMetadata(listOf("title", "artist", "album", "genre")).onSuccess { metadata ->
+            if (aiMetadata == null && !isGeneratingMetadata && !metadataSuccess) {
+                generateMetadata(listOf("title", "artist", "album", "genre")).onSuccess { metadata ->
                     aiMetadata = metadata
                 }
             }
@@ -368,8 +368,8 @@ private fun EditSongContent(
                                 Icon(
                                     modifier = Modifier
                                         .size(20.dp),
-                                    painter = painterResource(id = R.drawable.gemini_ai),
-                                    contentDescription = "Use Gemini AI",
+                                    imageVector = Icons.Rounded.Restore,
+                                    contentDescription = "Refine Metadata",
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
