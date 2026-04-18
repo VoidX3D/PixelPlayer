@@ -203,3 +203,6 @@
     public static int d(...);
     public static int i(...);
 }
+
+# okhttp internals used by mms library
+-dontwarn okhttp3.internal.**
