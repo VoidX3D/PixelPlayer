@@ -2,21 +2,25 @@ package com.theveloper.pixelplay.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AiUsageDao {
-    @Query("SELECT * FROM ai_usage")
+    @Query("SELECT * FROM ai_usage ORDER BY timestamp DESC")
     suspend fun getAllUsagesOnce(): List<AiUsageEntity>
+
+    @Query("DELETE FROM ai_usage")
+    suspend fun clearAll()
 
     @Query("SELECT COUNT(*) FROM ai_usage")
     suspend fun getUsageCount(): Int
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsage(usage: AiUsageEntity)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(usages: List<AiUsageEntity>)
 
     @Query("SELECT * FROM ai_usage ORDER BY timestamp DESC LIMIT :limit")
@@ -30,10 +34,4 @@ interface AiUsageDao {
 
     @Query("SELECT SUM(thoughtTokens) FROM ai_usage")
     fun getTotalThoughtTokens(): Flow<Int?>
-
-    @Query("DELETE FROM ai_usage")
-    suspend fun clearUsage()
-
-    @Query("DELETE FROM ai_usage")
-    suspend fun clearAll()
 }

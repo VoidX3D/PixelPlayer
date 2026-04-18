@@ -375,7 +375,7 @@ class SettingsViewModel @Inject constructor(
 
     fun clearAiUsageData() {
         viewModelScope.launch {
-            aiUsageDao.clearUsage()
+            aiUsageDao.clearAll()
         }
     }
 

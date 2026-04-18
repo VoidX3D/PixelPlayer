@@ -32,8 +32,6 @@ class AiUsageBackupHandler @Inject constructor(
         val type = object : TypeToken<List<AiUsageEntity>>() {}.type
         val logs: List<AiUsageEntity> = gson.fromJson(payload, type)
         
-        // We additive restore AI logs or clear? Usually for logs we additive restore 
-        // but BackupModuleHandler documentation says "Clear existing data and restore".
         aiUsageDao.clearAll()
         if (logs.isNotEmpty()) {
             aiUsageDao.insertAll(logs)
