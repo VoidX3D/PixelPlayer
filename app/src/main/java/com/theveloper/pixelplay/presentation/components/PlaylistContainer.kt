@@ -85,6 +85,7 @@ import com.theveloper.pixelplay.presentation.screens.PlayerSheetCollapsedCornerR
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistUiState
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistSelectionStateHolder
+import com.theveloper.pixelplay.utils.formatSongCount
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.foundation.combinedClickable
 import kotlinx.coroutines.flow.map
@@ -496,7 +497,7 @@ fun PlaylistItem(
                     }
                 }
                 Text(
-                    text = "${playlist.songIds.size} Songs",
+                    text = formatSongCount(playlist.songIds.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
