@@ -4,10 +4,8 @@ import android.content.Context
 import com.theveloper.pixelplay.data.ai.MetadataProvider
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.model.Song
-import dagger.hilt.android.qualifiers.ApplicationContext
-import mms.musicbrainz.MusicBrainzRestClient
+import com.theveloper.pixelplay.data.network.metadata.MusicBrainzApiService
 import mms.musicbrainz.MusicBrainzSearchResultRecording
-import mms.util.emit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,15 +14,14 @@ import javax.inject.Singleton
  */
 @Singleton
 class MusicBrainzProvider @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val musicBrainzApiService: MusicBrainzApiService
 ) : MetadataProvider {
     override val providerId: String = "musicbrainz"
     override suspend fun getMetadata(song: Song): Result<SongMetadata> {
         return try {
-            val client = MusicBrainzRestClient(context, "PixelPlayer")
             val query = "recording:\"${song.title}\" AND artist:\"${song.displayArtist}\""
-            val response = client.apiService.searchRecording(query, 0).emit()
-            val recordings = (response.dataOrNull() as? MusicBrainzSearchResultRecording)?.recordings
+            val response = musicBrainzApiService.searchRecording(query, 0)
+            val recordings = response?.recordings
             val firstHit = recordings?.firstOrNull()
             
             if (firstHit != null) {

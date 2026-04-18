@@ -61,6 +61,14 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class LastFmRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class MusicBrainzRetrofit
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -548,5 +556,39 @@ object AppModule {
         musicDao: MusicDao
     ): ArtistImageRepository {
         return ArtistImageRepository(deezerApiService, musicDao)
+    }
+
+    @Provides
+    @Singleton
+    @LastFmRetrofit
+    fun provideLastFmRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://ws.audioscrobbler.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLastFmApiService(@LastFmRetrofit retrofit: Retrofit): com.theveloper.pixelplay.data.network.metadata.LastFmApiService {
+        return retrofit.create(com.theveloper.pixelplay.data.network.metadata.LastFmApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @MusicBrainzRetrofit
+    fun provideMusicBrainzRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://musicbrainz.org/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMusicBrainzApiService(@MusicBrainzRetrofit retrofit: Retrofit): com.theveloper.pixelplay.data.network.metadata.MusicBrainzApiService {
+        return retrofit.create(com.theveloper.pixelplay.data.network.metadata.MusicBrainzApiService::class.java)
     }
 }

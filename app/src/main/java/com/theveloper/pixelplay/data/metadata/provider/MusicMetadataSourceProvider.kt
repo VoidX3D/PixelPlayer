@@ -7,22 +7,22 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.MetadataPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
-import mms.lastfm.LastFMRestClient
+import com.theveloper.pixelplay.data.network.metadata.LastFmApiService
+import com.theveloper.pixelplay.data.network.metadata.MusicBrainzApiService
 import mms.lastfm.LastFmTrackResponse
-import mms.util.emit
+import mms.musicbrainz.MusicBrainzSearchResultRecording
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Default provider that delegates to the MusicMetadataSource library (LastFM + MusicBrainz).
- *
- * Queries LastFM first (requires an API key configured in settings); if no key is set or
- * the lookup fails, it falls back to MusicBrainz which has a public API.
+ * Default provider that delegates to the MusicMetadataSource models but uses the 
+ * project's standard Retrofit stack for networking to ensure stability.
  */
 @Singleton
 class MusicMetadataSourceProvider @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val lastFmApiService: LastFmApiService,
+    private val musicBrainzApiService: MusicBrainzApiService,
     private val metadataPreferencesRepository: MetadataPreferencesRepository
 ) : MetadataProvider {
     override val providerId: String = "musicmetadatasource"
@@ -50,10 +50,8 @@ class MusicMetadataSourceProvider @Inject constructor(
 
     private suspend fun fetchFromLastFm(song: Song, apiKey: String): SongMetadata? {
         return try {
-            // The library client handles the network call orchestration via emit()
-            val client = LastFMRestClient(context, "PixelPlayer")
-            val response = client.apiService.getTrackInfo(song.title, song.displayArtist, null).emit()
-            val track = (response.dataOrNull() as? LastFmTrackResponse)?.track ?: return null
+            val response = lastFmApiService.getTrackInfo(song.title, song.displayArtist, apiKey)
+            val track = response?.track ?: return null
             
             SongMetadata(
                 title = track.name.takeIf { it.isNotBlank() },
@@ -70,10 +68,9 @@ class MusicMetadataSourceProvider @Inject constructor(
 
     private suspend fun fetchFromMusicBrainz(song: Song): SongMetadata? {
         return try {
-            val client = mms.musicbrainz.MusicBrainzRestClient(context, "PixelPlayer")
             val query = "recording:\"${song.title}\" AND artist:\"${song.displayArtist}\""
-            val response = client.apiService.searchRecording(query, 0).emit()
-            val recordings = (response.dataOrNull() as? mms.musicbrainz.MusicBrainzSearchResultRecording)?.recordings ?: return null
+            val response = musicBrainzApiService.searchRecording(query, 0)
+            val recordings = response?.recordings ?: return null
             val firstHit = recordings.firstOrNull() ?: return null
             
             SongMetadata(

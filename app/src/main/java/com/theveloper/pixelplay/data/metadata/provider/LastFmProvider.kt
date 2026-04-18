@@ -5,11 +5,8 @@ import com.theveloper.pixelplay.data.ai.MetadataProvider
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.MetadataPreferencesRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.first
-import mms.lastfm.LastFMRestClient
+import com.theveloper.pixelplay.data.network.metadata.LastFmApiService
 import mms.lastfm.LastFmTrackResponse
-import mms.util.emit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,16 +15,15 @@ import javax.inject.Singleton
  */
 @Singleton
 class LastFmProvider @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val lastFmApiService: LastFmApiService,
     private val metadataPreferencesRepository: MetadataPreferencesRepository
 ) : MetadataProvider {
     override val providerId: String = "lastfm"
     override suspend fun getMetadata(song: Song): Result<SongMetadata> {
         return try {
             val apiKey = metadataPreferencesRepository.lastFmApiKey.first()
-            val client = LastFMRestClient(context, "PixelPlayer")
-            val response = client.apiService.getTrackInfo(song.title, song.displayArtist, null).emit()
-            val track = (response.dataOrNull() as? LastFmTrackResponse)?.track
+            val response = lastFmApiService.getTrackInfo(song.title, song.displayArtist, apiKey)
+            val track = response?.track
             
             if (track != null) {
                 Result.success(SongMetadata(
