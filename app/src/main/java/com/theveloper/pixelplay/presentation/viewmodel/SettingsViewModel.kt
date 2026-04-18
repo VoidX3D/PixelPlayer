@@ -84,6 +84,7 @@ data class SettingsUiState(
     val showPlayerFileInfo: Boolean = true,
     // Developer Options
     val albumArtQuality: AlbumArtQuality = AlbumArtQuality.MEDIUM,
+    val metadataProvider: String = "musicmetadatasource",
     val tapBackgroundClosesPlayer: Boolean = false,
     val hapticsEnabled: Boolean = true,
     val immersiveLyricsEnabled: Boolean = false,
@@ -610,6 +611,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.albumArtQualityFlow.collect { quality ->
                 _uiState.update { it.copy(albumArtQuality = quality) }
+            }
+        }
+
+        viewModelScope.launch {
+            userPreferencesRepository.metadataProviderFlow.collect { provider ->
+                _uiState.update { it.copy(metadataProvider = provider) }
             }
         }
 
@@ -1145,6 +1152,12 @@ class SettingsViewModel @Inject constructor(
     fun setAlbumArtQuality(quality: AlbumArtQuality) {
         viewModelScope.launch {
             userPreferencesRepository.setAlbumArtQuality(quality)
+        }
+    }
+
+    fun setMetadataProvider(provider: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setMetadataProvider(provider)
         }
     }
 

@@ -211,6 +211,7 @@ fun SettingsCategoryScreen(
     var showRebuildDatabaseWarning by remember { mutableStateOf(false) }
     var showRegenerateDailyMixDialog by remember { mutableStateOf(false) }
     var showRegenerateStatsDialog by remember { mutableStateOf(false) }
+    var showMassMetadataCleanDialog by remember { mutableStateOf(false) }
     var showRegenerateAllPalettesDialog by remember { mutableStateOf(false) }
     var showExportDataDialog by remember { mutableStateOf(false) }
     var showImportFlow by remember { mutableStateOf(false) }
@@ -1070,6 +1071,28 @@ fun SettingsCategoryScreen(
                             }
                         }
                         SettingsCategory.DEVELOPER -> {
+                            SettingsSubsection(title = "Metadata Engine") {
+                                ThemeSelectorItem(
+                                    label = "Metadata Provider",
+                                    description = "Select the engine to use for metadata cleanup.",
+                                    options = mapOf(
+                                        "musicmetadatasource" to "Music Source Library",
+                                        "lastfm" to "Last.fm",
+                                        "musicbrainz" to "MusicBrainz"
+                                    ),
+                                    selectedKey = uiState.metadataProvider,
+                                    onSelectionChanged = { settingsViewModel.setMetadataProvider(it) },
+                                    leadingIcon = { Icon(Icons.Rounded.Search, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                ActionSettingsItem(
+                                    title = "Mass Metadata Clean",
+                                    subtitle = "Scan and update metadata for the entire song library.",
+                                    icon = { Icon(Icons.Outlined.Warning, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    primaryActionLabel = "Start Clean",
+                                    onPrimaryAction = { showMassMetadataCleanDialog = true }
+                                )
+                            }
+
                             SettingsSubsection(title = "Experiments") {
                                 SettingsItem(
                                     title = "Experimental",
@@ -1463,6 +1486,27 @@ fun SettingsCategoryScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showRegenerateStatsDialog = false }) { Text("Cancel") } }
+        )
+    }
+
+    if (showMassMetadataCleanDialog) {
+        AlertDialog(
+            icon = { Icon(Icons.Outlined.Warning, null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Mass Metadata Clean?") },
+            text = { Text("This will scan your entire song library and update metadata using the selected provider (${uiState.metadataProvider}). This may take a long time and overwrite existing metadata. Proceed?") },
+            onDismissRequest = { showMassMetadataCleanDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showMassMetadataCleanDialog = false
+                        playerViewModel.startMassMetadataClean(uiState.metadataProvider)
+                        Toast.makeText(context, "Mass metadata clean started", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text("Start Clean")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showMassMetadataCleanDialog = false }) { Text("Cancel") } }
         )
     }
 

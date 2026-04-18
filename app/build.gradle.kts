@@ -400,6 +400,9 @@ dependencies {
 
     // Encrypted credentials storage
     implementation(libs.androidx.security.crypto)
+
+    // Music Metadata Source (PhonographPlus)
+    implementation(libs.music.metadata.source)
 }
 
 tasks.withType<Test> {

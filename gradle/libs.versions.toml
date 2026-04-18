@@ -65,6 +65,7 @@ junit5 = "5.10.1"
 kuromoji = "0.9.0"
 pinyin4j = "2.5.1"
 securityCrypto = "1.1.0-alpha06"
+musicMetadataSource = "0.1.1"
 
 # DI
 dagger = "2.53.1"
@@ -213,6 +214,7 @@ androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomato
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+music-metadata-source = { module = "io.github.phonographplus:music-metadata-source", version.ref = "musicMetadataSource" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "junitJupiter" }

@@ -4,12 +4,13 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.DailyMixManager
-import com.theveloper.pixelplay.data.ai.AiMetadataGenerator
+import com.theveloper.pixelplay.data.ai.MetadataEditor
 import com.theveloper.pixelplay.data.ai.AiNotificationManager
 import com.theveloper.pixelplay.data.ai.AiPlaylistGenerator
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.ai.provider.AiProviderException
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -28,9 +29,10 @@ import javax.inject.Singleton
 class AiStateHolder @Inject constructor(
     @ApplicationContext private val context: Context,
     private val aiPlaylistGenerator: AiPlaylistGenerator,
-    private val aiMetadataGenerator: AiMetadataGenerator,
+    private val metadataEditor: MetadataEditor,
     private val dailyMixManager: DailyMixManager,
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val dailyMixStateHolder: DailyMixStateHolder,
     private val notificationManager: AiNotificationManager
 ) {
@@ -306,14 +308,15 @@ class AiStateHolder @Inject constructor(
         _aiError.value = null
         
         return try {
-            val result = aiMetadataGenerator.generate(song, fields)
+            val providerId = userPreferencesRepository.metadataProviderFlow.first()
+            val result = metadataEditor.getMetadata(song, providerId)
             if (result.isSuccess) {
                 _aiMetadataSuccess.value = true
                 notificationManager.showCompletion("Metadata Enhanced", "Applied tags and genre refinements.")
             } else {
                 result.exceptionOrNull()?.let {
                     _aiError.value = resolveAiErrorMessage(it)
-                    notificationManager.showCompletion("Metadata Error", "Check your AI configuration.")
+                    notificationManager.showCompletion("Metadata Error", "Check your metadata configuration.")
                 }
             }
             result

@@ -236,6 +236,7 @@ class PlayerViewModel @Inject constructor(
     private val libraryTabsStateHolder: LibraryTabsStateHolder,
     private val castTransferStateHolder: CastTransferStateHolder,
     private val metadataEditStateHolder: MetadataEditStateHolder,
+    private val metadataEditor: com.theveloper.pixelplay.data.ai.MetadataEditor,
     private val songRemovalStateHolder: SongRemovalStateHolder,
     private val externalMediaStateHolder: ExternalMediaStateHolder,
     val themeStateHolder: ThemeStateHolder,
@@ -4731,6 +4732,55 @@ class PlayerViewModel @Inject constructor(
     fun addCustomGenre(genre: String, iconResId: Int? = null) {
         viewModelScope.launch {
             userPreferencesRepository.addCustomGenre(genre, iconResId)
+        }
+    }
+
+    fun startMassMetadataClean(providerId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val allSongs = libraryStateHolder.allSongs.value
+            _toastEvents.emit("Starting Mass Metadata Clean with $providerId for ${allSongs.size} songs.")
+            
+            var successCount = 0
+            var failCount = 0
+
+            for (song in allSongs) {
+                try {
+                    val result = metadataEditor.getMetadata(song, providerId)
+                    val generatedMetadata = result.getOrNull()
+                    if (generatedMetadata != null) {
+                        val newTitle = generatedMetadata.title ?: song.title
+                        val newArtist = generatedMetadata.artist ?: song.artist
+                        val newAlbum = generatedMetadata.album ?: song.album
+                        val newGenre = generatedMetadata.genre ?: song.genre
+
+                        val editResult = metadataEditStateHolder.saveMetadata(
+                            song = song,
+                            newTitle = newTitle,
+                            newArtist = newArtist,
+                            newAlbum = newAlbum,
+                            newGenre = newGenre,
+                            newLyrics = song.lyrics ?: "",
+                            newTrackNumber = song.trackNumber,
+                            newDiscNumber = song.discNumber,
+                            coverArtUpdate = null
+                        )
+
+                        if (editResult.success && editResult.updatedSong != null) {
+                            successCount++
+                            libraryStateHolder.updateSong(editResult.updatedSong)
+                        } else {
+                            failCount++
+                        }
+                    } else {
+                        failCount++
+                    }
+                } catch (e: Exception) {
+                    failCount++
+                }
+            }
+
+            _toastEvents.emit("Mass Clean finished: $successCount updated, $failCount failed.")
+            // Trigger a sync if necessary, but updateSong should be enough for UI
         }
     }
 }

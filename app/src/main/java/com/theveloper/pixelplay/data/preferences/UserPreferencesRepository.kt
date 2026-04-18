@@ -200,6 +200,7 @@ constructor(
 
         // Developer Options
         val ALBUM_ART_QUALITY = stringPreferencesKey("album_art_quality")
+        val METADATA_PROVIDER = stringPreferencesKey("metadata_provider")
         val TAP_BACKGROUND_CLOSES_PLAYER = booleanPreferencesKey("tap_background_closes_player")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val IMMERSIVE_LYRICS_ENABLED = booleanPreferencesKey("immersive_lyrics_enabled")
@@ -612,6 +613,17 @@ constructor(
     suspend fun setImmersiveLyricsEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IMMERSIVE_LYRICS_ENABLED] = enabled
+        }
+    }
+
+    val metadataProviderFlow: Flow<String> =
+            dataStore.data.map { preferences ->
+                preferences[PreferencesKeys.METADATA_PROVIDER] ?: "musicmetadatasource"
+            }
+
+    suspend fun setMetadataProvider(provider: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.METADATA_PROVIDER] = provider
         }
     }
 
