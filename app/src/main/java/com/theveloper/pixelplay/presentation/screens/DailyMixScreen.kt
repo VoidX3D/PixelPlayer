@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,7 +58,6 @@ import android.os.Trace // Import Trace
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -560,7 +560,7 @@ private fun ExpressiveDailyMixHeader(
             ) {
                 Icon(
                     modifier = Modifier.size(20.dp),
-                    imageVector = androidx.compose.material.icons.Icons.Rounded.Restore,
+                    imageVector = Icons.Rounded.Restore,
                     contentDescription = "Menu"
                 )
             }

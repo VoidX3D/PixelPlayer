@@ -182,6 +182,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.generativeai)
     implementation(libs.androidx.navigation.runtime.ktx)
     testImplementation(libs.junit.jupiter.api)

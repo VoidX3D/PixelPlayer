@@ -1606,7 +1606,7 @@ fun LibraryScreen(
                         }
                     }
                 }
-                if (playerUiState.isGeneratingAiMetadata) {
+                if (playerUiState.isGeneratingMetadata) {
                     Surface( // Fondo semitransparente para el indicador
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)
@@ -1616,7 +1616,7 @@ fun LibraryScreen(
                                 LoadingIndicator(modifier = Modifier.size(64.dp))
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Generating metadata with AI...",
+                                    text = "Refining metadata...",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )

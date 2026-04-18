@@ -174,7 +174,7 @@ private data class AiUiSnapshot(
     val isGeneratingAiPlaylist: Boolean,
     val aiStatus: String?,
     val aiError: String?,
-    val isGeneratingAiMetadata: Boolean,
+    val isGeneratingMetadata: Boolean,
 )
 
 private data class PreparedPlaybackQueue(
@@ -1848,11 +1848,11 @@ class PlayerViewModel @Inject constructor(
                     isGeneratingAiPlaylist = generating,
                     aiStatus = status,
                     aiError = error,
-                    isGeneratingAiMetadata = generatingMetadata
+                    isGeneratingMetadata = generatingMetadata
                 )
             }.collect { snapshot ->
                 _playerUiState.update {
-                    it.copy(isGeneratingAiMetadata = snapshot.isGeneratingAiMetadata)
+                    it.copy(isGeneratingMetadata = snapshot.isGeneratingMetadata)
                 }
             }
         }
