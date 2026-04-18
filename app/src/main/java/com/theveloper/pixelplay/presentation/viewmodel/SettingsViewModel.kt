@@ -24,6 +24,7 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.AiUsageEntity
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
+import com.theveloper.pixelplay.data.preferences.MetadataPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle

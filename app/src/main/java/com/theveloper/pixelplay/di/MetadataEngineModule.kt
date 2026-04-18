@@ -13,6 +13,7 @@ import javax.inject.Singleton
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.theveloper.pixelplay.data.preferences.MetadataPreferencesRepository
 
 // Implementation using io.github.phonographplus:music-metadata-source
 @Singleton
