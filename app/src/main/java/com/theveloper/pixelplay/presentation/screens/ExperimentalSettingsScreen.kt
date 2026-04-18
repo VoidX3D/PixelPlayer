@@ -244,15 +244,38 @@ fun ExperimentalSettingsScreen(
                                 }
                                 
                                 AnimatedVisibility(
-                                    visible = isSelected && (id == "lastfm" || id == "musicbrainz"),
+                                    visible = isSelected && (id == "lastfm" || id == "musicmetadatasource"),
                                     enter = fadeIn() + expandVertically(),
                                     exit = fadeOut() + shrinkVertically()
                                 ) {
                                     androidx.compose.material3.OutlinedTextField(
-                                        value = if (id == "lastfm") uiState.lastFmApiKey else uiState.musicBrainzApiKey,
+                                        value = uiState.lastFmApiKey,
                                         onValueChange = { 
-                                            if (id == "lastfm") settingsViewModel.onLastFmApiKeyChange(it)
-                                            else settingsViewModel.onMusicBrainzApiKeyChange(it)
+                                            settingsViewModel.onLastFmApiKeyChange(it)
+                                        },
+                                        label = { Text("Last.fm API Key") },
+                                        placeholder = { Text("Paste your API key here...") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        leadingIcon = { Icon(Icons.Rounded.VpnKey, null) },
+                                        singleLine = true,
+                                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    )
+                                }
+
+                                AnimatedVisibility(
+                                    visible = isSelected && id == "musicbrainz",
+                                    enter = fadeIn() + expandVertically(),
+                                    exit = fadeOut() + shrinkVertically()
+                                ) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = uiState.musicBrainzApiKey,
+                                        onValueChange = { 
+                                            settingsViewModel.onMusicBrainzApiKeyChange(it)
                                         },
                                         label = { Text("${label} API Key") },
                                         placeholder = { Text("Paste your API key here...") },

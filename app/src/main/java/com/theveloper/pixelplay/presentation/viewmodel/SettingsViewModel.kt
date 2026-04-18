@@ -12,6 +12,7 @@ import com.theveloper.pixelplay.data.backup.model.BackupHistoryEntry
 import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.backup.model.RestoreResult
 import com.theveloper.pixelplay.data.backup.model.ValidationError
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -189,7 +190,6 @@ class SettingsViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
     private val metadataPreferencesRepository: MetadataPreferencesRepository,
-    private val workManager: WorkManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -677,6 +677,8 @@ class SettingsViewModel @Inject constructor(
 
         observeMassMetadataWork()
     }
+
+    private val workManager: WorkManager by lazy { WorkManager.getInstance(context) }
 
     private fun observeMassMetadataWork() {
         workManager.getWorkInfosForUniqueWorkFlow("mass_metadata_clean")
@@ -1226,7 +1228,7 @@ class SettingsViewModel @Inject constructor(
             
         workManager.enqueueUniqueWork(
             "mass_metadata_clean",
-            androidx.work.ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.REPLACE,
             request
         )
     }
