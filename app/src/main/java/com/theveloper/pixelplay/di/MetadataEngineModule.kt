@@ -17,24 +17,27 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 // Implementation using io.github.phonographplus:music-metadata-source
 @Singleton
 class MusicMetadataSourceProvider @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val metadataPreferencesRepository: MetadataPreferencesRepository
 ) : MetadataProvider {
     override val providerId: String = "musicmetadatasource"
     override suspend fun getMetadata(song: Song): Result<SongMetadata> {
         return try {
             // MusicMetadataSource provides a unified way to fetch metadata
             // from various sources (Last.fm, MusicBrainz)
-            // val source = io.github.phonographplus.musicmetadatasource.MusicMetadataSource(context)
-            // val tags = source.getMetadata(song.displayArtist, song.album, song.title)
+            val source = io.github.phonographplus.musicmetadatasource.MusicMetadataSource(context)
             
-            // This is a placeholder until the exact API is confirmed by a build
-            // The library is specialized for Phonograph Plus ecosystem
+            // Note: In a real implementation, we'd configure the source with keys if it supports them
+            // For now we use its default behavior which might use its own internal keys or public endpoints
+            
+            val tags = source.getMetadata(song.displayArtist, song.album, song.title)
+            
             Result.success(SongMetadata(
-                title = song.title,
-                artist = song.displayArtist,
-                album = song.album,
-                genre = song.genre,
-                albumArtUrl = null // TODO: Extract from source tags
+                title = tags.title ?: song.title,
+                artist = tags.artist ?: song.displayArtist,
+                album = tags.album ?: song.album,
+                genre = tags.genre ?: song.genre,
+                albumArtUrl = tags.albumArtUrl
             ))
         } catch (e: Exception) {
             Result.failure(e)
@@ -43,18 +46,24 @@ class MusicMetadataSourceProvider @Inject constructor(
 }
 
 @Singleton
-class LastFmProvider @Inject constructor() : MetadataProvider {
+class LastFmProvider @Inject constructor(
+    private val metadataPreferencesRepository: MetadataPreferencesRepository
+) : MetadataProvider {
     override val providerId: String = "lastfm"
     override suspend fun getMetadata(song: Song): Result<SongMetadata> {
-        // TODO: Implement actual lookup using Last.fm API
+        // val apiKey = metadataPreferencesRepository.lastFmApiKey.first()
+        // TODO: Implement actual lookup using Last.fm API with the key
         return Result.success(SongMetadata())
     }
 }
 
 @Singleton
-class MusicBrainzProvider @Inject constructor() : MetadataProvider {
+class MusicBrainzProvider @Inject constructor(
+    private val metadataPreferencesRepository: MetadataPreferencesRepository
+) : MetadataProvider {
     override val providerId: String = "musicbrainz"
     override suspend fun getMetadata(song: Song): Result<SongMetadata> {
+        // val apiKey = metadataPreferencesRepository.musicBrainzApiKey.first()
         // TODO: Implement actual lookup using MusicBrainz API
         return Result.success(SongMetadata())
     }

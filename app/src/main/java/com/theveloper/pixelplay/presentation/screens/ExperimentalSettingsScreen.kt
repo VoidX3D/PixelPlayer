@@ -46,6 +46,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -211,52 +212,114 @@ fun ExperimentalSettingsScreen(
                         
                         providers.forEach { (id, label) ->
                             val isSelected = uiState.metadataProvider == id
-                            Surface(
-                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { settingsViewModel.setMetadataProvider(id) }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Surface(
+                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { settingsViewModel.setMetadataProvider(id) }
                                 ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.primary
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                         )
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
+                                }
+                                
+                                AnimatedVisibility(
+                                    visible = isSelected && (id == "lastfm" || id == "musicbrainz"),
+                                    enter = fadeIn() + expandVertically(),
+                                    exit = fadeOut() + shrinkVertically()
+                                ) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = if (id == "lastfm") uiState.lastFmApiKey else uiState.musicBrainzApiKey,
+                                        onValueChange = { 
+                                            if (id == "lastfm") settingsViewModel.onLastFmApiKeyChange(it)
+                                            else settingsViewModel.onMusicBrainzApiKeyChange(it)
+                                        },
+                                        label = { Text("${label} API Key") },
+                                        placeholder = { Text("Paste your API key here...") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        leadingIcon = { Icon(Icons.Rounded.VpnKey, null) },
+                                        singleLine = true,
+                                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    )
                                 }
                             }
                         }
                         
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         
-                        Button(
-                            onClick = { /* TODO: Implement mass clean */ },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .padding(horizontal = 16.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        ) {
-                            Icon(Icons.Rounded.Restore, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Mass Metadata Clean")
+                        if (uiState.isMassCleaning) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Cleaning Library...",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "${uiState.massCleanProcessedCount}/${uiState.massCleanTotalCount}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = { uiState.massCleanProgress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(CircleShape),
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { settingsViewModel.startMassMetadataClean() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 16.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(Icons.Rounded.Restore, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Mass Metadata Clean")
+                            }
                         }
                         
                         Text(

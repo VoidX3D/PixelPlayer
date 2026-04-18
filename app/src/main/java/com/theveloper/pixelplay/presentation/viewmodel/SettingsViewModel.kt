@@ -12,6 +12,10 @@ import com.theveloper.pixelplay.data.backup.model.BackupHistoryEntry
 import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.backup.model.RestoreResult
 import com.theveloper.pixelplay.data.backup.model.ValidationError
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import com.theveloper.pixelplay.data.worker.MassMetadataWorker
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.data.preferences.LibraryNavigationMode
@@ -103,7 +107,13 @@ data class SettingsUiState(
     val minSongDuration: Int = 10000,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
-    val isSafeTokenLimitEnabled: Boolean = true
+    val isSafeTokenLimitEnabled: Boolean = true,
+    val lastFmApiKey: String = "",
+    val musicBrainzApiKey: String = "",
+    val isMassCleaning: Boolean = false,
+    val massCleanProgress: Float = 0f,
+    val massCleanProcessedCount: Int = 0,
+    val massCleanTotalCount: Int = 0
 )
 
 data class FailedSongInfo(
@@ -177,6 +187,8 @@ class SettingsViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
     private val backupManager: BackupManager,
+    private val metadataPreferencesRepository: MetadataPreferencesRepository,
+    private val workManager: WorkManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -649,6 +661,39 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(isSafeTokenLimitEnabled = enabled) }
             }
         }
+
+        viewModelScope.launch {
+            metadataPreferencesRepository.lastFmApiKey.collect { apiKey ->
+                _uiState.update { it.copy(lastFmApiKey = apiKey) }
+            }
+        }
+
+        viewModelScope.launch {
+            metadataPreferencesRepository.musicBrainzApiKey.collect { apiKey ->
+                _uiState.update { it.copy(musicBrainzApiKey = apiKey) }
+            }
+        }
+
+        observeMassMetadataWork()
+    }
+
+    private fun observeMassMetadataWork() {
+        workManager.getWorkInfosForUniqueWorkFlow("mass_metadata_clean")
+            .onEach { workInfos ->
+                val workInfo = workInfos.firstOrNull() ?: return@onEach
+                
+                _uiState.update { state ->
+                    state.copy(
+                        isMassCleaning = workInfo.state == WorkInfo.State.RUNNING,
+                        massCleanProcessedCount = workInfo.progress.getInt(MassMetadataWorker.PROGRESS_CURRENT, 0),
+                        massCleanTotalCount = workInfo.progress.getInt(MassMetadataWorker.PROGRESS_TOTAL, 0),
+                        massCleanProgress = if (workInfo.progress.getInt(MassMetadataWorker.PROGRESS_TOTAL, 0) > 0) {
+                            workInfo.progress.getInt(MassMetadataWorker.PROGRESS_CURRENT, 0).toFloat() / 
+                            workInfo.progress.getInt(MassMetadataWorker.PROGRESS_TOTAL, 0)
+                        } else 0f
+                    )
+                }
+            }.launchIn(viewModelScope)
     }
 
     fun setAppRebrandDialogShown(wasShown: Boolean) {
@@ -1159,6 +1204,30 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setMetadataProvider(provider)
         }
+    }
+
+    fun onLastFmApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            metadataPreferencesRepository.setLastFmApiKey(apiKey)
+        }
+    }
+
+    fun onMusicBrainzApiKeyChange(apiKey: String) {
+        viewModelScope.launch {
+            metadataPreferencesRepository.setMusicBrainzApiKey(apiKey)
+        }
+    }
+
+    fun startMassMetadataClean() {
+        val request = OneTimeWorkRequestBuilder<MassMetadataWorker>()
+            .addTag("mass_metadata_clean")
+            .build()
+            
+        workManager.enqueueUniqueWork(
+            "mass_metadata_clean",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            request
+        )
     }
 
     fun setUseSmoothCorners(enabled: Boolean) {
