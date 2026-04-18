@@ -52,6 +52,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.Locale
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 private const val TAG = "SongMetadataEditor"
 
@@ -85,7 +87,8 @@ class SongMetadataEditor(
     private val context: Context,
     private val musicDao: MusicDao,
     private val telegramDao: TelegramDao, // Added
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val okHttpClient: OkHttpClient
 ) {
 
     // File extensions that require VorbisJava (TagLib has issues with these via file descriptors)
@@ -298,6 +301,18 @@ class SongMetadataEditor(
             // before this method is called. No File.canWrite() check needed.
 
             val finalFilePath = filePath ?: ""
+            
+            // Handle remote cover art download if remoteUrl is provided
+            val finalCoverArtUpdate = if (coverArtUpdate?.remoteUrl != null && coverArtUpdate.bytes == null) {
+                val downloadedBytes = downloadRemoteCoverArt(coverArtUpdate.remoteUrl)
+                if (downloadedBytes != null) {
+                    coverArtUpdate.copy(bytes = downloadedBytes)
+                } else {
+                    coverArtUpdate
+                }
+            } else {
+                coverArtUpdate
+            }
             val extension = finalFilePath.substringAfterLast('.', "").lowercase(Locale.ROOT)
             val flacAnalysis = isProblematicFlacFile(finalFilePath)
             val isHighResFlac = flacAnalysis is FlacAnalysisResult.Problematic
@@ -327,7 +342,7 @@ class SongMetadataEditor(
                     newDiscNumber = newDiscNumber,
                     replayGainTrackUpdate = replayGainTrackUpdate,
                     replayGainAlbumUpdate = replayGainAlbumUpdate,
-                    coverArtUpdate = coverArtUpdate
+                    coverArtUpdate = finalCoverArtUpdate
                 )
             } else {
                 Timber.tag(TAG).d("METADATA_EDIT: Using TagLib for $extension file: $finalFilePath")
@@ -342,7 +357,7 @@ class SongMetadataEditor(
                     newDiscNumber = newDiscNumber,
                     replayGainTrackUpdate = replayGainTrackUpdate,
                     replayGainAlbumUpdate = replayGainAlbumUpdate,
-                    coverArtUpdate = coverArtUpdate
+                    coverArtUpdate = finalCoverArtUpdate
                 )
 
                 if (!tagLibSuccess) {
@@ -359,7 +374,7 @@ class SongMetadataEditor(
                         newDiscNumber = newDiscNumber,
                         replayGainTrackUpdate = replayGainTrackUpdate,
                         replayGainAlbumUpdate = replayGainAlbumUpdate,
-                        coverArtUpdate = coverArtUpdate
+                        coverArtUpdate = finalCoverArtUpdate
                     )
                 } else {
                     true
@@ -862,6 +877,19 @@ class SongMetadataEditor(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
+    private suspend fun downloadRemoteCoverArt(url: String): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder().url(url).build()
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                response.body?.bytes()
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to download remote cover art from $url")
+            null
+        }
+    }
+
     private fun updateMediaStoreMetadata(
         songId: Long,
         title: String,
@@ -1082,7 +1110,8 @@ data class SongMetadataEditResult(
 data class CoverArtUpdate(
     val bytes: ByteArray? = null,
     val mimeType: String = "image/jpeg",
-    val isDeletion: Boolean = false
+    val isDeletion: Boolean = false,
+    val remoteUrl: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

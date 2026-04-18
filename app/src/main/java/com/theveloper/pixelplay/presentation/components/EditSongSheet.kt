@@ -255,6 +255,13 @@ private fun EditSongContent(
                 artist = metadata.artist?.takeIf { it.isNotBlank() } ?: artist
                 album = metadata.album?.takeIf { it.isNotBlank() } ?: album
                 genre = metadata.genre?.takeIf { it.isNotBlank() } ?: genre
+                
+                metadata.albumArtUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    editedCoverArt = CoverArtUpdate(remoteUrl = url)
+                    coverArtPreview = null // Clear preview to show that it will be updated from URL
+                    isCoverArtDeleted = false
+                }
+                
                 showAiSheet = false
                 aiMetadata = null
             },

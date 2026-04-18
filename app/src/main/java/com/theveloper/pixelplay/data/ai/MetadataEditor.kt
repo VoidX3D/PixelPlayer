@@ -10,7 +10,8 @@ data class SongMetadata(
     val title: String? = null,
     val artist: String? = null,
     val album: String? = null,
-    val genre: String? = null
+    val genre: String? = null,
+    val albumArtUrl: String? = null
 )
 
 class MetadataEditor @Inject constructor(

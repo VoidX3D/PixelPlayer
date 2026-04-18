@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.ui.theme.ExpTitleTypography
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import com.theveloper.pixelplay.presentation.components.SmartImage
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -53,6 +55,7 @@ fun MetadataRefinementSheet(
     var artist by remember(initialMetadata) { mutableStateOf(initialMetadata?.artist ?: "") }
     var album by remember(initialMetadata) { mutableStateOf(initialMetadata?.album ?: "") }
     var genre by remember(initialMetadata) { mutableStateOf(initialMetadata?.genre ?: "") }
+    var albumArtUrl by remember(initialMetadata) { mutableStateOf(initialMetadata?.albumArtUrl ?: "") }
 
     val smoothCornerShape = remember {
         AbsoluteSmoothCornerShape(
@@ -180,6 +183,28 @@ fun MetadataRefinementSheet(
                 MetadataField("Artist", artist) { artist = it }
                 MetadataField("Album", album) { album = it }
                 MetadataField("Genre", genre) { genre = it }
+                
+                if (albumArtUrl.isNotBlank()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Cover Art Found",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colors.primary
+                        )
+                        SmartImage(
+                            model = albumArtUrl,
+                            contentDescription = "Suggested Cover Art",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(AbsoluteSmoothCornerShape(16.dp, 60)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
             }
 
             // Error Display & Retry
@@ -224,7 +249,7 @@ fun MetadataRefinementSheet(
                 }
                 Button(
                     onClick = {
-                        onApply(SongMetadata(title, artist, album, genre))
+                        onApply(SongMetadata(title, artist, album, genre, albumArtUrl))
                     },
                     modifier = Modifier.weight(1.5f).height(56.dp),
                     shape = smoothCornerShape,

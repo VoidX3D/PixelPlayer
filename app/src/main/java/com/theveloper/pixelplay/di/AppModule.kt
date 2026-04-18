@@ -389,9 +389,10 @@ object AppModule {
         @ApplicationContext context: Context,
         musicDao: MusicDao,
         telegramDao: com.theveloper.pixelplay.data.database.TelegramDao,
-        userPreferencesRepository: UserPreferencesRepository
+        userPreferencesRepository: UserPreferencesRepository,
+        okHttpClient: OkHttpClient
     ): SongMetadataEditor {
-        return SongMetadataEditor(context, musicDao, telegramDao, userPreferencesRepository)
+        return SongMetadataEditor(context, musicDao, telegramDao, userPreferencesRepository, okHttpClient)
     }
 
     /**
