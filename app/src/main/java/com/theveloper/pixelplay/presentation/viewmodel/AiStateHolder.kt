@@ -304,7 +304,7 @@ class AiStateHolder @Inject constructor(
         _lastMetadataFields = fields
         
         _isGeneratingMetadata.value = true
-        _aiMetadataSuccess.value = false
+        _metadataSuccess.value = false
         _aiError.value = null
         
         return try {

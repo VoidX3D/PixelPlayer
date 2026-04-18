@@ -4512,8 +4512,8 @@ class PlayerViewModel @Inject constructor(
         }.getOrDefault(false)
     }
 
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        return aiStateHolder.generateAiMetadata(song, fields)
+    suspend fun generateMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
+        return aiStateHolder.generateMetadata(song, fields)
     }
 
     private fun updateSongInStates(
@@ -4758,7 +4758,7 @@ class PlayerViewModel @Inject constructor(
                             newTitle = newTitle,
                             newArtist = newArtist,
                             newAlbum = newAlbum,
-                            newGenre = newGenre,
+                            newGenre = newGenre ?: "",
                             newLyrics = song.lyrics ?: "",
                             newTrackNumber = song.trackNumber,
                             newDiscNumber = song.discNumber,

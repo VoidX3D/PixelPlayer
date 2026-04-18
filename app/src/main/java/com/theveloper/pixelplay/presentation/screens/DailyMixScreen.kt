@@ -118,8 +118,8 @@ fun DailyMixScreen(
     val aiStatus by playerViewModel.aiStatus.collectAsStateWithLifecycle()
     val aiError by playerViewModel.aiError.collectAsStateWithLifecycle()
     val aiSuccess by playerViewModel.aiSuccess.collectAsStateWithLifecycle()
-    val isGeneratingAiMetadata by playerViewModel.isGeneratingAiMetadata.collectAsStateWithLifecycle()
-    val aiMetadataSuccess by playerViewModel.aiMetadataSuccess.collectAsStateWithLifecycle()
+    val isGeneratingMetadata by playerViewModel.isGeneratingMetadata.collectAsStateWithLifecycle()
+    val metadataSuccess by playerViewModel.metadataSuccess.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
 
     var showSongInfoSheet by remember { mutableStateOf(false) }
@@ -223,12 +223,12 @@ fun DailyMixScreen(
                     coverArtUpdate
                 )
             },
-            generateAiMetadata = { fields ->
-                playerViewModel.generateAiMetadata(song, fields)
+            generateMetadata = { fields ->
+                playerViewModel.generateMetadata(song, fields)
             },
             removeFromListTrigger = removeFromListTrigger,
-            isGeneratingMetadata = isGeneratingAiMetadata,
-            aiMetadataSuccess = aiMetadataSuccess,
+            isGeneratingMetadata = isGeneratingMetadata,
+            metadataSuccess = metadataSuccess,
             aiError = aiError,
             onRetryMetadata = { playerViewModel.retryLastMetadataGeneration() }
         )
@@ -560,8 +560,8 @@ private fun ExpressiveDailyMixHeader(
             ) {
                 Icon(
                     modifier = Modifier.size(20.dp),
-                    painter = painterResource(R.drawable.gemini_ai),
-                    contentDescription = "Play"
+                    imageVector = androidx.compose.material.icons.Icons.Rounded.Restore,
+                    contentDescription = "Menu"
                 )
             }
         }

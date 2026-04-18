@@ -1812,8 +1812,8 @@ fun LibraryScreen(
                         coverArtUpdate
                     )
                 },
-                generateAiMetadata = { fields ->
-                    playerViewModel.generateAiMetadata(currentSong, fields)
+                generateMetadata = { fields ->
+                    playerViewModel.generateMetadata(currentSong, fields)
                 },
                 removeFromListTrigger = {},
                 songInfoViewModel = songInfoBottomSheetViewModel

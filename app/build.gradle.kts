@@ -150,12 +150,13 @@ composeCompiler {
     // Applies Compose's strong skipping optimization (skip composables whose parameters
     // haven't changed) in Debug builds as well, making dev-mode performance more
     // representative of Release and reducing unnecessary recompositions during development.
-    enableStrongSkippingMode = true
+    //enableStrongSkippingMode = true
 
     // Reduces generated code for non-skippable composables, improving runtime
     // performance by eliminating unnecessary group bookkeeping.
     featureFlags = setOf(
-        org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.OptimizeNonSkippingGroups
+        org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.OptimizeNonSkippingGroups,
+        org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.StrongSkipping
     )
 }
 

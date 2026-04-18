@@ -876,8 +876,8 @@ fun PlaylistDetailScreen(
                         coverArtUpdate
                     )
                 },
-                generateAiMetadata = { fields ->
-                    playerViewModel.generateAiMetadata(currentSong, fields)
+                generateMetadata = { fields ->
+                    playerViewModel.generateMetadata(currentSong, fields)
                 },
                 removeFromListTrigger = {
                     playlistViewModel.removeSongFromPlaylist(playlistId, currentSong.id)
