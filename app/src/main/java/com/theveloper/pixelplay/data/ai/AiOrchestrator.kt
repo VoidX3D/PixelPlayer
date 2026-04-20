@@ -8,11 +8,12 @@ import com.theveloper.pixelplay.data.database.AiCacheEntity
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.AiUsageEntity
+import com.theveloper.pixelplay.di.AppScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeout
+import timber.log.Timber
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +24,8 @@ class AiOrchestrator @Inject constructor(
     private val clientFactory: AiClientFactory,
     private val cacheDao: AiCacheDao,
     private val usageDao: AiUsageDao,
-    private val promptEngine: AiSystemPromptEngine
+    private val promptEngine: AiSystemPromptEngine,
+    @AppScope private val appScope: CoroutineScope
 ) {
     // Cooldown timer: Provider -> Expiry Timestamp
     private val providerCooldowns = mutableMapOf<AiProvider, Long>()
@@ -148,7 +150,7 @@ class AiOrchestrator @Inject constructor(
                 // AI Optimization: Moderate temperature for tags to allow creative yet relevant descriptors
                 AiSystemPromptType.TAGGING -> 0.4f
                 // AI Optimization: Balanced temperature for playlists to ensure variety without losing cohesion
-                AiSystemPromptType.PLAYLIST -> 0.6f
+                AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f
                 // AI Optimization: High temperature for persona-based responses to increase flair and engagement
                 AiSystemPromptType.PERSONA -> 0.85f
                 AiSystemPromptType.GENERAL -> 0.7f
@@ -219,18 +221,22 @@ class AiOrchestrator @Inject constructor(
                 val estimatedOutputTokens = response.length / 4
                 val estimatedThoughtTokens = if (isThinkingModel) (estimatedOutputTokens * 1.5).toInt() else 0
 
-                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                    usageDao.insertUsage(
-                        AiUsageEntity(
-                            timestamp = now,
-                            provider = provider.displayName,
-                            model = provider.name,
-                            promptType = type.name,
-                            promptTokens = estimatedPromptTokens,
-                            outputTokens = estimatedOutputTokens,
-                            thoughtTokens = estimatedThoughtTokens
+                appScope.launch {
+                    runCatching {
+                        usageDao.insertUsage(
+                            AiUsageEntity(
+                                timestamp = now,
+                                provider = provider.displayName,
+                                model = provider.name,
+                                promptType = type.name,
+                                promptTokens = estimatedPromptTokens,
+                                outputTokens = estimatedOutputTokens,
+                                thoughtTokens = estimatedThoughtTokens
+                            )
                         )
-                    )
+                    }.onFailure { error ->
+                        Timber.tag("AiOrchestrator").e(error, "Failed to persist AI usage")
+                    }
                 }
 
                 cacheDao.insert(AiCacheEntity(promptHash = hash, responseJson = response, timestamp = System.currentTimeMillis()))
@@ -238,6 +244,7 @@ class AiOrchestrator @Inject constructor(
             } catch (e: Exception) {
                 // AI Optimization: Robust failover logic—if one provider fails, we log and try the next in the chain
                 val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
+                Timber.tag("AiOrchestrator").w(e, "Provider ${provider.name} failed: ${failure.message}")
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
                 // Trigger cooldown only on provider-level outages and account problems.
                 if (failure.shouldCooldown()) {
@@ -261,6 +268,7 @@ class AiOrchestrator @Inject constructor(
                 "AI generation failed after trying ${failedProviders.size} providers:\n${failedProviders.joinToString("\n• ", prefix = "• ")}"
         }
         
+        Timber.tag("AiOrchestrator").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
         throw Exception(errorMessage)
     }
 }
