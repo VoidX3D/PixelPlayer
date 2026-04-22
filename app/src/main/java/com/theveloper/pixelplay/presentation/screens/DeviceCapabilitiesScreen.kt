@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.CodecInfo
@@ -164,11 +166,11 @@ fun DeviceCapabilitiesScreen(
                  // Audio Capabilities
                  item {
                      state.audioCapabilities?.let { audio ->
-                         CapabilitySection(title = "Audio Output", icon = Icons.Rounded.Speaker) {
-                             InfoRow("Sample Rate", "${audio.outputSampleRate} Hz")
-                             InfoRow("Frames Per Buffer", "${audio.outputFramesPerBuffer}")
-                             InfoRow("Low Latency Support", if (audio.isLowLatencySupported) "Yes" else "No")
-                             InfoRow("Pro Audio Support", if (audio.isProAudioSupported) "Yes" else "No")
+                         CapabilitySection(title = stringResource(R.string.presentation_batch_g_device_section_audio_output), icon = Icons.Rounded.Speaker) {
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_sample_rate), stringResource(R.string.presentation_batch_g_device_value_hz, audio.outputSampleRate))
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_frames_per_buffer), "${audio.outputFramesPerBuffer}")
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_low_latency), if (audio.isLowLatencySupported) stringResource(R.string.presentation_batch_g_yes) else stringResource(R.string.presentation_batch_g_no))
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_pro_audio), if (audio.isProAudioSupported) stringResource(R.string.presentation_batch_g_yes) else stringResource(R.string.presentation_batch_g_no))
                          }
                      }
                  }
@@ -176,10 +178,10 @@ fun DeviceCapabilitiesScreen(
                  // ExoPlayer Info
                  item {
                      state.exoPlayerInfo?.let { exo ->
-                         CapabilitySection(title = "ExoPlayer Engine", icon = Icons.Rounded.Memory) {
-                             InfoRow("Version", exo.version)
-                             InfoRow("Active Renderers", exo.renderers)
-                             InfoRow("Decoder Counters", exo.decoderCounters)
+                         CapabilitySection(title = stringResource(R.string.presentation_batch_g_device_section_exoplayer), icon = Icons.Rounded.Memory) {
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_version), exo.version)
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_active_renderers), exo.renderers)
+                             InfoRow(stringResource(R.string.presentation_batch_g_device_label_decoder_counters), exo.decoderCounters)
                          }
                      }
                  }
@@ -187,7 +189,7 @@ fun DeviceCapabilitiesScreen(
                  // Codecs Header
                  item {
                      Text(
-                         text = "Supported Audio Codecs",
+                         text = stringResource(R.string.presentation_batch_g_device_supported_codecs_title),
                          style = MaterialTheme.typography.titleLarge,
                          color = MaterialTheme.colorScheme.onSurface,
                          fontWeight = FontWeight.Bold,
@@ -206,7 +208,7 @@ fun DeviceCapabilitiesScreen(
         
         // Top Bar
         CollapsibleCommonTopBar(
-            title = "Device Capabilities",
+            title = stringResource(R.string.settings_category_device_capabilities_title),
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
             onBackClick = { navController.popBackStack() },
@@ -309,8 +311,39 @@ fun InfoRow(label: String, value: String) {
 @Composable
 fun DeviceInfoExpressiveSection(deviceInfo: Map<String, String>) {
     val orderedEntries = remember(deviceInfo) { orderedDeviceInfoEntries(deviceInfo) }
-    val heroEntries = orderedEntries.take(2)
-    val detailEntries = orderedEntries.drop(2)
+    val lManufacturer = stringResource(R.string.presentation_batch_g_device_key_manufacturer)
+    val lModel = stringResource(R.string.presentation_batch_g_device_key_model)
+    val lBrand = stringResource(R.string.presentation_batch_g_device_key_brand)
+    val lDevice = stringResource(R.string.presentation_batch_g_device_key_device)
+    val lAndroid = stringResource(R.string.presentation_batch_g_device_key_android_version)
+    val lSdk = stringResource(R.string.presentation_batch_g_device_key_sdk_version)
+    val lHardware = stringResource(R.string.presentation_batch_g_device_key_hardware)
+    val localized = remember(
+        orderedEntries,
+        lManufacturer,
+        lModel,
+        lBrand,
+        lDevice,
+        lAndroid,
+        lSdk,
+        lHardware
+    ) {
+        orderedEntries.map { (k, v) ->
+            val label = when (k) {
+                "Manufacturer" -> lManufacturer
+                "Model" -> lModel
+                "Brand" -> lBrand
+                "Device" -> lDevice
+                "Android Version" -> lAndroid
+                "SDK Version" -> lSdk
+                "Hardware" -> lHardware
+                else -> k
+            }
+            label to v
+        }
+    }
+    val heroEntries = localized.take(2)
+    val detailEntries = localized.drop(2)
     val sectionShape = AbsoluteSmoothCornerShape(30.dp, 60)
 
     Card(
@@ -352,7 +385,7 @@ fun DeviceInfoExpressiveSection(deviceInfo: Map<String, String>) {
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Device Info",
+                        text = stringResource(R.string.presentation_batch_g_device_info_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -536,7 +569,7 @@ fun CodecCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = "HW Accelerated",
+                                contentDescription = stringResource(R.string.presentation_batch_g_device_cd_hw_accelerated),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(4.dp).size(16.dp)
                             )

@@ -88,7 +88,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private data class PlayerUiSheetSliceV2(
-    val currentPlaybackQueue: kotlinx.collections.immutable.ImmutableList<Song> = persistentListOf(),
     val currentQueueSourceName: String = "",
     val preparingSongId: String? = null
 )
@@ -188,14 +187,12 @@ fun UnifiedPlayerSheetV2(
         playerViewModel.playerUiState
             .map { state ->
                 PlayerUiSheetSliceV2(
-                    currentPlaybackQueue = state.currentPlaybackQueue,
                     currentQueueSourceName = state.currentQueueSourceName,
                     preparingSongId = state.preparingSongId
                 )
             }
             .distinctUntilChanged()
     }.collectAsStateWithLifecycle(initialValue = PlayerUiSheetSliceV2())
-    val currentPlaybackQueue = playerUiSheetSlice.currentPlaybackQueue
     val currentQueueSourceName = playerUiSheetSlice.currentQueueSourceName
     val preparingSongId = playerUiSheetSlice.preparingSongId
 
@@ -651,7 +648,6 @@ fun UnifiedPlayerSheetV2(
                             albumColorScheme = albumColorScheme,
                             bottomSheetOpenFraction = bottomSheetOpenFraction,
                             fullPlayerVisualState = fullPlayerVisualState,
-                            currentPlaybackQueue = currentPlaybackQueue,
                             currentQueueSourceName = currentQueueSourceName,
                             currentSheetContentState = currentSheetContentState,
                             carouselStyle = carouselStyle,
@@ -675,7 +671,6 @@ fun UnifiedPlayerSheetV2(
                     currentSong = infrequentPlayerState.currentSong,
                     containerHeight = containerHeight,
                     albumColorScheme = albumColorScheme,
-                    currentPlaybackQueue = currentPlaybackQueue,
                     currentQueueSourceName = currentQueueSourceName,
                     infrequentPlayerState = infrequentPlayerState,
                     carouselStyle = carouselStyle,
@@ -706,7 +701,6 @@ fun UnifiedPlayerSheetV2(
                 queueSheetHeightPx = queueSheetHeightPx,
                 onQueueSheetHeightPxChange = onQueueSheetHeightPxChange,
                 configurationResetKey = configuration,
-                currentPlaybackQueue = currentPlaybackQueue,
                 currentQueueSourceName = currentQueueSourceName,
                 infrequentPlayerState = infrequentPlayerState,
                 playerViewModel = playerViewModel,

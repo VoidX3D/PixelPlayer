@@ -84,6 +84,8 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
  * @param onDeleteAll Delete all from device (with confirmation)
  */
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -182,7 +184,7 @@ fun MultiSelectionBottomSheet(
                     // Song count and label
                     Column {
                         Text(
-                            text = "${selectedSongs.size} SONGS",
+                            text = stringResource(R.string.multi_selection_songs_count_upper, selectedSongs.size),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             fontFamily = GoogleSansRounded,
@@ -194,7 +196,7 @@ fun MultiSelectionBottomSheet(
                                 //.fillMaxWidth()
                         )
                         Text(
-                            text = "selected",
+                            text = stringResource(R.string.multi_selection_selected),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = GoogleSansRounded
@@ -230,13 +232,13 @@ fun MultiSelectionBottomSheet(
                                 elevation = FloatingActionButtonDefaults.elevation(0.dp),
                                 shape = buttonShape,
                                 icon = {
-                                    Icon(Icons.Rounded.PlayArrow, contentDescription = "Play all")
+                                    Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.cd_play_all))
                                 },
                                 text = {
                                     Text(
                                         modifier = Modifier.padding(end = 0.dp),
                                         style = MaterialTheme.typography.titleMediumEmphasized,
-                                        text = "Play All"
+                                        text = stringResource(R.string.action_play_all)
                                     )
                                 }
                             )
@@ -263,7 +265,9 @@ fun MultiSelectionBottomSheet(
                                         Icons.Rounded.HeartBroken 
                                     else
                                         Icons.Rounded.FavoriteBorder,
-                                    contentDescription = if (allAreLiked) "Unlike all" else "Like all"
+                                    contentDescription = stringResource(
+                                        if (allAreLiked) R.string.cd_unlike_all else R.string.cd_like_all
+                                    )
                                 )
                             }
                             
@@ -284,7 +288,7 @@ fun MultiSelectionBottomSheet(
                                 Icon(
                                     modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
                                     imageVector = Icons.Rounded.Share,
-                                    contentDescription = "Share all as ZIP"
+                                    contentDescription = stringResource(R.string.cd_share_all_as_zip)
                                 )
                             }
                         }
@@ -316,10 +320,10 @@ fun MultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Rounded.QueueMusic,
-                                    contentDescription = "Add all to Queue"
+                                    contentDescription = stringResource(R.string.cd_add_all_to_queue)
                                 )
                                 Spacer(Modifier.width(14.dp))
-                                Text("Add to Queue")
+                                Text(stringResource(R.string.action_add_to_queue))
                             }
                             
                             FilledTonalButton(
@@ -339,10 +343,10 @@ fun MultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.QueueMusic,
-                                    contentDescription = "Play Next"
+                                    contentDescription = stringResource(R.string.cd_play_next_in_queue)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Next")
+                                Text(stringResource(R.string.action_queue_next))
                             }
                         }
                     }
@@ -372,10 +376,10 @@ fun MultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Rounded.PlaylistAdd,
-                                    contentDescription = "Add to Playlist"
+                                    contentDescription = stringResource(R.string.cd_add_to_playlist)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Playlist")
+                                Text(stringResource(R.string.shortcut_playlist_short))
                             }
                             
                             FilledTonalButton(
@@ -398,10 +402,10 @@ fun MultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.Delete,
-                                    contentDescription = "Delete all"
+                                    contentDescription = stringResource(R.string.cd_delete_all_songs)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Delete All")
+                                Text(stringResource(R.string.action_delete_all))
                             }
                         }
                     }

@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import androidx.compose.ui.unit.sp
 
 @Composable
@@ -45,7 +47,7 @@ fun LyricsSyncControls(
     ) {
         // -0.5s
         SyncButton(
-            text = "−.5",
+            text = stringResource(R.string.presentation_batch_g_lyrics_offset_minus_half),
             onClick = { onOffsetChange(offsetMillis - 500) },
             weight = 1f,
             containerColor = onAccentColor,
@@ -53,7 +55,7 @@ fun LyricsSyncControls(
         )
         // -0.1s
         SyncButton(
-            text = "−.1",
+            text = stringResource(R.string.presentation_batch_g_lyrics_offset_minus_point_one),
             onClick = { onOffsetChange(offsetMillis - 100) },
             weight = 1f,
             containerColor = onAccentColor,
@@ -61,7 +63,11 @@ fun LyricsSyncControls(
         )
         // Center Display / Reset
         SyncButton(
-            text = if (offsetMillis == 0) "0s" else String.format("%+.1fs", offsetMillis / 1000f),
+            text = if (offsetMillis == 0) {
+                stringResource(R.string.presentation_batch_g_lyrics_offset_zero)
+            } else {
+                stringResource(R.string.presentation_batch_g_lyrics_offset_seconds_fmt, offsetMillis / 1000f)
+            },
             onClick = { onOffsetChange(0) },
             weight = 1.3f, // Slightly wider
             containerColor = if (offsetMillis != 0) accentColor.copy(alpha = 0.3f) else backgroundColor.copy(alpha = 0.7f),
@@ -71,7 +77,7 @@ fun LyricsSyncControls(
         )
         // +0.1s
         SyncButton(
-            text = "+.1",
+            text = stringResource(R.string.presentation_batch_g_lyrics_offset_plus_point_one),
             onClick = { onOffsetChange(offsetMillis + 100) },
             weight = 1f,
             containerColor = onAccentColor,
@@ -79,7 +85,7 @@ fun LyricsSyncControls(
         )
         // +0.5s
         SyncButton(
-            text = "+.5",
+            text = stringResource(R.string.presentation_batch_g_lyrics_offset_plus_half),
             onClick = { onOffsetChange(offsetMillis + 500) },
             weight = 1f,
             containerColor = onAccentColor,

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
@@ -85,7 +86,7 @@ fun BrowseScreen(
 
             item {
                 Text(
-                    text = "Library",
+                    text = stringResource(R.string.wear_library_screen_title),
                     style = MaterialTheme.typography.title2,
                     fontFamily = libraryTitleFont,
                     fontWeight = FontWeight(760),

@@ -50,6 +50,9 @@ import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 
 val predefinedTimes = listOf(0, 5, 10, 15, 20, 30, 45, 60) // 0 represents 'Off'
 
@@ -57,7 +60,8 @@ val predefinedTimes = listOf(0, 5, 10, 15, 20, 30, 45, 60) // 0 represents 'Off'
 @Composable
 fun TimerOptionsBottomSheet(
     onPlayCounter: (count: Int) -> Unit,
-    activeTimerValueDisplay: String?, // e.g., "15 minutes", "End of Track"
+    activeTimerValueDisplay: String?,
+    activeTimerDurationMinutes: Int?,
     playCount: Float,
     isEndOfTrackTimerActive: Boolean,
     onDismiss: () -> Unit,
@@ -89,17 +93,15 @@ fun TimerOptionsBottomSheet(
         label = "boxCornerRadiusAnimation"
     )
 
-    LaunchedEffect(activeTimerValueDisplay, playCount) {
+    LaunchedEffect(activeTimerDurationMinutes, activeTimerValueDisplay, playCount) {
         timerSliderPosition = when {
-            activeTimerValueDisplay == null -> 0f // Off
-            activeTimerValueDisplay == "End of Track" -> 0f // Slider shows 'Off' as EOT is a separate control
-            activeTimerValueDisplay.startsWith("Custom:") -> 0f // Slider shows 'Off' if custom time is active via a different mechanism
-            else -> {
-                val minutesString = activeTimerValueDisplay.removeSuffix(" minutes")
-                val minutesInt = minutesString.toIntOrNull()
-                val index = minutesInt?.let { predefinedTimes.indexOf(it) } ?: -1
+            activeTimerDurationMinutes != null -> {
+                val index = predefinedTimes.indexOf(activeTimerDurationMinutes)
                 if (index != -1) index.toFloat() else 0f
             }
+            activeTimerValueDisplay == null -> 0f
+            activeTimerValueDisplay.startsWith("Custom:") -> 0f
+            else -> 0f
         }
         counterSliderPosition = playCount
         // Restore counter mode if play count was previously set
@@ -127,7 +129,7 @@ fun TimerOptionsBottomSheet(
             ) {
                 Text(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    text = "Sleep Timer",
+                    text = stringResource(R.string.sleep_timer_ui_title),
                     fontFamily = GoogleSansRounded,
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
@@ -142,7 +144,11 @@ fun TimerOptionsBottomSheet(
                 val currentIndex =
                     timerSliderPosition.roundToInt().coerceIn(0, predefinedTimes.size - 1)
                 val currentMinutes = predefinedTimes[currentIndex]
-                val timerDisplayText = if (currentMinutes == 0) "Timer" else "$currentMinutes minutes"
+                val timerDisplayText = if (currentMinutes == 0) {
+                    stringResource(R.string.sleep_timer_ui_slider_label_timer)
+                } else {
+                    stringResource(R.string.sleep_timer_n_minutes_format, currentMinutes)
+                }
                 Text(
                     text = timerDisplayText,
                     style = MaterialTheme.typography.labelMedium,
@@ -177,7 +183,7 @@ fun TimerOptionsBottomSheet(
                                 .coerceIn(0, predefinedTimes.size - 1)
                             val selectedMinutesOnFinish = predefinedTimes[selectedIndexOnFinish]
                             if (selectedMinutesOnFinish == 0) {
-                                if (activeTimerValueDisplay != null && activeTimerValueDisplay != "End of Track") { // Only cancel if a duration timer was set
+                                if (activeTimerDurationMinutes != null) {
                                     onCancelTimer()
                                 }
                             } else {
@@ -219,10 +225,16 @@ fun TimerOptionsBottomSheet(
 
 
                 val currentPlayCount = counterSliderPosition.toInt()
-                val counterDisplayText = "Play Count: " + when (currentPlayCount) {
-                    1 -> "1 time"
-                    else -> "$currentPlayCount times"
+                val timesPart = if (currentPlayCount == 1) {
+                    stringResource(R.string.sleep_timer_ui_play_count_one_time)
+                } else {
+                    pluralStringResource(
+                        R.plurals.sleep_timer_play_count_times,
+                        currentPlayCount,
+                        currentPlayCount
+                    )
                 }
+                val counterDisplayText = stringResource(R.string.sleep_timer_ui_play_count_label, timesPart)
                 Text(
                     text = counterDisplayText,
                     style = MaterialTheme.typography.labelMedium,
@@ -300,7 +312,7 @@ fun TimerOptionsBottomSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "End of current track",
+                        text = stringResource(R.string.sleep_timer_ui_end_of_current_track),
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
@@ -322,7 +334,7 @@ fun TimerOptionsBottomSheet(
                             {
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
-                                    contentDescription = "Switch is on",
+                                    contentDescription = stringResource(R.string.cd_switch_on),
                                     tint = MaterialTheme.colorScheme.tertiaryContainer,
                                     modifier = Modifier.size(SwitchDefaults.IconSize),
                                 )
@@ -357,7 +369,7 @@ fun TimerOptionsBottomSheet(
                         .weight(1f) // Give buttons equal space if desired
                         .height(buttonHeight)
                 ) {
-                    Text("Custom Time")
+                    Text(stringResource(R.string.sleep_timer_ui_custom_time))
                 }
                 Button(
                     onClick = {
@@ -380,7 +392,7 @@ fun TimerOptionsBottomSheet(
                         .weight(1f)
                         .height(buttonHeight)
                 ) {
-                    Text("Cancel Timer")
+                    Text(stringResource(R.string.sleep_timer_ui_cancel_timer))
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -403,7 +415,7 @@ fun TimerOptionsBottomSheet(
                 // No need to call onDismiss() for the bottom sheet here,
                 // as that's handled by the confirm button or if the user specifically dismisses the bottom sheet.
             },
-            title = { Text("Set Custom Duration") },
+            title = { Text(stringResource(R.string.sleep_timer_ui_set_custom_duration)) },
             text = {
                 TimePicker(state = timePickerState)
             },
@@ -421,7 +433,7 @@ fun TimerOptionsBottomSheet(
                         onDismiss() // Dismiss the bottom sheet after setting time, as per original logic
                     }
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
@@ -430,7 +442,7 @@ fun TimerOptionsBottomSheet(
                         showCustomTimePicker = false // Dismiss the M3 dialog
                     }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

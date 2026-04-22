@@ -60,6 +60,8 @@ import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.resolvePlaylistCoverContentColor
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 
 /**
  * Bottom sheet for batch operations on multiple selected playlists.
@@ -134,7 +136,7 @@ fun PlaylistMultiSelectionBottomSheet(
                     // Playlist count and label
                     Column {
                         Text(
-                            text = "${selectedPlaylists.size} PLAYLISTS",
+                            text = stringResource(R.string.multi_selection_playlists_count_upper, selectedPlaylists.size),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             fontFamily = GoogleSansRounded,
@@ -142,7 +144,7 @@ fun PlaylistMultiSelectionBottomSheet(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "selected",
+                            text = stringResource(R.string.multi_selection_selected),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = GoogleSansRounded
@@ -183,10 +185,10 @@ fun PlaylistMultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.Delete,
-                                    contentDescription = "Delete all"
+                                    contentDescription = stringResource(R.string.cd_delete_all_songs)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Delete")
+                                Text(stringResource(R.string.delete_action))
                             }
 
                             FilledTonalButton(
@@ -205,10 +207,10 @@ fun PlaylistMultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.FileDownload,
-                                    contentDescription = "Export all"
+                                    contentDescription = stringResource(R.string.cd_export_all)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Export")
+                                Text(stringResource(R.string.action_export))
                             }
                         }
                     }
@@ -238,10 +240,10 @@ fun PlaylistMultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.Merge,
-                                    contentDescription = "Merge all"
+                                    contentDescription = stringResource(R.string.cd_merge_all)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Merge")
+                                Text(stringResource(R.string.action_merge))
                             }
 
                             FilledTonalButton(
@@ -260,10 +262,10 @@ fun PlaylistMultiSelectionBottomSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.Share,
-                                    contentDescription = "Share all"
+                                    contentDescription = stringResource(R.string.cd_share_all)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Share")
+                                Text(stringResource(R.string.action_share))
                             }
                         }
                     }

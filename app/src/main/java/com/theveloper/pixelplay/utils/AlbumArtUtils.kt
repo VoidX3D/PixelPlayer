@@ -269,8 +269,48 @@ object AlbumArtUtils {
         legacyNoArtMarkerFile(appContext, songId).delete()
     }
 
+    // Album art lives in filesDir (persistent) instead of cacheDir, because Android can
+    // wipe cacheDir at any time under storage pressure — taking every cached cover with
+    // it and leaving the UI blank. The size is bounded by AlbumArtCacheManager's LRU.
+    private const val ALBUM_ART_DIR_NAME = "album_art"
+
+    fun getAlbumArtDir(appContext: Context): File {
+        val dir = File(appContext.filesDir, ALBUM_ART_DIR_NAME)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
+    }
+
     fun getCachedAlbumArtFile(appContext: Context, songId: Long): File {
-        return File(appContext.cacheDir, "song_art_${songId}${CACHE_VERSION_SUFFIX}.jpg")
+        return File(getAlbumArtDir(appContext), "song_art_${songId}${CACHE_VERSION_SUFFIX}.jpg")
+    }
+
+    /**
+     * Moves any legacy album-art files from cacheDir (old location, wipeable by the OS)
+     * into filesDir/album_art/. Idempotent — safe to call on every startup. Runs quickly
+     * because it only lists files matching the `song_art_` prefix.
+     */
+    fun migrateLegacyCacheLocation(appContext: Context) {
+        val oldDir = appContext.cacheDir
+        val newDir = getAlbumArtDir(appContext)
+        val legacyFiles = oldDir.listFiles { f ->
+            f.isFile && f.name.startsWith("song_art_")
+        } ?: return
+
+        for (file in legacyFiles) {
+            val target = File(newDir, file.name)
+            if (target.exists()) {
+                file.delete()
+                continue
+            }
+            if (!file.renameTo(target)) {
+                runCatching {
+                    file.copyTo(target, overwrite = false)
+                    file.delete()
+                }
+            }
+        }
     }
 
     private fun cacheAlbumArtBytes(appContext: Context, bytes: ByteArray, songId: Long): File {
@@ -280,25 +320,25 @@ object AlbumArtUtils {
             outputStream.write(bytes)
         }
         noArtMarkerFile(appContext, songId).delete()
-        
+
         // Trigger async cache cleanup if needed
         appScope.launch {
-            AlbumArtCacheManager.cleanCacheIfNeeded(appContext)
+            AlbumArtCacheManager.cleanCacheIfNeeded(appContext, AlbumArtCacheManager.configuredCacheLimitMb)
         }
 
         return file
     }
 
     private fun noArtMarkerFile(appContext: Context, songId: Long): File {
-        return File(appContext.cacheDir, "song_art_${songId}${CACHE_VERSION_SUFFIX}_no.jpg")
+        return File(getAlbumArtDir(appContext), "song_art_${songId}${CACHE_VERSION_SUFFIX}_no.jpg")
     }
 
     private fun legacyCachedAlbumArtFile(appContext: Context, songId: Long): File {
-        return File(appContext.cacheDir, "song_art_${songId}.jpg")
+        return File(getAlbumArtDir(appContext), "song_art_${songId}.jpg")
     }
 
     private fun legacyNoArtMarkerFile(appContext: Context, songId: Long): File {
-        return File(appContext.cacheDir, "song_art_${songId}_no.jpg")
+        return File(getAlbumArtDir(appContext), "song_art_${songId}_no.jpg")
     }
 
     private data class MediaStoreSongInfo(
@@ -373,7 +413,7 @@ object AlbumArtUtils {
             } ?: return null
 
             appScope.launch {
-                AlbumArtCacheManager.cleanCacheIfNeeded(appContext)
+                AlbumArtCacheManager.cleanCacheIfNeeded(appContext, AlbumArtCacheManager.configuredCacheLimitMb)
             }
 
             targetFile

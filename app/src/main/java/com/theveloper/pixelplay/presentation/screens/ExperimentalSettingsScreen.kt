@@ -77,6 +77,9 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.preferences.AlbumArtQuality
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -179,7 +182,7 @@ fun ExperimentalSettingsScreen(
         ) {
             item(key = "player_ui_tweaks_section") {
                 SettingsSection(
-                    title = "PlayerUI loading tweaks",
+                    title = stringResource(R.string.presentation_batch_f_exp_player_ui_tweaks_section),
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Style,
@@ -210,8 +213,8 @@ fun ExperimentalSettingsScreen(
                             val canUseTriggerMode = isAnyDelayEnabled && placeholdersEnabled
 
                             SwitchSettingItem(
-                                title = "Animated Lyrics (High-end devices)",
-                                subtitle = "Uses spring animations and visual effects for lyrics. May cause frame drops on low-end devices.",
+                                title = stringResource(R.string.presentation_batch_f_exp_animated_lyrics_title),
+                                subtitle = stringResource(R.string.presentation_batch_f_exp_animated_lyrics_subtitle),
                                 checked = uiState.useAnimatedLyrics,
                                 onCheckedChange = settingsViewModel::setUseAnimatedLyrics,
                                 leadingIcon = {
@@ -230,8 +233,8 @@ fun ExperimentalSettingsScreen(
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     SwitchSettingItem(
-                                        title = "Lyric Blur Effect",
-                                        subtitle = "Applies a depth-of-field blur to inactive lyrics.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_lyric_blur_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_lyric_blur_subtitle),
                                         checked = uiState.animatedLyricsBlurEnabled,
                                         onCheckedChange = settingsViewModel::setAnimatedLyricsBlurEnabled,
                                         leadingIcon = {
@@ -273,7 +276,7 @@ fun ExperimentalSettingsScreen(
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                                             Text(
-                                                                text = "Blur Strength",
+                                                                text = stringResource(R.string.presentation_batch_f_exp_blur_strength),
                                                                 style = MaterialTheme.typography.titleMedium,
                                                                 color = MaterialTheme.colorScheme.onSurface,
                                                                 modifier = Modifier.padding(end = 8.dp)
@@ -283,7 +286,10 @@ fun ExperimentalSettingsScreen(
                                                                 shape = RoundedCornerShape(16.dp),
                                                                 modifier = Modifier.height(24.dp)
                                                             ) {
-                                                                val strengthText = String.format(java.util.Locale.US, "%.1fx", uiState.animatedLyricsBlurStrength)
+                                                                val strengthText = stringResource(
+                                                                    R.string.presentation_batch_f_exp_blur_strength_value,
+                                                                    uiState.animatedLyricsBlurStrength
+                                                                )
                                                                 Text(
                                                                     text = strengthText,
                                                                     style = MaterialTheme.typography.labelSmall,
@@ -293,7 +299,7 @@ fun ExperimentalSettingsScreen(
                                                             }
                                                         }
                                                         Text(
-                                                            text = "Adjust the intensity of the blur effect.",
+                                                            text = stringResource(R.string.presentation_batch_f_exp_blur_strength_subtitle),
                                                             style = MaterialTheme.typography.bodyMedium,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
@@ -319,7 +325,7 @@ fun ExperimentalSettingsScreen(
                                     .clip(RoundedCornerShape(10.dp))
                             ) {
                                 Text(
-                                    text = "Step 1 · Choose what to delay",
+                                    text = stringResource(R.string.presentation_batch_f_exp_step1_delay_header),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -327,8 +333,8 @@ fun ExperimentalSettingsScreen(
                             }
 
                             SwitchSettingItem(
-                                title = "Delay everything",
-                                subtitle = "Hold the full player content until the sheet background is fully expanded.",
+                                title = stringResource(R.string.presentation_batch_f_exp_delay_everything_title),
+                                subtitle = stringResource(R.string.presentation_batch_f_exp_delay_everything_subtitle),
                                 checked = delayAllEnabled,
                                 onCheckedChange = settingsViewModel::setDelayAllFullPlayerContent,
                                 leadingIcon = {
@@ -347,8 +353,8 @@ fun ExperimentalSettingsScreen(
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     SwitchSettingItem(
-                                        title = "Album carousel",
-                                        subtitle = "Delay album art and carousel until the sheet is expanded.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_album_carousel_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_album_carousel_subtitle),
                                         checked = loadingTweaks.delayAlbumCarousel,
                                         onCheckedChange = settingsViewModel::setDelayAlbumCarousel,
                                         leadingIcon = {
@@ -361,8 +367,8 @@ fun ExperimentalSettingsScreen(
                                     )
 
                                     SwitchSettingItem(
-                                        title = "Song metadata",
-                                        subtitle = "Delay title, artist, and lyrics/queue actions.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_song_metadata_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_song_metadata_subtitle),
                                         checked = loadingTweaks.delaySongMetadata,
                                         onCheckedChange = settingsViewModel::setDelaySongMetadata,
                                         leadingIcon = {
@@ -375,8 +381,8 @@ fun ExperimentalSettingsScreen(
                                     )
 
                                     SwitchSettingItem(
-                                        title = "Progress bar",
-                                        subtitle = "Delay the timeline and time labels until expansion completes.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_progress_bar_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_progress_bar_subtitle),
                                         checked = loadingTweaks.delayProgressBar,
                                         onCheckedChange = settingsViewModel::setDelayProgressBar,
                                         leadingIcon = {
@@ -389,8 +395,8 @@ fun ExperimentalSettingsScreen(
                                     )
 
                                     SwitchSettingItem(
-                                        title = "Playback controls",
-                                        subtitle = "Delay play/pause, seek, and favorite controls.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_playback_controls_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_playback_controls_subtitle),
                                         checked = loadingTweaks.delayControls,
                                         onCheckedChange = settingsViewModel::setDelayControls,
                                         leadingIcon = {
@@ -416,7 +422,7 @@ fun ExperimentalSettingsScreen(
                                         .clip(RoundedCornerShape(10.dp))
                                 ) {
                                     Text(
-                                        text = "All delayed components are active. Disable \"Delay everything\" to customize each part.",
+                                        text = stringResource(R.string.presentation_batch_f_exp_delay_all_active_hint),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -431,7 +437,7 @@ fun ExperimentalSettingsScreen(
                                     .clip(RoundedCornerShape(10.dp))
                             ) {
                                 Text(
-                                    text = "Step 2 · Configure placeholder behavior",
+                                    text = stringResource(R.string.presentation_batch_f_exp_step2_placeholders_header),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -439,8 +445,8 @@ fun ExperimentalSettingsScreen(
                             }
 
                             SwitchSettingItem(
-                                title = "Use placeholders for delayed items",
-                                subtitle = "Keep layout stable by rendering lightweight placeholders while components wait for expansion.",
+                                title = stringResource(R.string.presentation_batch_f_exp_use_placeholders_title),
+                                subtitle = stringResource(R.string.presentation_batch_f_exp_use_placeholders_subtitle),
                                 checked = placeholdersEnabled,
                                 onCheckedChange = settingsViewModel::setFullPlayerPlaceholders,
                                 leadingIcon = {
@@ -471,15 +477,15 @@ fun ExperimentalSettingsScreen(
                                             verticalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             Text(
-                                                text = "Step 3 · Choose when placeholders switch to real content",
+                                                text = stringResource(R.string.presentation_batch_f_exp_step3_trigger_header),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
                                                 text = if (canUseTriggerMode) {
-                                                    "Select one mode. Threshold mode uses sliders; Drag release mode waits until you release the sheet gesture."
+                                                    stringResource(R.string.presentation_batch_f_exp_trigger_mode_unlocked)
                                                 } else {
-                                                    "Enable at least one delayed component to unlock trigger mode."
+                                                    stringResource(R.string.presentation_batch_f_exp_trigger_mode_locked)
                                                 },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -490,16 +496,16 @@ fun ExperimentalSettingsScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 TriggerModeOptionCard(
-                                                    title = "Threshold",
-                                                    subtitle = "Uses expansion percentage.",
+                                                    title = stringResource(R.string.presentation_batch_f_exp_threshold_title),
+                                                    subtitle = stringResource(R.string.presentation_batch_f_exp_threshold_subtitle),
                                                     selected = !switchOnDragRelease,
                                                     enabled = canUseTriggerMode,
                                                     onClick = { settingsViewModel.setFullPlayerSwitchOnDragRelease(false) },
                                                     modifier = Modifier.weight(1f)
                                                 )
                                                 TriggerModeOptionCard(
-                                                    title = "Drag release",
-                                                    subtitle = "Switches only after gesture release.",
+                                                    title = stringResource(R.string.presentation_batch_f_exp_drag_release_title),
+                                                    subtitle = stringResource(R.string.presentation_batch_f_exp_drag_release_subtitle),
                                                     selected = switchOnDragRelease,
                                                     enabled = canUseTriggerMode,
                                                     onClick = { settingsViewModel.setFullPlayerSwitchOnDragRelease(true) },
@@ -539,12 +545,12 @@ fun ExperimentalSettingsScreen(
 
                                                         Column(modifier = Modifier.weight(1f)) {
                                                             Text(
-                                                                text = "Expand threshold",
+                                                                text = stringResource(R.string.presentation_batch_f_exp_expand_threshold_title),
                                                                 style = MaterialTheme.typography.titleMedium,
                                                                 color = MaterialTheme.colorScheme.onSurface
                                                             )
                                                             Text(
-                                                                text = "How expanded the sheet must be before delayed components become visible.",
+                                                                text = stringResource(R.string.presentation_batch_f_exp_expand_threshold_subtitle),
                                                                 style = MaterialTheme.typography.bodyMedium,
                                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
@@ -560,7 +566,10 @@ fun ExperimentalSettingsScreen(
                                                     )
 
                                                     Text(
-                                                        text = "Content appears at ${appearThresholdPercent}% expansion",
+                                                        text = stringResource(
+                                                            R.string.presentation_batch_f_exp_content_appears_at,
+                                                            appearThresholdPercent
+                                                        ),
                                                         style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
@@ -568,8 +577,8 @@ fun ExperimentalSettingsScreen(
                                             }
 
                                             SwitchSettingItem(
-                                                title = "Also apply on player close",
-                                                subtitle = "Use close threshold to switch back to placeholders while collapsing.",
+                                                title = stringResource(R.string.presentation_batch_f_exp_apply_on_close_title),
+                                                subtitle = stringResource(R.string.presentation_batch_f_exp_apply_on_close_subtitle),
                                                 checked = loadingTweaks.applyPlaceholdersOnClose,
                                                 onCheckedChange = settingsViewModel::setFullPlayerPlaceholdersOnClose,
                                                 enabled = isAnyDelayEnabled,
@@ -611,12 +620,12 @@ fun ExperimentalSettingsScreen(
 
                                                             Column(modifier = Modifier.weight(1f)) {
                                                                 Text(
-                                                                    text = "Close threshold",
+                                                                    text = stringResource(R.string.presentation_batch_f_exp_close_threshold_title),
                                                                     style = MaterialTheme.typography.titleMedium,
                                                                     color = MaterialTheme.colorScheme.onSurface
                                                                 )
                                                                 Text(
-                                                                    text = "How much collapse is required before placeholders take over again.",
+                                                                    text = stringResource(R.string.presentation_batch_f_exp_close_threshold_subtitle),
                                                                     style = MaterialTheme.typography.bodyMedium,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
@@ -632,7 +641,10 @@ fun ExperimentalSettingsScreen(
                                                         )
 
                                                         Text(
-                                                            text = "Placeholders appear after ${closeThresholdPercent}% collapse",
+                                                            text = stringResource(
+                                                                R.string.presentation_batch_f_exp_placeholders_after_collapse,
+                                                                closeThresholdPercent
+                                                            ),
                                                             style = MaterialTheme.typography.bodyMedium,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
@@ -654,7 +666,7 @@ fun ExperimentalSettingsScreen(
                                                 .clip(RoundedCornerShape(10.dp))
                                         ) {
                                             Text(
-                                                text = "Drag release mode bypasses thresholds and close behavior. The swap happens only when the sheet drag gesture ends.",
+                                                text = stringResource(R.string.presentation_batch_f_exp_drag_release_bypass),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -663,8 +675,8 @@ fun ExperimentalSettingsScreen(
                                     }
 
                                     SwitchSettingItem(
-                                        title = "Make placeholders transparent",
-                                        subtitle = "Placeholders keep their layout space but become invisible.",
+                                        title = stringResource(R.string.presentation_batch_f_exp_transparent_placeholders_title),
+                                        subtitle = stringResource(R.string.presentation_batch_f_exp_transparent_placeholders_subtitle),
                                         checked = loadingTweaks.transparentPlaceholders,
                                         onCheckedChange = settingsViewModel::setTransparentPlaceholders,
                                         leadingIcon = {
@@ -690,7 +702,7 @@ fun ExperimentalSettingsScreen(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                      Text(
-                        text = "Visual Quality",
+                        text = stringResource(R.string.presentation_batch_f_exp_visual_quality),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
@@ -708,7 +720,7 @@ fun ExperimentalSettingsScreen(
                 val albumArtQuality = uiState.albumArtQuality
                 
                  SettingsSection(
-                    title = "Album Art Resolution",
+                    title = stringResource(R.string.presentation_batch_f_exp_album_art_resolution),
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.MusicNote, // Or Image/Photo icon
@@ -731,8 +743,9 @@ fun ExperimentalSettingsScreen(
                            // For simplicity and quick access as requested ("selector or slider"), let's use a segmented style or a simple list of options.
                            
                            // Using a loop to create selectable items for each enum value
-                           com.theveloper.pixelplay.data.preferences.AlbumArtQuality.entries.forEach { quality ->
+                           AlbumArtQuality.entries.forEach { quality ->
                                val isSelected = quality == albumArtQuality
+                               val qualityLine = albumArtQualityLine(quality)
                                
                                Surface(
                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
@@ -749,12 +762,12 @@ fun ExperimentalSettingsScreen(
                                    ) {
                                        Column(modifier = Modifier.weight(1f)) {
                                            Text(
-                                               text = quality.label.substringBefore(" - "),
+                                               text = qualityLine.substringBefore(" - "),
                                                style = MaterialTheme.typography.bodyLarge,
                                                color = MaterialTheme.colorScheme.onSurface,
                                                fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                                            )
-                                           quality.label.substringAfter(" - ", "").takeIf { it.isNotEmpty() }?.let { desc ->
+                                           qualityLine.substringAfter(" - ", "").takeIf { it.isNotEmpty() }?.let { desc ->
                                                 Text(
                                                    text = desc,
                                                    style = MaterialTheme.typography.bodySmall,
@@ -766,7 +779,7 @@ fun ExperimentalSettingsScreen(
                                        if (isSelected) {
                                             Icon(
                                                 imageVector = Icons.Rounded.LinearScale, // Check icon
-                                                contentDescription = "Selected",
+                                                contentDescription = stringResource(R.string.presentation_batch_f_cd_selected),
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                        }
@@ -784,13 +797,24 @@ fun ExperimentalSettingsScreen(
         }
 
         CollapsibleCommonTopBar(
-            title = "Experimental",
+            title = stringResource(R.string.presentation_batch_f_exp_screen_title),
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
             onBackClick = onNavigationIconClick
         )
     }
 }
+
+@Composable
+private fun albumArtQualityLine(quality: AlbumArtQuality): String =
+    stringResource(
+        when (quality) {
+            AlbumArtQuality.LOW -> R.string.presentation_batch_f_album_art_quality_low_line
+            AlbumArtQuality.MEDIUM -> R.string.presentation_batch_f_album_art_quality_medium_line
+            AlbumArtQuality.HIGH -> R.string.presentation_batch_f_album_art_quality_high_line
+            AlbumArtQuality.ORIGINAL -> R.string.presentation_batch_f_album_art_quality_original_line
+        }
+    )
 
 @Composable
 private fun TriggerModeOptionCard(

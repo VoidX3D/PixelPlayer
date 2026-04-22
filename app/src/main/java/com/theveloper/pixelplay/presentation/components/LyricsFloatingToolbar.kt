@@ -76,7 +76,7 @@ fun LyricsFloatingToolbar(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(R.string.auth_cd_back),
                 tint = onBackgroundColor
             )
         }
@@ -99,7 +99,7 @@ fun LyricsFloatingToolbar(
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,
                 onClick = { onShowSyncedLyricsChange(true) },
-                text = "Synced"
+                text = stringResource(R.string.presentation_batch_g_lyrics_mode_synced)
             )
 
             ToggleSegmentButton(
@@ -112,7 +112,7 @@ fun LyricsFloatingToolbar(
                 inactiveContentColor = onBackgroundColor,
                 activeCornerRadius = 50.dp,
                 onClick = { onShowSyncedLyricsChange(false) },
-                text = "Static"
+                text = stringResource(R.string.presentation_batch_g_lyrics_mode_static)
             )
         }
         
@@ -127,7 +127,7 @@ fun LyricsFloatingToolbar(
         ) {
             Icon(
                 imageVector = Icons.Filled.MoreVert,
-                contentDescription = "Lyrics options",
+                contentDescription = stringResource(R.string.presentation_batch_g_lyrics_cd_options),
                 tint = onBackgroundColor
             )
         }

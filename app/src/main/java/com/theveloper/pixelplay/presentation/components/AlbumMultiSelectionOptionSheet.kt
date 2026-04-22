@@ -41,7 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.res.stringResource
 import coil.size.Size
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -84,13 +86,13 @@ fun AlbumMultiSelectionOptionSheet(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "${selectedAlbums.size} ALBUMS",
+                        text = stringResource(R.string.presentation_batch_g_album_sel_count, selectedAlbums.size),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         fontFamily = GoogleSansRounded
                     )
                     Text(
-                        text = "selected",
+                        text = stringResource(R.string.presentation_batch_g_album_sel_selected),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = GoogleSansRounded
@@ -101,12 +103,12 @@ fun AlbumMultiSelectionOptionSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Play replaces the current queue. Play Next inserts right after the current song.",
+                text = stringResource(R.string.presentation_batch_g_album_sel_queue_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Add to Queue appends to the end. Limit: $maxSelection albums per selection.",
+                text = stringResource(R.string.presentation_batch_g_album_sel_limit, maxSelection),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

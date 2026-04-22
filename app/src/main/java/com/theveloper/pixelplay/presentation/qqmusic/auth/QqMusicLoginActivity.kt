@@ -80,6 +80,8 @@ import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import androidx.compose.ui.res.stringResource
+import android.content.Context
 
 @AndroidEntryPoint
 class QqMusicLoginActivity : ComponentActivity() {
@@ -138,7 +140,7 @@ private fun QqMusicLoginScreen(
     LaunchedEffect(loginState) {
         when (val state = loginState) {
             is QqMusicLoginState.Success -> {
-                Toast.makeText(context, "Welcome, ${state.nickname}!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_welcome_user, state.nickname), Toast.LENGTH_SHORT).show()
                 onClose()
             }
 
@@ -160,7 +162,7 @@ private fun QqMusicLoginScreen(
         delay(20_000)
         if (webUiState.isLoadingPage) {
             pageLoadTimeout = true
-            snackbarHostState.showSnackbar("Page load timed out. You can retry without losing your progress.")
+            snackbarHostState.showSnackbar(context.getString(R.string.auth_snackbar_page_timeout))
         }
     }
 
@@ -174,13 +176,13 @@ private fun QqMusicLoginScreen(
     fun captureAndSubmitCookies() {
         if (loginState is QqMusicLoginState.Loading) return
 
-        readQqMusicCookies().fold(
+        readQqMusicCookies(context).fold(
             onSuccess = { cookieJson ->
                 webUiState = webUiState.copy(lastError = null)
                 viewModel.processCookies(cookieJson)
             },
             onFailure = { error ->
-                val message = error.message ?: "Could not read session cookies."
+                val message = error.message ?: context.getString(R.string.auth_error_cookies_unreadable)
                 viewModel.clearError()
                 webUiState = webUiState.copy(lastError = message)
             }
@@ -199,11 +201,11 @@ private fun QqMusicLoginScreen(
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
             title = {
-                Text(text = "Exit QQ Music login?", fontFamily = GoogleSansRounded)
+                Text(text = stringResource(R.string.auth_web_exit_confirm_title_qq), fontFamily = GoogleSansRounded)
             },
             text = {
                 Text(
-                    text = "You can come back later. Current page state will be discarded when closing.",
+                    text = stringResource(R.string.auth_web_exit_confirm_body),
                     fontFamily = GoogleSansRounded
                 )
             },
@@ -214,12 +216,12 @@ private fun QqMusicLoginScreen(
                         onClose()
                     }
                 ) {
-                    Text(text = "Exit", fontFamily = GoogleSansRounded)
+                    Text(text = stringResource(R.string.auth_exit), fontFamily = GoogleSansRounded)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text(text = "Stay", fontFamily = GoogleSansRounded)
+                    Text(text = stringResource(R.string.auth_stay), fontFamily = GoogleSansRounded)
                 }
             }
         )
@@ -231,7 +233,7 @@ private fun QqMusicLoginScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Login to QQ Music",
+                        text = stringResource(R.string.auth_login_qq_title),
                         style = titleStyle,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
@@ -248,7 +250,7 @@ private fun QqMusicLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.auth_cd_back)
                         )
                     }
                 },
@@ -276,7 +278,7 @@ private fun QqMusicLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Web back"
+                            contentDescription = stringResource(R.string.auth_web_cd_web_back)
                         )
                     }
 
@@ -293,7 +295,7 @@ private fun QqMusicLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                            contentDescription = "Web forward"
+                            contentDescription = stringResource(R.string.auth_web_cd_web_forward)
                         )
                     }
 
@@ -310,7 +312,7 @@ private fun QqMusicLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
-                            contentDescription = "Refresh"
+                            contentDescription = stringResource(R.string.auth_web_cd_refresh)
                         )
                     }
 
@@ -329,7 +331,7 @@ private fun QqMusicLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Home,
-                            contentDescription = "Open home"
+                            contentDescription = stringResource(R.string.auth_web_cd_open_home)
                         )
                     }
                 },
@@ -354,7 +356,10 @@ private fun QqMusicLoginScreen(
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = if (loginState is QqMusicLoginState.Loading) "Saving..." else "Done",
+                            text = when (loginState) {
+                                is QqMusicLoginState.Loading -> stringResource(R.string.auth_saving)
+                                else -> stringResource(R.string.auth_done)
+                            },
                             fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -384,7 +389,7 @@ private fun QqMusicLoginScreen(
                 )
             ) {
                 Text(
-                    text = "Security note: your password is entered only in QQ Music web pages. PixelPlay stores session cookies to sync your library.",
+                    text = stringResource(R.string.auth_web_login_security_note_qq),
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = GoogleSansRounded,
@@ -392,8 +397,9 @@ private fun QqMusicLoginScreen(
                 )
             }
 
+            val pageSlowMessage = stringResource(R.string.auth_page_slow)
             val effectiveError = when {
-                pageLoadTimeout -> "Page is taking too long to load. Use refresh or try another network."
+                pageLoadTimeout -> pageSlowMessage
                 webUiState.lastError != null -> webUiState.lastError
                 else -> null
             }
@@ -428,7 +434,7 @@ private fun QqMusicLoginScreen(
                                 webView?.reload()
                             }
                         ) {
-                            Text(text = "Retry", fontFamily = GoogleSansRounded)
+                            Text(text = stringResource(R.string.auth_web_retry), fontFamily = GoogleSansRounded)
                         }
                     }
                 }
@@ -516,8 +522,9 @@ private fun QqMusicWebView(
 ) {
     AndroidView(
         modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
+        factory = { ctx ->
+            WebView(ctx).apply {
+                val loadFailedMessage = ctx.getString(R.string.auth_webview_load_failed)
                 val cookieManager = CookieManager.getInstance()
                 cookieManager.setAcceptCookie(true)
                 cookieManager.setAcceptThirdPartyCookies(this, true)
@@ -576,8 +583,8 @@ private fun QqMusicWebView(
                         super.onReceivedError(view, request, error)
                         if (request?.isForMainFrame == true) {
                             val description = error?.description?.toString()?.ifBlank {
-                                "WebView load failed."
-                            } ?: "WebView load failed."
+                                loadFailedMessage
+                            } ?: loadFailedMessage
                             onMainFrameError(description)
                         }
                     }
@@ -590,7 +597,10 @@ private fun QqMusicWebView(
                         super.onReceivedHttpError(view, request, errorResponse)
                         if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
                             onMainFrameError(
-                                "HTTP ${errorResponse?.statusCode ?: 0} while loading QQ Music."
+                                ctx.getString(
+                                    R.string.auth_http_error_loading_qq,
+                                    errorResponse?.statusCode ?: 0
+                                )
                             )
                         }
                     }
@@ -603,7 +613,7 @@ private fun QqMusicWebView(
     )
 }
 
-private fun readQqMusicCookies(): Result<String> {
+private fun readQqMusicCookies(context: Context): Result<String> {
     return try {
         val manager = CookieManager.getInstance()
         val map = linkedMapOf<String, String>()
@@ -624,7 +634,7 @@ private fun readQqMusicCookies(): Result<String> {
         }
 
         if (map.isEmpty()) {
-            return Result.failure(IllegalStateException("No cookies found. Log in first."))
+            return Result.failure(IllegalStateException(context.getString(R.string.auth_error_no_cookies)))
         }
 
         val hasLoginCookie = !map["uin"].isNullOrBlank() ||
@@ -634,7 +644,7 @@ private fun readQqMusicCookies(): Result<String> {
         if (!hasLoginCookie) {
             return Result.failure(
                 IllegalStateException(
-                    "Login not detected yet. Complete QQ Music login before pressing Done."
+                    context.getString(R.string.auth_error_qq_login_incomplete)
                 )
             )
         }
@@ -642,7 +652,10 @@ private fun readQqMusicCookies(): Result<String> {
         Result.success(JSONObject(map as Map<*, *>).toString())
     } catch (error: Throwable) {
         Result.failure(
-            IllegalStateException("Failed to read QQ Music cookies: ${error.message}", error)
+            IllegalStateException(
+                context.getString(R.string.auth_error_read_qq_cookies_failed, error.message.orEmpty()),
+                error
+            )
         )
     }
 }

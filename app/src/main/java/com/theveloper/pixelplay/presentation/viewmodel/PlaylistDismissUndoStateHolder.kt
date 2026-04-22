@@ -1,6 +1,9 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+import android.content.Context
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import kotlinx.collections.immutable.persistentListOf
@@ -14,7 +17,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @ViewModelScoped
-class PlaylistDismissUndoStateHolder @Inject constructor() {
+class PlaylistDismissUndoStateHolder @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
     private var dismissUndoTimerJob: Job? = null
     private var undoObserverJob: Job? = null
 
@@ -145,7 +150,7 @@ class PlaylistDismissUndoStateHolder @Inject constructor() {
                 }
                 setSheetVisible(true)
                 setSheetCollapsed()
-                emitToast("Playlist restored")
+                emitToast(context.getString(R.string.playlist_restored_toast))
             } else {
                 updateUiState { it.copy(showDismissUndoBar = false) }
             }

@@ -58,6 +58,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
@@ -205,13 +207,13 @@ fun PaletteStyleSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Palette style",
+                        text = stringResource(R.string.presentation_batch_f_palette_style_heading),
                         style = MaterialTheme.typography.titleLarge,
                         color = previewScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Choose the album colors for the player UI.",
+                        text = stringResource(R.string.presentation_batch_f_palette_style_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = previewScheme.onSurfaceVariant
                     )
@@ -234,7 +236,7 @@ fun PaletteStyleSettingsScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = pendingStyle.label,
+                        text = albumArtPaletteStyleLabel(pendingStyle),
                         style = MaterialTheme.typography.titleMedium,
                         color = previewScheme.onSurface,
                         fontWeight = FontWeight.Medium
@@ -251,7 +253,7 @@ fun PaletteStyleSettingsScreen(
                             modifier = Modifier
                                 .padding(8.dp)
                                 .padding(start = 4.dp),
-                            text = pendingStyle.description(),
+                            text = albumArtPaletteStyleDescription(pendingStyle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = previewScheme.onTertiaryContainer
                         )
@@ -296,14 +298,14 @@ private fun PaletteStyleHeader(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close"
+                    contentDescription = stringResource(R.string.presentation_batch_f_cd_close)
                 )
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Text(
-                text = "Colors",
+                text = stringResource(R.string.presentation_batch_f_colors_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = scheme.onSurface,
                 modifier = Modifier.weight(1f)
@@ -322,7 +324,7 @@ private fun PaletteStyleHeader(
                 )
             ) {
                 Text(
-                    text = "Apply",
+                    text = stringResource(R.string.presentation_batch_f_apply),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -649,13 +651,13 @@ private fun PaletteAccuracySlider(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Color accuracy",
+                    text = stringResource(R.string.presentation_batch_f_color_accuracy_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = scheme.onSurface,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "0 keeps the current tuning. Higher values stay closer to the album art's dominant hue.",
+                    text = stringResource(R.string.presentation_batch_f_color_accuracy_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant
                 )
@@ -672,7 +674,7 @@ private fun PaletteAccuracySlider(
             ) {
                 Text(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    text = clampedValue.accuracySummary(),
+                    text = accuracySummaryText(clampedValue),
                     style = MaterialTheme.typography.labelLarge,
                     color = scheme.onPrimaryContainer,
                     fontWeight = FontWeight.SemiBold
@@ -709,12 +711,12 @@ private fun PaletteAccuracySlider(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Current",
+                text = stringResource(R.string.presentation_batch_f_accuracy_current),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant
             )
             Text(
-                text = "More accurate",
+                text = stringResource(R.string.presentation_batch_f_accuracy_more_accurate),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant
             )
@@ -722,20 +724,35 @@ private fun PaletteAccuracySlider(
     }
 }
 
-private fun AlbumArtPaletteStyle.description(): String {
-    return when (this) {
-        AlbumArtPaletteStyle.TONAL_SPOT -> "Balanced and calm."
-        AlbumArtPaletteStyle.VIBRANT -> "High saturation accents."
-        AlbumArtPaletteStyle.EXPRESSIVE -> "Bold hue shifts and contrast."
-        AlbumArtPaletteStyle.FRUIT_SALAD -> "Playful rotated accents."
-    }
-}
+@Composable
+private fun albumArtPaletteStyleDescription(style: AlbumArtPaletteStyle): String =
+    stringResource(
+        when (style) {
+            AlbumArtPaletteStyle.TONAL_SPOT -> R.string.presentation_batch_f_palette_style_tonal_spot_desc
+            AlbumArtPaletteStyle.VIBRANT -> R.string.presentation_batch_f_palette_style_vibrant_desc
+            AlbumArtPaletteStyle.EXPRESSIVE -> R.string.presentation_batch_f_palette_style_expressive_desc
+            AlbumArtPaletteStyle.FRUIT_SALAD -> R.string.presentation_batch_f_palette_style_fruit_salad_desc
+        }
+    )
 
-private fun Int.accuracySummary(): String {
-    return when (AlbumArtColorAccuracy.clamp(this)) {
-        0 -> "0 • Current"
-        in 1..3 -> "$this • Subtle"
-        in 4..7 -> "$this • Balanced"
-        else -> "$this • Precise"
+@Composable
+private fun albumArtPaletteStyleLabel(style: AlbumArtPaletteStyle): String =
+    stringResource(
+        when (style) {
+            AlbumArtPaletteStyle.TONAL_SPOT -> R.string.presentation_batch_f_palette_label_tonal_spot
+            AlbumArtPaletteStyle.VIBRANT -> R.string.presentation_batch_f_palette_label_vibrant
+            AlbumArtPaletteStyle.EXPRESSIVE -> R.string.presentation_batch_f_palette_label_expressive
+            AlbumArtPaletteStyle.FRUIT_SALAD -> R.string.presentation_batch_f_palette_label_fruit_salad
+        }
+    )
+
+@Composable
+private fun accuracySummaryText(value: Int): String {
+    val clamped = AlbumArtColorAccuracy.clamp(value)
+    return when {
+        clamped == 0 -> stringResource(R.string.presentation_batch_f_accuracy_summary_current)
+        clamped in 1..3 -> stringResource(R.string.presentation_batch_f_accuracy_summary_subtle, clamped)
+        clamped in 4..7 -> stringResource(R.string.presentation_batch_f_accuracy_summary_balanced, clamped)
+        else -> stringResource(R.string.presentation_batch_f_accuracy_summary_precise, clamped)
     }
 }

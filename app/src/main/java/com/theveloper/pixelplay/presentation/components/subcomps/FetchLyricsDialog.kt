@@ -411,7 +411,7 @@ private fun ResultItemCard(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
                             Text(
-                                text = "SYNCED",
+                                text = stringResource(R.string.lyrics_synced_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -420,7 +420,11 @@ private fun ResultItemCard(
                     }
                 }
                 Text(
-                    text = "${result.record.artistName} • ${result.record.albumName}",
+                    text = stringResource(
+                        R.string.presentation_batch_g_list_song_artist_album,
+                        result.record.artistName,
+                        result.record.albumName
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -487,14 +491,14 @@ fun NotFoundContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "Title",
+            text = stringResource(R.string.song_field_title),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.labelLarge
         )
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            placeholder = { Text("Title") },
+            placeholder = { Text(stringResource(R.string.song_field_title)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -507,14 +511,14 @@ fun NotFoundContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "Artist (optional)",
+            text = stringResource(R.string.song_field_artist_optional),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.labelLarge
         )
         OutlinedTextField(
             value = artist,
             onValueChange = { artist = it },
-            placeholder = { Text("Artist (optional)") },
+            placeholder = { Text(stringResource(R.string.song_field_artist_optional)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )

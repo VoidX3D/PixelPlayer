@@ -61,6 +61,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -110,7 +111,11 @@ fun JellyfinLoginScreen(
     LaunchedEffect(loginState) {
         when (val state = loginState) {
             is JellyfinLoginState.Success -> {
-                Toast.makeText(context, "Welcome, ${state.username}!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_welcome_user, state.username),
+                    Toast.LENGTH_SHORT
+                ).show()
                 onClose()
             }
             is JellyfinLoginState.Error -> {
@@ -130,7 +135,7 @@ fun JellyfinLoginScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Jellyfin",
+                        text = stringResource(R.string.auth_jellyfin_title),
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -147,7 +152,7 @@ fun JellyfinLoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.auth_cd_back)
                         )
                     }
                 },
@@ -184,7 +189,7 @@ fun JellyfinLoginScreen(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(R.drawable.ic_jellyfin),
-                            contentDescription = "Jellyfin",
+                            contentDescription = stringResource(R.string.cd_jellyfin_logo),
                             tint = Color.White,
                             modifier = Modifier.size(36.dp)
                         )
@@ -195,7 +200,7 @@ fun JellyfinLoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Jellyfin",
+                text = stringResource(R.string.auth_jellyfin_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
@@ -203,7 +208,7 @@ fun JellyfinLoginScreen(
             )
 
             Text(
-                text = "Connect to your Jellyfin media server",
+                text = stringResource(R.string.auth_jellyfin_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -219,7 +224,7 @@ fun JellyfinLoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Connects to Jellyfin servers. Both HTTP and HTTPS are supported for local network access.",
+                    text = stringResource(R.string.auth_jellyfin_info_card),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -240,7 +245,7 @@ fun JellyfinLoginScreen(
                     modifier = Modifier.padding(18.dp)
                 ) {
                     Text(
-                        text = "Connection details",
+                        text = stringResource(R.string.auth_connection_details),
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold
@@ -249,7 +254,7 @@ fun JellyfinLoginScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Enter your Jellyfin server URL and account credentials.",
+                        text = stringResource(R.string.auth_jellyfin_connection_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = GoogleSansRounded,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -260,9 +265,9 @@ fun JellyfinLoginScreen(
                     JellyfinLoginField(
                         value = serverUrl,
                         onValueChange = { serverUrl = it },
-                        label = "Server URL",
-                        placeholder = "http://192.168.1.100:8096",
-                        supportingText = "Full URL of your Jellyfin server, including port.",
+                        label = stringResource(R.string.auth_server_url),
+                        placeholder = stringResource(R.string.auth_jellyfin_server_placeholder),
+                        supportingText = stringResource(R.string.auth_jellyfin_server_url_hint),
                         leadingIcon = Icons.Rounded.Dns,
                         enabled = !isLoading,
                         keyboardOptions = KeyboardOptions(
@@ -280,9 +285,9 @@ fun JellyfinLoginScreen(
                     JellyfinLoginField(
                         value = username,
                         onValueChange = { username = it },
-                        label = "Username",
-                        placeholder = "admin",
-                        supportingText = "Your Jellyfin account username.",
+                        label = stringResource(R.string.auth_username),
+                        placeholder = stringResource(R.string.auth_username_placeholder_admin),
+                        supportingText = stringResource(R.string.auth_jellyfin_username_hint),
                         leadingIcon = Icons.Rounded.Person,
                         enabled = !isLoading,
                         keyboardOptions = KeyboardOptions(
@@ -300,9 +305,9 @@ fun JellyfinLoginScreen(
                     JellyfinLoginField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password",
-                        placeholder = "Enter password",
-                        supportingText = "Your Jellyfin account password.",
+                        label = stringResource(R.string.auth_password),
+                        placeholder = stringResource(R.string.auth_password_placeholder),
+                        supportingText = stringResource(R.string.auth_jellyfin_password_hint),
                         leadingIcon = Icons.Rounded.Lock,
                         enabled = !isLoading,
                         visualTransformation = if (passwordVisible) {
@@ -329,7 +334,9 @@ fun JellyfinLoginScreen(
                             ) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    contentDescription = stringResource(
+                                        if (passwordVisible) R.string.auth_hide_password else R.string.auth_show_password
+                                    )
                                 )
                             }
                         },
@@ -349,7 +356,7 @@ fun JellyfinLoginScreen(
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            text = "Prefill http://",
+                            text = stringResource(R.string.auth_prefill_http),
                             fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.Medium
                         )
@@ -378,16 +385,16 @@ fun JellyfinLoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Connecting...", fontFamily = GoogleSansRounded)
+                    Text(stringResource(R.string.auth_connecting), fontFamily = GoogleSansRounded)
                 } else {
-                    Text("Connect", fontFamily = GoogleSansRounded, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.auth_connect), fontFamily = GoogleSansRounded, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Connects to Jellyfin servers for streaming your music library",
+                text = stringResource(R.string.auth_jellyfin_footer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = GoogleSansRounded

@@ -68,6 +68,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -188,7 +189,7 @@ fun AccountsScreen(
             if (uiState.connectedAccounts.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Linked Services",
+                        text = stringResource(R.string.presentation_batch_b_accounts_linked_services),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -244,7 +245,7 @@ fun AccountsScreen(
         }
 
         CollapsibleCommonTopBar(
-            title = "Accounts",
+            title = stringResource(R.string.settings_accounts_row_title),
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
             onBackClick = onBackClick,
@@ -259,6 +260,10 @@ private fun AccountsHeroSection(
     connectedCount: Int,
     disconnectedCount: Int
 ) {
+    val connectedHeroTitle = stringResource(R.string.presentation_batch_b_accounts_connected_hero_title)
+    val connectedHeroBody = stringResource(R.string.presentation_batch_b_accounts_connected_hero_body)
+    val statActive = stringResource(R.string.presentation_batch_b_accounts_stat_active)
+    val statAvailable = stringResource(R.string.presentation_batch_b_accounts_stat_available)
     val sectionShape = AbsoluteSmoothCornerShape(30.dp, 60)
     Card(
         shape = sectionShape,
@@ -271,13 +276,13 @@ private fun AccountsHeroSection(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Connected Accounts",
+                text = connectedHeroTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Manage linked providers and keep each integration under your control.",
+                text = connectedHeroBody,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -286,12 +291,12 @@ private fun AccountsHeroSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 HeroStatTile(
-                    title = "Active",
+                    title = statActive,
                     value = connectedCount.toString(),
                     modifier = Modifier.weight(1f)
                 )
                 HeroStatTile(
-                    title = "Available",
+                    title = statAvailable,
                     value = (connectedCount + disconnectedCount).toString(),
                     modifier = Modifier.weight(1f)
                 )
@@ -337,6 +342,12 @@ private fun ConnectedAccountCard(
     onLogout: () -> Unit,
     painter: androidx.compose.ui.graphics.painter.Painter? = null
 ) {
+    val statusSoon = stringResource(R.string.presentation_batch_b_accounts_status_soon)
+    val statusConnected = stringResource(R.string.presentation_batch_b_accounts_status_connected)
+    val openService = stringResource(R.string.presentation_batch_b_accounts_open_service)
+    val comingSoonShort = stringResource(R.string.presentation_batch_b_accounts_coming_soon_short)
+    val loggingOut = stringResource(R.string.presentation_batch_b_accounts_logging_out)
+    val logOut = stringResource(R.string.cd_logout)
     val palette = servicePalette(account.service)
     val isComingSoon = account.service == ExternalServiceAccount.GOOGLE_DRIVE
     val cardShape = AbsoluteSmoothCornerShape(28.dp, 60)
@@ -418,7 +429,7 @@ private fun ConnectedAccountCard(
         }
     ) {
         Text(
-            text = if (isComingSoon) "Soon" else "Connected",
+            text = if (isComingSoon) statusSoon else statusConnected,
             style = MaterialTheme.typography.labelMedium,
             color = if (isComingSoon) {
                 MaterialTheme.colorScheme.onSecondaryContainer
@@ -474,7 +485,7 @@ private fun ConnectedAccountCard(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = if (isComingSoon) "Coming soon" else "Open Service",
+                    text = if (isComingSoon) comingSoonShort else openService,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -499,7 +510,7 @@ private fun ConnectedAccountCard(
                 }
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = if (account.isLoggingOut) "Logging out..." else "Log out",
+                    text = if (account.isLoggingOut) loggingOut else logOut,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -512,6 +523,10 @@ private fun EmptyAccountsCard(
     disconnectedServices: List<ExternalServiceAccount>,
     onConnect: (ExternalServiceAccount) -> Unit
 ) {
+    val noLinkedTitle = stringResource(R.string.presentation_batch_b_accounts_no_linked_title)
+    val noLinkedBody = stringResource(R.string.presentation_batch_b_accounts_no_linked_body)
+    val connectTemplate = stringResource(R.string.presentation_batch_b_accounts_connect_service)
+    val serviceSoonTemplate = stringResource(R.string.presentation_batch_b_accounts_service_paren_coming_soon)
     Card(
         shape = AbsoluteSmoothCornerShape(28.dp, 60),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -523,12 +538,12 @@ private fun EmptyAccountsCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "No linked accounts yet",
+                text = noLinkedTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Connect a provider to manage it from this screen.",
+                text = noLinkedBody,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -566,9 +581,9 @@ private fun EmptyAccountsCard(
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
                         text = if (isComingSoon) {
-                            "${serviceTitle(service)} (Coming soon)"
+                            serviceSoonTemplate.format(serviceDisplayName(service))
                         } else {
-                            "Connect ${serviceTitle(service)}"
+                            connectTemplate.format(serviceDisplayName(service))
                         }
                     )
                 }
@@ -694,14 +709,15 @@ private fun ServiceIcon(service: ExternalServiceAccount, tint: Color, modifier: 
     }
 }
 
-private fun serviceTitle(service: ExternalServiceAccount): String {
+@Composable
+private fun serviceDisplayName(service: ExternalServiceAccount): String {
     return when (service) {
-        ExternalServiceAccount.TELEGRAM -> "Telegram"
-        ExternalServiceAccount.GOOGLE_DRIVE -> "Google Drive"
-        ExternalServiceAccount.NETEASE -> "Netease"
-        ExternalServiceAccount.QQ_MUSIC -> "QQ Music"
-        ExternalServiceAccount.NAVIDROME -> "Subsonic"
-        ExternalServiceAccount.JELLYFIN -> "Jellyfin"
+        ExternalServiceAccount.TELEGRAM -> stringResource(R.string.presentation_batch_b_service_telegram)
+        ExternalServiceAccount.GOOGLE_DRIVE -> stringResource(R.string.auth_gdrive_title)
+        ExternalServiceAccount.NETEASE -> stringResource(R.string.presentation_batch_b_service_netease)
+        ExternalServiceAccount.QQ_MUSIC -> stringResource(R.string.screen_qq_music_dashboard_title)
+        ExternalServiceAccount.NAVIDROME -> stringResource(R.string.cd_subsonic_logo)
+        ExternalServiceAccount.JELLYFIN -> stringResource(R.string.auth_jellyfin_title)
     }
 }
 
@@ -722,7 +738,7 @@ private fun openService(
             )
         }
         ExternalServiceAccount.GOOGLE_DRIVE -> {
-            Toast.makeText(context, "Google Drive is coming soon.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.accounts_google_drive_soon), Toast.LENGTH_SHORT).show()
         }
         ExternalServiceAccount.NETEASE -> {
             if (preferNeteaseDashboard) {
@@ -773,6 +789,6 @@ private fun safeStartActivity(
 ) {
     runCatching { context.startActivity(intent) }
         .onFailure {
-            Toast.makeText(context, "Unable to open this screen right now.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.accounts_unable_open_screen), Toast.LENGTH_SHORT).show()
         }
 }

@@ -76,6 +76,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.MusicFolder
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import java.io.File
+import androidx.compose.ui.res.stringResource
 
 val defaultShape = RoundedCornerShape(26.dp) // Fallback shape
 val genHeight = 42.dp
@@ -169,8 +170,16 @@ fun LibraryActionRow(
                         modifier = Modifier.height(genHeight)
                     ) {
                         val icon = if (isPlaylistTab) Icons.AutoMirrored.Rounded.PlaylistAdd else Icons.Rounded.Shuffle
-                        val text = if (isPlaylistTab) "New" else "Shuffle"
-                        val contentDesc = if (isPlaylistTab) "Create New Playlist" else "Shuffle Play"
+                        val text = if (isPlaylistTab) {
+                            stringResource(R.string.library_action_new)
+                        } else {
+                            stringResource(R.string.shortcut_shuffle_short)
+                        }
+                        val contentDesc = if (isPlaylistTab) {
+                            stringResource(R.string.cd_create_new_playlist)
+                        } else {
+                            stringResource(R.string.cd_shuffle_play)
+                        }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -241,11 +250,11 @@ fun LibraryActionRow(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.rounded_upload_file_24),
-                                        contentDescription = "Import M3U",
+                                        contentDescription = stringResource(R.string.cd_import_m3u_playlist),
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        text = "Import",
+                                        text = stringResource(R.string.import_file),
                                         overflow = TextOverflow.Ellipsis,
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Medium
@@ -317,7 +326,7 @@ fun LibraryActionRow(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.MyLocation,
-                            contentDescription = "Locate Current Song"
+                            contentDescription = stringResource(R.string.cd_locate_current_song)
                         )
                     }
                 }
@@ -336,9 +345,9 @@ fun LibraryActionRow(
                          com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> Icons.Rounded.PhoneAndroid
                      }
                      val tooltipText = when(currentStorageFilter) {
-                         com.theveloper.pixelplay.data.model.StorageFilter.ALL -> "All Songs"
-                         com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> "Online"
-                         com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> "Offline"
+                         com.theveloper.pixelplay.data.model.StorageFilter.ALL -> stringResource(R.string.library_storage_filter_all_songs)
+                         com.theveloper.pixelplay.data.model.StorageFilter.ONLINE -> stringResource(R.string.library_storage_filter_online)
+                         com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE -> stringResource(R.string.library_storage_filter_offline)
                      }
                      val tooltipState = rememberTooltipState()
 
@@ -385,7 +394,7 @@ fun LibraryActionRow(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.Sort,
-                        contentDescription = "Sort Options",
+                        contentDescription = stringResource(R.string.cd_sort_options),
                     )
                 }
             }
@@ -442,7 +451,7 @@ fun Breadcrumbs(
             modifier = Modifier.size(36.dp),
             enabled = currentFolder != null
         ) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.auth_cd_back))
         }
         Spacer(Modifier.width(8.dp))
 

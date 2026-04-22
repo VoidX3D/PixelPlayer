@@ -10,6 +10,7 @@ import android.os.Trace // Import Trace
 import android.provider.MediaStore
 import android.util.Log
 import androidx.hilt.work.HiltWorker
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
@@ -79,6 +80,7 @@ constructor(
 
     private val contentResolver: ContentResolver = appContext.contentResolver
     private var minSongDurationMs: Int = 10000
+    private var minTracksPerAlbum: Int = 1
 
     override suspend fun doWork(): Result =
             withContext(Dispatchers.IO) {
@@ -116,6 +118,7 @@ constructor(
 
                     // Smart Duration Filtering
                     minSongDurationMs = userPreferencesRepository.getMinSongDuration()
+                    minTracksPerAlbum = userPreferencesRepository.minTracksPerAlbumFlow.first()
 
                     Timber.tag(TAG)
                         .d(
@@ -229,7 +232,7 @@ constructor(
                                 if (syncMode == SyncMode.REBUILD) {
                                     emptyList()
                                 } else {
-                                    musicDao.getAllAlbumsList(emptyList(), false)
+                                    musicDao.getAllAlbumsList(emptyList(), false, 0)
                                 }
 
                         val existingArtistMetadata =
@@ -1334,6 +1337,15 @@ constructor(
                         .setInputData(workDataOf(INPUT_SYNC_MODE to SyncMode.INCREMENTAL.name))
                         .build()
 
+        // Full rescans and rebuilds do heavy bulk writes to Room + the album art cache.
+        // Requiring non-critical storage prevents partial/corrupt syncs when the device is
+        // nearly full. Not applied to incremental/startup sync so the library still appears
+        // immediately when the user opens the app.
+        private val heavySyncConstraints: Constraints =
+                Constraints.Builder()
+                        .setRequiresStorageNotLow(true)
+                        .build()
+
         fun fullSyncWork(deepScan: Boolean = false) =
                 OneTimeWorkRequestBuilder<SyncWorker>()
                         .setInputData(
@@ -1342,11 +1354,13 @@ constructor(
                                         INPUT_FORCE_METADATA to deepScan
                                 )
                         )
+                        .setConstraints(heavySyncConstraints)
                         .build()
 
         fun rebuildDatabaseWork() =
                 OneTimeWorkRequestBuilder<SyncWorker>()
                         .setInputData(workDataOf(INPUT_SYNC_MODE to SyncMode.REBUILD.name))
+                        .setConstraints(heavySyncConstraints)
                         .build()
     }
     
@@ -1368,7 +1382,7 @@ constructor(
 
             // 1. Pre-load Local Data for Merging
             val existingArtists = musicDao.getAllArtistsListRaw().associate { it.name.trim().lowercase() to it.id }
-            val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false).associate { "${it.title.trim().lowercase()}_${it.artistName?.trim()?.lowercase()}" to it.id }
+            val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0).associate { "${it.title.trim().lowercase()}_${it.artistName?.trim()?.lowercase()}" to it.id }
             val existingArtistImageUrls = musicDao.getAllArtistsListRaw().associate { it.id to it.imageUrl }
             val nextArtistId = AtomicLong((musicDao.getMaxArtistId() ?: 0L) + 1)
             val delimiters = userPreferencesRepository.artistDelimitersFlow.first()

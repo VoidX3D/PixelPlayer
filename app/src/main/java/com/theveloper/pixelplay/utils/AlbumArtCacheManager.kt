@@ -24,7 +24,7 @@ object AlbumArtCacheManager {
     /**
      * Maximum cache size in bytes (200MB default)
      */
-    private const val MAX_CACHE_SIZE_BYTES = 200L * 1024 * 1024
+    const val DEFAULT_MAX_CACHE_SIZE_BYTES = 200L * 1024 * 1024
     
     /**
      * Prefix for album art cache files
@@ -51,6 +51,9 @@ object AlbumArtCacheManager {
      */
     @Volatile
     private var lastCleanupTime = 0L
+
+    @Volatile
+    var configuredCacheLimitMb: Long = 200L
     
     /**
      * Minimum interval between cleanups (5 minutes)
@@ -68,9 +71,15 @@ object AlbumArtCacheManager {
      * Uses LRU policy to remove the oldest 25% of files.
      * 
      * @param context Application context
+     * @param maxCacheSizeMb Maximum cache size limit in MB (default: 200MB)
      * @return Number of files deleted, or 0 if no cleanup was needed
      */
-    suspend fun cleanCacheIfNeeded(context: Context): Int = withContext(Dispatchers.IO) {
+    suspend fun cleanCacheIfNeeded(context: Context, maxCacheSizeMb: Long = 200L): Int {
+        val maxCacheSizeBytes = maxCacheSizeMb * 1024 * 1024
+        return cleanCacheIfNeededInternal(context, maxCacheSizeBytes)
+    }
+
+    private suspend fun cleanCacheIfNeededInternal(context: Context, maxCacheSizeBytes: Long): Int = withContext(Dispatchers.IO) {
         // Skip if cleaned recently
         val now = System.currentTimeMillis()
         if (now - lastCleanupTime < MIN_CLEANUP_INTERVAL_MS) {
@@ -83,7 +92,7 @@ object AlbumArtCacheManager {
                 return@withLock 0
             }
             
-            val cacheDir = context.cacheDir
+            val cacheDir = AlbumArtUtils.getAlbumArtDir(context)
             val artFiles = getAlbumArtFiles(cacheDir)
             
             if (artFiles.isEmpty()) {
@@ -92,7 +101,7 @@ object AlbumArtCacheManager {
             
             val currentSize = artFiles.sumOf { it.length() }
             
-            if (currentSize <= MAX_CACHE_SIZE_BYTES) {
+            if (currentSize <= maxCacheSizeBytes) {
                 return@withLock 0
             }
             
@@ -138,7 +147,7 @@ object AlbumArtCacheManager {
         validSongIds: Set<Long>
     ): Int = withContext(Dispatchers.IO) {
         cleanupMutex.withLock {
-            val cacheDir = context.cacheDir
+            val cacheDir = AlbumArtUtils.getAlbumArtDir(context)
             val allArtFiles = getAllAlbumArtRelatedFiles(cacheDir)
             
             if (allArtFiles.isEmpty()) {
@@ -171,7 +180,7 @@ object AlbumArtCacheManager {
      * @return Total size of album art cache in bytes
      */
     suspend fun getCacheSizeBytes(context: Context): Long = withContext(Dispatchers.IO) {
-        getAlbumArtFiles(context.cacheDir).sumOf { it.length() }
+        getAlbumArtFiles(AlbumArtUtils.getAlbumArtDir(context)).sumOf { it.length() }
     }
     
     /**
@@ -193,7 +202,7 @@ object AlbumArtCacheManager {
      * @return Number of cached files
      */
     fun getCachedFileCount(context: Context): Int {
-        return getAlbumArtFiles(context.cacheDir).size
+        return getAlbumArtFiles(AlbumArtUtils.getAlbumArtDir(context)).size
     }
     
     /**
@@ -204,7 +213,7 @@ object AlbumArtCacheManager {
      */
     suspend fun clearAllCache(context: Context): Int = withContext(Dispatchers.IO) {
         cleanupMutex.withLock {
-            val files = getAllAlbumArtRelatedFiles(context.cacheDir)
+            val files = getAllAlbumArtRelatedFiles(AlbumArtUtils.getAlbumArtDir(context))
             var deletedCount = 0
             
             for (file in files) {

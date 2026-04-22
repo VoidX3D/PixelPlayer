@@ -2,7 +2,9 @@ package com.theveloper.pixelplay.data.worker
 
 
 import android.content.Context
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.theveloper.pixelplay.data.ai.AiSystemPromptType
@@ -15,6 +17,14 @@ class AiWorkerManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val workManager = WorkManager.getInstance(context)
+
+    // AI generation is network-bound and non-urgent: defer until we actually have
+    // connectivity and the battery isn't critical, avoiding guaranteed-failure retries
+    // and background drain.
+    private val aiConstraints: Constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .setRequiresBatteryNotLow(true)
+        .build()
 
     fun enqueueAiTask(
         prompt: String,
@@ -29,6 +39,7 @@ class AiWorkerManager @Inject constructor(
 
         val workRequest = OneTimeWorkRequestBuilder<AiWorker>()
             .setInputData(data)
+            .setConstraints(aiConstraints)
             .addTag(AiWorker.WORK_NAME)
             .build()
 

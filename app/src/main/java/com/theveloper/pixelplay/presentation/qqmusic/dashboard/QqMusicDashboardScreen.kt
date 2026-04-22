@@ -35,6 +35,8 @@ import com.theveloper.pixelplay.data.database.QqMusicPlaylistEntity
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,8 +63,8 @@ fun QqMusicDashboardScreen(
 
     val syncMessage = when (val s = syncState) {
         is SyncState.Success -> s.message
-        is SyncState.Error -> "Error: ${s.message}"
-        is SyncState.Syncing -> "Syncing…"
+        is SyncState.Error -> stringResource(R.string.error_with_message_format, s.message)
+        is SyncState.Syncing -> stringResource(R.string.sync_status_syncing_ellipsis)
         else -> null
     }
 
@@ -78,14 +80,14 @@ fun QqMusicDashboardScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "QQ Music",
+                        stringResource(R.string.screen_qq_music_dashboard_title),
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.auth_cd_back))
                     }
                 },
                 actions = {
@@ -95,7 +97,7 @@ fun QqMusicDashboardScreen(
                     ) {
                         Icon(
                             Icons.Rounded.CloudSync,
-                            contentDescription = "Sync All Playlists",
+                            contentDescription = stringResource(R.string.cd_sync_all_playlists),
                             tint = MaterialTheme.colorScheme.tertiary
                         )
                     }
@@ -104,7 +106,7 @@ fun QqMusicDashboardScreen(
                     }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.Logout,
-                            contentDescription = "Logout"
+                            contentDescription = stringResource(R.string.cd_logout)
                         )
                     }
                 }
@@ -178,7 +180,7 @@ fun QqMusicDashboardScreen(
                         if (avatarUrl != null) {
                             SmartImage(
                                 model = avatarUrl,
-                                contentDescription = "User Avatar",
+                                contentDescription = stringResource(R.string.cd_user_avatar),
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape),
@@ -209,7 +211,7 @@ fun QqMusicDashboardScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${playlists.size} playlists synced",
+                                text = stringResource(R.string.dash_playlists_synced_count, playlists.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = GoogleSansRounded,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -230,7 +232,7 @@ fun QqMusicDashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Playlists",
+                    text = stringResource(R.string.dash_title_playlists),
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold
@@ -243,7 +245,7 @@ fun QqMusicDashboardScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Sync", fontFamily = GoogleSansRounded)
+                        Text(stringResource(R.string.dash_action_sync), fontFamily = GoogleSansRounded)
                     }
                 }
             }
@@ -265,14 +267,14 @@ fun QqMusicDashboardScreen(
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            text = "No playlists synced yet",
+                            text = stringResource(R.string.dash_playlists_empty_title),
                             style = MaterialTheme.typography.bodyLarge,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Tap sync to fetch your playlists",
+                            text = stringResource(R.string.dash_playlists_empty_hint_subsonic),
                             style = MaterialTheme.typography.bodyMedium,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
@@ -322,7 +324,7 @@ fun QqMusicDashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Select Playlist Type",
+                        text = stringResource(R.string.qq_select_playlist_type_title),
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
@@ -331,7 +333,7 @@ fun QqMusicDashboardScreen(
                     Spacer(Modifier.height(4.dp))
 
                     Text(
-                        text = "Choose which playlists to sync:",
+                        text = stringResource(R.string.qq_choose_playlists_to_sync),
                         fontFamily = GoogleSansRounded,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -364,13 +366,13 @@ fun QqMusicDashboardScreen(
                             Spacer(Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "All Playlists",
+                                    text = stringResource(R.string.qq_all_playlists),
                                     fontFamily = GoogleSansRounded,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = "Created & Collected",
+                                    text = stringResource(R.string.qq_created_and_collected),
                                     fontFamily = GoogleSansRounded,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -403,7 +405,7 @@ fun QqMusicDashboardScreen(
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                text = "Created Playlists",
+                                text = stringResource(R.string.qq_created_playlists),
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -435,7 +437,7 @@ fun QqMusicDashboardScreen(
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                text = "Collected Playlists",
+                                text = stringResource(R.string.qq_collected_playlists),
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -507,7 +509,7 @@ private fun QqPlaylistCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${playlist.songCount} songs",
+                    text = stringResource(R.string.dash_song_count, playlist.songCount),
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = GoogleSansRounded,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -521,7 +523,7 @@ private fun QqPlaylistCard(
             ) {
                 Icon(
                     Icons.Rounded.Sync,
-                    contentDescription = "Sync",
+                    contentDescription = stringResource(R.string.cd_sync),
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -531,7 +533,7 @@ private fun QqPlaylistCard(
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     Icons.Rounded.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = stringResource(R.string.cd_remove),
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )

@@ -263,6 +263,8 @@ private fun WatchTransferProgressDialog(
     onCancelTransfer: () -> Unit,
 ) {
     val context = LocalContext.current
+    val startingTransfer = stringResource(R.string.presentation_batch_d_watch_starting_transfer)
+    val preparingTransfer = stringResource(R.string.presentation_batch_d_watch_preparing_transfer)
     val animatedProgress by animateFloatAsState(
         targetValue = transfer.progress.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 300),
@@ -272,16 +274,16 @@ private fun WatchTransferProgressDialog(
     val bytesText = if (transfer.totalBytes > 0L) {
         val sent = Formatter.formatFileSize(context, transfer.bytesTransferred)
         val total = Formatter.formatFileSize(context, transfer.totalBytes)
-        "$sent / $total"
+        stringResource(R.string.presentation_batch_h_transfer_bytes_progress, sent, total)
     } else {
-        "Starting transfer..."
+        startingTransfer
     }
     val statusText = when (transfer.status) {
-        WearTransferProgress.STATUS_TRANSFERRING -> "Transferring"
-        WearTransferProgress.STATUS_COMPLETED -> "Completed"
-        WearTransferProgress.STATUS_FAILED -> "Failed"
-        WearTransferProgress.STATUS_CANCELLED -> "Cancelled"
-        else -> "Preparing"
+        WearTransferProgress.STATUS_TRANSFERRING -> stringResource(R.string.presentation_batch_d_watch_status_transferring)
+        WearTransferProgress.STATUS_COMPLETED -> stringResource(R.string.presentation_batch_d_watch_status_completed)
+        WearTransferProgress.STATUS_FAILED -> stringResource(R.string.presentation_batch_d_watch_status_failed)
+        WearTransferProgress.STATUS_CANCELLED -> stringResource(R.string.presentation_batch_d_watch_status_cancelled)
+        else -> stringResource(R.string.presentation_batch_d_watch_status_preparing)
     }
 
     Dialog(
@@ -304,7 +306,7 @@ private fun WatchTransferProgressDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Sending to Watch",
+                    text = stringResource(R.string.presentation_batch_d_watch_sending_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
@@ -322,7 +324,7 @@ private fun WatchTransferProgressDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "$progressPercent%",
+                        text = stringResource(R.string.presentation_batch_g_sync_percent, progressPercent),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = MaterialTheme.typography.labelLarge.fontSize * 1.4f
                         ),
@@ -340,7 +342,7 @@ private fun WatchTransferProgressDialog(
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
                 Text(
-                    text = transfer.songTitle.ifBlank { "Preparing transfer..." },
+                    text = transfer.songTitle.ifBlank { preparingTransfer },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
@@ -348,7 +350,7 @@ private fun WatchTransferProgressDialog(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "$statusText • $bytesText",
+                    text = stringResource(R.string.presentation_batch_f_status_bullet_step, statusText, bytesText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -369,7 +371,7 @@ private fun WatchTransferProgressDialog(
                         contentColor = MaterialTheme.colorScheme.onError
                     )
                 ) {
-                    Text(text = "Cancel transfer")
+                    Text(text = stringResource(R.string.presentation_batch_d_watch_cancel_transfer))
                 }
             }
         }
@@ -531,13 +533,13 @@ fun LibraryScreen(
         { song -> multiSelectionState.toggleSelection(song) }
     }
 
-    val toggleAlbumSelection: (Album) -> Unit = remember(selectedAlbums, playerViewModel) {
+    val toggleAlbumSelection: (Album) -> Unit = remember(selectedAlbums, playerViewModel, context) {
         { album ->
             val existingIndex = selectedAlbums.indexOfFirst { it.id == album.id }
             if (existingIndex >= 0) {
                 selectedAlbums = selectedAlbums.toMutableList().also { it.removeAt(existingIndex) }
             } else if (selectedAlbums.size >= MAX_ALBUM_MULTI_SELECTION) {
-                playerViewModel.sendToast("You can select up to $MAX_ALBUM_MULTI_SELECTION albums")
+                playerViewModel.sendToast(context.getString(R.string.presentation_batch_d_max_albums_selection, MAX_ALBUM_MULTI_SELECTION))
             } else {
                 selectedAlbums = selectedAlbums + album
             }
@@ -683,7 +685,7 @@ fun LibraryScreen(
         playlistViewModel.playlistCreationEvent.collect { success ->
             if (success) {
                 showCreatePlaylistDialog = false
-                Toast.makeText(context, "Playlist created successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_playlist_created), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -803,7 +805,7 @@ fun LibraryScreen(
                         } else {
                             Text(
                                 modifier = Modifier.padding(start = 8.dp),
-                                text = "Library",
+                                text = stringResource(R.string.presentation_batch_d_library_title),
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -837,11 +839,11 @@ fun LibraryScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.rounded_watch_arrow_down_24),
-                                        contentDescription = "Watch transfer",
+                                        contentDescription = stringResource(R.string.presentation_batch_d_watch_transfer_cd),
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        text = "$watchTransferPercent%",
+                                        text = stringResource(R.string.presentation_batch_g_sync_percent, watchTransferPercent),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -860,7 +862,7 @@ fun LibraryScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.rounded_settings_24),
-                                contentDescription = "Ajustes"
+                                contentDescription = stringResource(R.string.presentation_batch_d_open_settings_cd)
                             )
                         }
                     },
@@ -914,13 +916,13 @@ fun LibraryScreen(
                         }
                         TabAnimation(
                             index = -1,
-                            title = "Edit",
+                            title = stringResource(R.string.presentation_batch_d_edit_library_tabs_cd),
                             selectedIndex = currentTabIndex,
                             onClick = { showReorderTabsSheet = true }
                         ) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "Reorder tabs",
+                                contentDescription = stringResource(R.string.presentation_batch_d_reorder_tabs_cd),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                             )
                         }
@@ -1143,7 +1145,12 @@ fun LibraryScreen(
                                         onSelectAll = {
                                             val remaining = MAX_ALBUM_MULTI_SELECTION - selectedAlbums.size
                                             if (remaining <= 0) {
-                                                playerViewModel.sendToast("You can select up to $MAX_ALBUM_MULTI_SELECTION albums")
+                                                playerViewModel.sendToast(
+                                                    context.getString(
+                                                        R.string.presentation_batch_d_max_albums_selection,
+                                                        MAX_ALBUM_MULTI_SELECTION
+                                                    )
+                                                )
                                             } else {
                                                 val albumsToAppend = playerViewModel.albumsFlow.value
                                                     .filterNot { selectedAlbumIds.contains(it.id) }
@@ -1241,7 +1248,7 @@ fun LibraryScreen(
                             val isPlaylistsTab = currentTabId == LibraryTabId.PLAYLISTS
 
                             LibrarySortBottomSheet(
-                                title = "Sort by",
+                                title = stringResource(R.string.presentation_batch_d_sort_by),
                                 options = sanitizedSortOptions,
                                 selectedOption = selectedOptionForSheet,
                                 onDismiss = { playerViewModel.hideSortingSheet() },
@@ -1253,11 +1260,15 @@ fun LibraryScreen(
                                     onSortOptionChanged(option)
                                 },
                                 showViewToggle = isFoldersTab || isPlaylistsTab,
-                                viewSectionTitle = if (isPlaylistsTab) "Cloud" else "View",
-                                viewToggleLabel = if (isPlaylistsTab) {
-                                    "Telegram Cloud Channels"
+                                viewSectionTitle = if (isPlaylistsTab) {
+                                    stringResource(R.string.presentation_batch_d_view_section_cloud)
                                 } else {
-                                    "Playlist View"
+                                    stringResource(R.string.presentation_batch_d_view_section_view)
+                                },
+                                viewToggleLabel = if (isPlaylistsTab) {
+                                    stringResource(R.string.presentation_batch_d_telegram_cloud_channels)
+                                } else {
+                                    stringResource(R.string.presentation_batch_d_playlist_view)
                                 },
                                 viewToggleChecked = if (isPlaylistsTab) {
                                     playlistUiState.showTelegramCloudPlaylists
@@ -1293,7 +1304,7 @@ fun LibraryScreen(
                                                 inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 activeCornerRadius = 32.dp,
                                                 onClick = { playerViewModel.setAlbumsListView(false) },
-                                                text = "Grid",
+                                                text = stringResource(R.string.presentation_batch_d_view_grid),
                                                 imageVector = Icons.Rounded.ViewModule
                                             )
 
@@ -1307,7 +1318,7 @@ fun LibraryScreen(
                                                 inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 activeCornerRadius = 32.dp,
                                                 onClick = { playerViewModel.setAlbumsListView(true) },
-                                                text = "List",
+                                                text = stringResource(R.string.presentation_batch_d_view_list),
                                                 imageVector = Icons.AutoMirrored.Rounded.ViewList
                                             )
                                         }
@@ -1329,7 +1340,7 @@ fun LibraryScreen(
                                                 inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 activeCornerRadius = 32.dp,
                                                 onClick = { playerViewModel.setFoldersSource(FolderSource.INTERNAL) },
-                                                text = "Internal"
+                                                text = stringResource(R.string.presentation_batch_d_storage_internal)
                                             )
                                             ToggleSegmentButton(
                                                 modifier = Modifier
@@ -1346,12 +1357,12 @@ fun LibraryScreen(
                                                         playerViewModel.setFoldersSource(FolderSource.SD_CARD)
                                                     }
                                                 },
-                                                text = "SD Card"
+                                                text = stringResource(R.string.presentation_batch_d_storage_sd_card)
                                             )
                                         }
                                         if (!playerUiState.isSdCardAvailable) {
                                             Text(
-                                                text = "SD card is not available right now.",
+                                                text = stringResource(R.string.presentation_batch_d_sd_card_unavailable),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(top = 8.dp, start = 2.dp)
@@ -1362,7 +1373,7 @@ fun LibraryScreen(
                                 extraContent = {
                                     if (isPlaylistsTab && playlistUiState.showTelegramCloudPlaylists) {
                                         Text(
-                                            text = "Topics Display",
+                                            text = stringResource(R.string.presentation_batch_d_topics_display),
                                             style = MaterialTheme.typography.headlineSmall,
                                             fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -1375,9 +1386,9 @@ fun LibraryScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             listOf(
-                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.CHANNELS_ONLY to "Channels",
-                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.TOPICS_ONLY to "Topics",
-                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.CHANNELS_AND_TOPICS to "Both"
+                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.CHANNELS_ONLY to stringResource(R.string.presentation_batch_d_topic_mode_channels),
+                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.TOPICS_ONLY to stringResource(R.string.presentation_batch_d_topic_mode_topics),
+                                                com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.CHANNELS_AND_TOPICS to stringResource(R.string.presentation_batch_d_topic_mode_both)
                                             ).forEach { (mode, label) ->
                                                 ToggleSegmentButton(
                                                     modifier = Modifier.weight(1f),
@@ -1395,14 +1406,14 @@ fun LibraryScreen(
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "Cloud",
+                                        text = stringResource(R.string.presentation_batch_d_cloud_sources_heading),
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                         modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
                                     )
                                     com.theveloper.pixelplay.presentation.components.LibrarySheetToggleCard(
-                                        label = "Cloud Only",
+                                        label = stringResource(R.string.presentation_batch_d_cloud_only),
                                         checked = playerUiState.hideLocalMedia,
                                         boxBackgroundColor = if (playerUiState.hideLocalMedia)
                                             MaterialTheme.colorScheme.tertiary
@@ -1552,6 +1563,7 @@ fun LibraryScreen(
                                         val currentFolder = playerUiState.currentFolder
                                         val isLoading = playerUiState.isLoadingLibraryCategories
                                         val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
+                                        val defaultFolderName = stringResource(R.string.presentation_batch_d_folder_name_fallback)
 
                                         LibraryFoldersTab(
                                             folders = folders,
@@ -1570,7 +1582,11 @@ fun LibraryScreen(
                                                 )
                                             },
                                             onPlaySong = { song, queue ->
-                                                playerViewModel.showAndPlaySong(song, queue, currentFolder?.name ?: "Folder")
+                                                playerViewModel.showAndPlaySong(
+                                                    song,
+                                                    queue,
+                                                    currentFolder?.name ?: defaultFolderName
+                                                )
                                             },
                                             onMoreOptionsClick = stableOnMoreOptionsClick,
                                             isPlaylistView = playerUiState.isFoldersPlaylistView,
@@ -1606,7 +1622,24 @@ fun LibraryScreen(
                         }
                     }
                 }
-                if (
+                if (playerUiState.isGeneratingAiMetadata) {
+                    Surface( // Fondo semitransparente para el indicador
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                LoadingIndicator(modifier = Modifier.size(64.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = stringResource(R.string.presentation_batch_d_generating_ai_metadata),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                } else if (
                     playerUiState.isSyncingLibrary ||
                     (
                             (playerUiState.isLoadingInitialSongs || playerUiState.isLoadingLibraryCategories) &&
@@ -1655,7 +1688,7 @@ fun LibraryScreen(
                 playerViewModel.clearAiPlaylistError()
                 showCreateAiPlaylistDialog = true
             } else {
-                Toast.makeText(context, "Set your AI provider API key first", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_set_ai_provider_api_key_first), Toast.LENGTH_SHORT).show()
             }
         },
         isAiEnabled = hasActiveAiProviderApiKey,
@@ -1673,7 +1706,7 @@ fun LibraryScreen(
                 playerViewModel.clearAiPlaylistError()
                 showCreateAiPlaylistDialog = true
             } else {
-                Toast.makeText(context, "Set your Gemini API key first", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_set_gemini_api_key_first), Toast.LENGTH_SHORT).show()
             }
         },
         onCreate = { name, imageUri, color, icon, songIds, cropScale, cropPanX, cropPanY, shapeType, d1, d2, d3, d4, smartRuleKey ->
@@ -1754,12 +1787,12 @@ fun LibraryScreen(
                 onAddToQueue = {
                     playerViewModel.addSongToQueue(currentSong) // Assumes such a method exists or will be added
                     showSongInfoBottomSheet = false
-                    playerViewModel.sendToast("Added to the queue")
+                    playerViewModel.sendToast(context.getString(R.string.toast_added_to_queue))
                 },
                 onAddNextToQueue = {
                     playerViewModel.addSongNextToQueue(currentSong)
                     showSongInfoBottomSheet = false
-                    playerViewModel.sendToast("Will play next")
+                    playerViewModel.sendToast(context.getString(R.string.toast_playing_next))
                 },
                 onAddToPlayList = {
                     playlistSheetSongs = listOf(currentSong)
@@ -1970,21 +2003,24 @@ fun LibraryScreen(
                 pendingMergePlaylistIds = emptyList()
                 mergePlaylistName = ""
             },
-            title = { Text("Merge Playlists") },
+            title = { Text(stringResource(R.string.presentation_batch_d_merge_playlists_title)) },
             text = {
                 Column {
-                    Text("Enter a name for the merged playlist:")
+                    Text(stringResource(R.string.presentation_batch_d_merge_playlists_prompt))
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = mergePlaylistName,
                         onValueChange = { mergePlaylistName = it },
-                        placeholder = { Text("Merged Playlist") },
+                        placeholder = { Text(stringResource(R.string.presentation_batch_d_merge_playlists_placeholder)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "This will merge ${pendingMergePlaylistIds.size} selected playlists into one.",
+                        text = stringResource(
+                            R.string.presentation_batch_d_merge_playlists_body,
+                            pendingMergePlaylistIds.size
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2005,7 +2041,7 @@ fun LibraryScreen(
                         }
                     }
                 ) {
-                    Text("Merge")
+                    Text(stringResource(R.string.action_merge))
                 }
             },
             dismissButton = {
@@ -2014,7 +2050,7 @@ fun LibraryScreen(
                     pendingMergePlaylistIds = emptyList()
                     mergePlaylistName = ""
                 }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -2353,7 +2389,7 @@ fun LibraryNavigationPill(
                     Icon(
                         modifier = Modifier.rotate(arrowRotation),
                         imageVector = Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = "Expandir menú",
+                        contentDescription = stringResource(R.string.presentation_batch_d_expand_tab_menu_cd),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
@@ -2422,12 +2458,12 @@ private fun LibraryTabSwitcherSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Library tabs",
+                text = stringResource(R.string.presentation_batch_d_library_tabs_sheet_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontFamily = GoogleSansRounded
             )
             Text(
-                text = "Jump directly to any tab or reorder them.",
+                text = stringResource(R.string.presentation_batch_d_library_tabs_sheet_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -2476,7 +2512,7 @@ private fun LibraryTabSwitcherSheet(
                                 contentDescription = null
                             )
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("Reorder tabs")
+                            Text(stringResource(R.string.presentation_batch_d_reorder_tabs_label))
                         }
                     }
                 }
@@ -2909,7 +2945,7 @@ fun FolderListItem(folder: MusicFolder, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_folder),
-                contentDescription = "Folder",
+                contentDescription = stringResource(R.string.presentation_batch_d_cd_folder),
                 modifier = Modifier
                     .size(48.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
@@ -3118,7 +3154,7 @@ fun AlbumGridItemRedesigned(
                         var isLoadingImage by remember { mutableStateOf(true) }
                         SmartImage(
                             model = album.albumArtUriString,
-                            contentDescription = "Carátula de ${album.title}",
+                            contentDescription = stringResource(R.string.cd_album_art_for_title, album.title),
                             contentScale = ContentScale.Crop,
                             // Reducido el tamaño para mejorar el rendimiento del scroll, como se sugiere en el informe.
                             // ContentScale.Crop se encargará de ajustar la imagen al aspect ratio.
@@ -3251,7 +3287,7 @@ fun ArtistListItem(artist: Artist, onClick: () -> Unit, isLoading: Boolean = fal
                     } else {
                         Icon(
                             painter = painterResource(R.drawable.rounded_artist_24),
-                            contentDescription = "Artista",
+                            contentDescription = stringResource(R.string.presentation_batch_d_cd_artist),
                             modifier = Modifier.padding(8.dp),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -3385,7 +3421,7 @@ fun AlbumListItem(
                         var isLoadingImage by remember { mutableStateOf(true) }
                         SmartImage(
                             model = album.albumArtUriString,
-                            contentDescription = "Carátula de ${album.title}",
+                            contentDescription = stringResource(R.string.cd_album_art_for_title, album.title),
                             contentScale = ContentScale.Crop,
                             targetSize = Size(256, 256),
                             modifier = Modifier.fillMaxSize(),

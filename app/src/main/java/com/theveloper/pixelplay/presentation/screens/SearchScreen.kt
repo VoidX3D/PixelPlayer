@@ -123,6 +123,7 @@ import kotlinx.coroutines.withContext
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
+import androidx.compose.ui.res.stringResource
 
 private data class SearchUiSlice(
     val selectedSearchFilter: SearchFilterType = SearchFilterType.ALL,
@@ -271,7 +272,7 @@ fun SearchScreen(
                             onExpandedChange = {},
                             placeholder = {
                                 Text(
-                                    "Search...",
+                                    stringResource(R.string.search_placeholder),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -279,7 +280,7 @@ fun SearchScreen(
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Rounded.Search,
-                                    contentDescription = "Buscar",
+                                    contentDescription = stringResource(R.string.cd_search_icon),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -300,7 +301,7 @@ fun SearchScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Close,
-                                            contentDescription = "Limpiar",
+                                            contentDescription = stringResource(R.string.cd_clear_search_query),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -526,13 +527,13 @@ fun SearchHistoryList(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Recent Searches",
+                stringResource(R.string.recent_searches),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             if (historyItems.isNotEmpty()) {
                 TextButton(onClick = onClearAllHistory) {
-                    Text("Clear All")
+                    Text(stringResource(R.string.clear_all))
                 }
             }
         }
@@ -571,7 +572,7 @@ fun SearchHistoryListItem(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Icon(
                 imageVector = Icons.Rounded.History,
-                contentDescription = "History Icon",
+                contentDescription = stringResource(R.string.cd_search_history_icon),
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -586,7 +587,7 @@ fun SearchHistoryListItem(
         IconButton(onClick = { onHistoryDelete(item.query) }) {
             Icon(
                 imageVector = Icons.Rounded.DeleteForever,
-                contentDescription = "Delete history item",
+                contentDescription = stringResource(R.string.cd_delete_search_history_item),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
@@ -604,7 +605,7 @@ fun EmptySearchResults(searchQuery: String, colorScheme: ColorScheme) {
     ) {
         Icon(
             imageVector = Icons.Rounded.Search,
-            contentDescription = "No results",
+            contentDescription = stringResource(R.string.cd_no_search_results),
             modifier = Modifier
                 .size(80.dp)
                 .padding(bottom = 16.dp),
@@ -612,7 +613,11 @@ fun EmptySearchResults(searchQuery: String, colorScheme: ColorScheme) {
         )
 
         Text(
-            text = if (searchQuery.isNotBlank()) "No results for \"$searchQuery\"" else "Nothing found",
+            text = if (searchQuery.isNotBlank()) {
+                stringResource(R.string.search_no_results_for_query, searchQuery)
+            } else {
+                stringResource(R.string.search_nothing_found)
+            },
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold
@@ -621,7 +626,7 @@ fun EmptySearchResults(searchQuery: String, colorScheme: ColorScheme) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Try a different search term or check your filters.",
+            text = stringResource(R.string.search_try_different_or_filters),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -652,7 +657,7 @@ fun SearchResultsList(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("No results found.", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.search_no_results_found), style = MaterialTheme.typography.bodyLarge)
         }
         return
     }
@@ -933,7 +938,7 @@ fun SearchResultAlbumItem(
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 )
             ) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play Album", modifier = Modifier.size(24.dp))
+                Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.cd_play_album), modifier = Modifier.size(24.dp))
             }
         }
     }

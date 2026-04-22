@@ -16,8 +16,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import android.content.Context
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +34,7 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.theveloper.pixelplay.data.WearAudioOutputRoute
+import com.theveloper.pixelplay.R
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
 import com.theveloper.pixelplay.data.WearOutputTarget
@@ -57,10 +61,11 @@ fun OutputScreen(
     val phoneVolumeState by viewModel.phoneVolumeState.collectAsState()
     val watchAudioRoutes by viewModel.watchAudioRoutes.collectAsState()
     val watchVolumeState by viewModel.watchVolumeState.collectAsState()
+    val context = LocalContext.current
     val palette = LocalWearPalette.current
     val columnState = rememberResponsiveColumnState()
     val phoneRouteType = phoneVolumeState.routeType.ifBlank { WearVolumeState.ROUTE_TYPE_PHONE }
-    val phoneRouteName = phoneVolumeState.routeName.ifBlank { "Phone" }
+    val phoneRouteName = phoneVolumeState.routeName.ifBlank { context.getString(R.string.wear_phone) }
     val canSwitchToWatch = canCurrentSongPlayOnWatch || outputTarget == WearOutputTarget.WATCH
 
     DisposableEffect(viewModel) {
@@ -91,7 +96,7 @@ fun OutputScreen(
 
             item {
                 Text(
-                    text = "Device",
+                    text = stringResource(R.string.wear_device),
                     style = MaterialTheme.typography.title2,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
@@ -103,7 +108,7 @@ fun OutputScreen(
 
             item {
                 Text(
-                    text = "Available outputs",
+                    text = stringResource(R.string.wear_available_outputs),
                     style = MaterialTheme.typography.caption2,
                     color = palette.textSecondary.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
@@ -115,12 +120,15 @@ fun OutputScreen(
 
             item {
                 OutputTargetChip(
-                    label = "Phone",
+                    label = context.getString(R.string.wear_phone),
                     subtitle = when {
-                        !isPhoneConnected -> "Phone disconnected"
-                        outputTarget == WearOutputTarget.PHONE -> "Controlling · $phoneRouteName"
-                        playerState.songId.isBlank() -> "Switch to phone playback"
-                        else -> "Switch current song to $phoneRouteName"
+                        !isPhoneConnected -> context.getString(R.string.wear_phone_disconnected)
+                        outputTarget == WearOutputTarget.PHONE -> context.getString(
+                            R.string.wear_controlling_route,
+                            phoneRouteName
+                        )
+                        playerState.songId.isBlank() -> context.getString(R.string.wear_switch_to_phone_playback)
+                        else -> context.getString(R.string.wear_switch_current_song_to_route, phoneRouteName)
                     },
                     icon = outputRouteIcon(phoneRouteType),
                     selected = outputTarget == WearOutputTarget.PHONE,
@@ -132,13 +140,13 @@ fun OutputScreen(
             if (watchAudioRoutes.isEmpty()) {
                 item {
                     OutputTargetChip(
-                        label = watchVolumeState.routeName.ifBlank { "Watch speaker" },
+                        label = watchVolumeState.routeName.ifBlank { context.getString(R.string.wear_watch_speaker) },
                         subtitle = when {
-                            outputTarget == WearOutputTarget.WATCH && playerState.isPlaying -> "Playing on watch"
-                            outputTarget == WearOutputTarget.WATCH -> "Watch selected"
-                            canSwitchToWatch -> "Switch current song to watch"
-                            playerState.songId.isBlank() -> "Play a song first"
-                            else -> "Save this song on watch first"
+                            outputTarget == WearOutputTarget.WATCH && playerState.isPlaying -> context.getString(R.string.wear_playing_on_watch)
+                            outputTarget == WearOutputTarget.WATCH -> context.getString(R.string.wear_watch_selected)
+                            canSwitchToWatch -> context.getString(R.string.wear_switch_song_to_watch)
+                            playerState.songId.isBlank() -> context.getString(R.string.wear_play_song_first)
+                            else -> context.getString(R.string.wear_save_song_on_watch_first)
                         },
                         icon = Icons.Rounded.Watch,
                         selected = outputTarget == WearOutputTarget.WATCH,
@@ -152,6 +160,7 @@ fun OutputScreen(
                         OutputTargetChip(
                             label = route.name,
                             subtitle = watchOutputSubtitle(
+                                context = context,
                                 route = route,
                                 outputTarget = outputTarget,
                                 playerState = playerState,
@@ -168,11 +177,11 @@ fun OutputScreen(
 
             item {
                 OutputTargetChip(
-                    label = "Bluetooth devices",
+                    label = context.getString(R.string.wear_bluetooth_devices),
                     subtitle = if (watchAudioRoutes.any { it.isBluetooth }) {
-                        "Find or connect another headset"
+                        context.getString(R.string.wear_find_headset)
                     } else {
-                        "Connect headphones to watch"
+                        context.getString(R.string.wear_connect_headphones_watch)
                     },
                     icon = Icons.Rounded.Bluetooth,
                     selected = false,
@@ -198,6 +207,7 @@ fun OutputScreen(
 }
 
 private fun watchOutputSubtitle(
+    context: Context,
     route: WearAudioOutputRoute,
     outputTarget: WearOutputTarget,
     playerState: WearPlayerState,
@@ -205,21 +215,21 @@ private fun watchOutputSubtitle(
 ): String {
     return when {
         route.isActive && outputTarget == WearOutputTarget.WATCH && playerState.isPlaying ->
-            "Playing on watch"
+            context.getString(R.string.wear_playing_on_watch)
         route.isActive && outputTarget == WearOutputTarget.WATCH ->
-            "Selected on watch"
+            context.getString(R.string.wear_selected_on_watch)
         route.isConnecting ->
-            "Connecting"
+            context.getString(R.string.wear_connecting)
         route.isConnected && outputTarget == WearOutputTarget.WATCH ->
-            "Connected to watch"
+            context.getString(R.string.wear_connected_to_watch)
         !canSwitchToWatch && playerState.songId.isBlank() ->
-            "Play a song first"
+            context.getString(R.string.wear_play_song_first)
         !canSwitchToWatch ->
-            "Save this song on watch first"
+            context.getString(R.string.wear_save_song_on_watch_first)
         route.isConnected ->
-            "Switch current song to ${route.name}"
+            context.getString(R.string.wear_switch_current_song_to_route, route.name)
         else ->
-            "Connect and play on watch"
+            context.getString(R.string.wear_connect_play_watch)
     }
 }
 

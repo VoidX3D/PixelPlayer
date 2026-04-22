@@ -51,6 +51,8 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.SortDirection
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -135,16 +137,16 @@ fun LibrarySortBottomSheet(
 
             if (shouldShowDirectionToggle && resolvedSelectedOption != null) {
                 val directionLabel = when (selectedDirection) {
-                    SortDirection.Descending -> "Descending"
-                    SortDirection.Ascending -> "Ascending"
-                    null -> "Original Order"
+                    SortDirection.Descending -> stringResource(R.string.presentation_batch_g_sort_descending)
+                    SortDirection.Ascending -> stringResource(R.string.presentation_batch_g_sort_ascending)
+                    null -> stringResource(R.string.presentation_batch_g_sort_original_order)
                 }
                 val directionHint = when {
                     resolvedSelectedOption.canFlipDirection && selectedDirection == SortDirection.Descending ->
-                        "Tap to switch to ascending"
+                        stringResource(R.string.presentation_batch_g_sort_tap_ascending)
                     resolvedSelectedOption.canFlipDirection && selectedDirection == SortDirection.Ascending ->
-                        "Tap to switch to descending"
-                    else -> "This sort keeps its original order"
+                        stringResource(R.string.presentation_batch_g_sort_tap_descending)
+                    else -> stringResource(R.string.presentation_batch_g_sort_keeps_order)
                 }
                 val isDescending = selectedDirection == SortDirection.Descending
 
@@ -248,7 +250,7 @@ fun LibrarySortBottomSheet(
             if (sourceToggleContent != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Source",
+                    text = stringResource(R.string.presentation_batch_g_sort_source),
                     style = MaterialTheme.typography.headlineSmall,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
@@ -372,7 +374,7 @@ private fun LibrarySheetSortDirectionCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Order",
+                    text = stringResource(R.string.presentation_batch_g_sort_order),
                     style = MaterialTheme.typography.labelLarge,
                     color = contentColor.copy(alpha = 0.82f)
                 )
@@ -446,7 +448,7 @@ internal fun LibrarySheetToggleCard(
                     {
                         Icon(
                             imageVector = Icons.Rounded.Check,
-                            contentDescription = "Switch is on",
+                            contentDescription = stringResource(R.string.presentation_batch_g_cd_switch_on),
                             tint = MaterialTheme.colorScheme.tertiaryContainer,
                             modifier = Modifier.size(SwitchDefaults.IconSize),
                         )

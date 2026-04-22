@@ -696,7 +696,7 @@ fun FullPlayerContent(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         modifier = Modifier.padding(start = 18.dp),
-                                        text = "Now Playing",
+                                        text = stringResource(R.string.setcat_now_playing),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         style = MaterialTheme.typography.labelLargeEmphasized,
@@ -706,7 +706,7 @@ fun FullPlayerContent(
                                     if (currentSong != null && (currentSong.telegramChatId != null || currentSong.contentUriString.startsWith("telegram:"))) {
                                         Icon(
                                             imageVector = androidx.compose.material.icons.Icons.Rounded.Cloud,
-                                            contentDescription = "Cloud Stream",
+                                            contentDescription = stringResource(R.string.presentation_batch_g_player_cd_cloud_stream),
                                             tint = LocalMaterialTheme.current.onPrimaryContainer.copy(alpha = 0.6f),
                                             modifier = Modifier.padding(start = 8.dp).size(16.dp)
                                         )
@@ -735,7 +735,7 @@ fun FullPlayerContent(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.rounded_keyboard_arrow_down_24),
-                                    contentDescription = "Colapsar",
+                                    contentDescription = stringResource(R.string.presentation_batch_g_player_cd_collapse),
                                     tint = playerAccentColor
                                 )
                             }
@@ -804,9 +804,9 @@ fun FullPlayerContent(
                                     Icon(
                                         painter = castIconPainter,
                                         contentDescription = when {
-                                            isCastConnecting || isRemotePlaybackActive -> "Cast"
-                                            isBluetoothActive -> "Bluetooth"
-                                            else -> "Local playback"
+                                            isCastConnecting || isRemotePlaybackActive -> stringResource(R.string.presentation_batch_g_player_cd_cast)
+                                            isBluetoothActive -> stringResource(R.string.presentation_batch_g_player_cd_bluetooth)
+                                            else -> stringResource(R.string.presentation_batch_g_player_cd_local_playback)
                                         },
                                         tint = playerAccentColor
                                     )
@@ -815,7 +815,7 @@ fun FullPlayerContent(
                                             Spacer(Modifier.width(8.dp))
                                             AnimatedContent(
                                                 targetState = when {
-                                                    isCastConnecting -> "Connecting…"
+                                                    isCastConnecting -> stringResource(R.string.presentation_batch_g_player_connecting)
                                                     isRemotePlaybackActive && selectedRouteName != null -> selectedRouteName ?: ""
                                                     else -> ""
                                                 },
@@ -881,7 +881,7 @@ fun FullPlayerContent(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.rounded_queue_music_24),
-                                    contentDescription = "Song options",
+                                    contentDescription = stringResource(R.string.presentation_batch_g_player_cd_queue),
                                     tint = playerAccentColor
                                 )
                             }
@@ -1530,7 +1530,7 @@ private fun SongMetadataDisplaySection(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.rounded_lyrics_24),
-                        contentDescription = "Lyrics",
+                        contentDescription = stringResource(R.string.presentation_batch_g_player_cd_lyrics),
                         tint = chipContentColor
                     )
                 }
@@ -1551,7 +1551,7 @@ private fun SongMetadataDisplaySection(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.rounded_queue_music_24),
-                        contentDescription = "Queue",
+                        contentDescription = stringResource(R.string.presentation_batch_g_player_cd_queue),
                         tint = chipContentColor
                     )
                 }
@@ -1569,7 +1569,7 @@ private fun SongMetadataDisplaySection(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.rounded_lyrics_24),
-                    contentDescription = "Lyrics"
+                    contentDescription = stringResource(R.string.presentation_batch_g_player_cd_lyrics)
                 )
             }
         }
@@ -2548,9 +2548,9 @@ private fun BottomToggleRow(
                 modifier = commonModifier,
                 active = isShuffleEnabled,
                 enabled = !isShuffleTransitionInProgress,
-                activeColor = LocalMaterialTheme.current.primary,
+                activeColor = LocalMaterialTheme.current.primaryFixed,
                 activeCornerRadius = rowCorners,
-                activeContentColor = LocalMaterialTheme.current.onPrimary,
+                activeContentColor = LocalMaterialTheme.current.onPrimaryFixed,
                 inactiveColor = inactiveBg,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onShuffleToggle,
@@ -2566,9 +2566,9 @@ private fun BottomToggleRow(
             ToggleSegmentButton(
                 modifier = commonModifier,
                 active = repeatActive,
-                activeColor = LocalMaterialTheme.current.secondary,
+                activeColor = LocalMaterialTheme.current.secondaryFixed,
                 activeCornerRadius = rowCorners,
-                activeContentColor = LocalMaterialTheme.current.onSecondary,
+                activeContentColor = LocalMaterialTheme.current.onSecondaryFixed,
                 inactiveColor = inactiveBg,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onRepeatToggle,
@@ -2578,9 +2578,9 @@ private fun BottomToggleRow(
             ToggleSegmentButton(
                 modifier = commonModifier,
                 active = isFavorite,
-                activeColor = LocalMaterialTheme.current.tertiary,
+                activeColor = LocalMaterialTheme.current.tertiaryFixed,
                 activeCornerRadius = rowCorners,
-                activeContentColor = LocalMaterialTheme.current.onTertiary,
+                activeContentColor = LocalMaterialTheme.current.onTertiaryFixed,
                 inactiveColor = inactiveBg,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onFavoriteToggle,

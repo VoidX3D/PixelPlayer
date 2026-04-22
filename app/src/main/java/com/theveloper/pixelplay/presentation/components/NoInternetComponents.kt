@@ -41,21 +41,21 @@ fun NoInternetDialog(
         },
         title = {
             Text(
-                text = "No Internet Connection",
+                text = stringResource(R.string.no_internet_dialog_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
         },
         text = {
             Text(
-                text = "This content requires an internet connection. Please check your network settings and try again.",
+                text = stringResource(R.string.no_internet_dialog_message),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         }
     )
@@ -87,7 +87,7 @@ fun NoInternetScreen(
             )
             
             Text(
-                text = "You're Offline",
+                text = stringResource(R.string.offline_screen_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -96,7 +96,7 @@ fun NoInternetScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Please check your internet connection and try again to access this content.",
+                text = stringResource(R.string.offline_screen_message),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -108,7 +108,7 @@ fun NoInternetScreen(
                 onClick = onRetry,
                 modifier = Modifier.fillMaxWidth(0.5f)
             ) {
-                Text("Retry")
+                Text(stringResource(R.string.auth_web_retry))
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,22 +38,27 @@ data class PlayStoreAnnouncementUiModel(
     val title: String,
     val body: String,
     val playStoreUrl: String?,
-    val primaryActionLabel: String = "Open Play Store",
-    val dismissActionLabel: String = "Continue beta",
-    val linkPendingMessage: String = "The Play Store link will be enabled from GitHub config.",
+    val primaryActionLabel: String,
+    val dismissActionLabel: String,
+    val linkPendingMessage: String,
 )
 
 object PlayStoreAnnouncementDefaults {
     const val LOCAL_PREVIEW_ENABLED = false
 
-    val Template = PlayStoreAnnouncementUiModel(
-        enabled = false,
-        title = "PixelPlay is now available on Google Play",
-        body = "Use the stable channel on Google Play for release updates while we keep beta builds active.",
-        playStoreUrl = null,
-    )
+    fun localizedTemplate(context: Context): PlayStoreAnnouncementUiModel =
+        PlayStoreAnnouncementUiModel(
+            enabled = false,
+            title = context.getString(R.string.presentation_batch_g_playstore_title),
+            body = context.getString(R.string.presentation_batch_g_playstore_body),
+            playStoreUrl = null,
+            primaryActionLabel = context.getString(R.string.presentation_batch_g_playstore_open),
+            dismissActionLabel = context.getString(R.string.presentation_batch_g_playstore_continue_beta),
+            linkPendingMessage = context.getString(R.string.presentation_batch_g_playstore_link_pending),
+        )
 
-    val HardcodedPreview = Template.copy(enabled = true)
+    fun hardcodedPreview(context: Context): PlayStoreAnnouncementUiModel =
+        localizedTemplate(context).copy(enabled = true)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,13 +130,13 @@ fun PlayStoreAnnouncementDialog(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Text(
-                            text = "PixelPlay",
+                            text = stringResource(R.string.presentation_batch_g_playstore_app_name),
                             fontFamily = GoogleSansRounded,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Release announcement",
+                            text = stringResource(R.string.presentation_batch_g_playstore_release_announcement),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -193,7 +200,7 @@ fun PlayStoreAnnouncementDialog(
                             text = if (hasPlayStoreLink) {
                                 announcement.primaryActionLabel
                             } else {
-                                "Coming soon"
+                                stringResource(R.string.presentation_batch_g_playstore_coming_soon)
                             },
                             textAlign = TextAlign.Center,
                         )

@@ -40,6 +40,7 @@ import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -63,7 +64,7 @@ fun NavidromeDashboardScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Subsonic",
+                        stringResource(R.string.screen_subsonic_dashboard_title),
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold
                     )
@@ -81,7 +82,7 @@ fun NavidromeDashboardScreen(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.auth_cd_back)
                         )
                     }
                 },
@@ -210,7 +211,7 @@ private fun DashboardContent(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${playlists.size} playlists synced",
+                            text = stringResource(R.string.dash_playlists_synced_count, playlists.size),
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -238,7 +239,7 @@ private fun DashboardContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Playlists",
+                text = stringResource(R.string.dash_title_playlists),
                 style = MaterialTheme.typography.titleMedium,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold
@@ -251,7 +252,7 @@ private fun DashboardContent(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("Sync", fontFamily = GoogleSansRounded)
+                    Text(stringResource(R.string.dash_action_sync), fontFamily = GoogleSansRounded)
                 }
             }
         }
@@ -275,14 +276,14 @@ private fun DashboardContent(
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "No playlists synced yet",
+                        text = stringResource(R.string.dash_playlists_empty_title),
                         style = MaterialTheme.typography.bodyLarge,
                         fontFamily = GoogleSansRounded,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Tap sync to fetch your playlists",
+                        text = stringResource(R.string.dash_playlists_empty_hint_subsonic),
                         style = MaterialTheme.typography.bodyMedium,
                         fontFamily = GoogleSansRounded,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
@@ -332,14 +333,14 @@ private fun SubsonicMenuCard(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Quick actions",
+                text = stringResource(R.string.dash_quick_actions),
                 style = MaterialTheme.typography.titleMedium,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Manage Navidrome, Airsonic and other Subsonic-compatible servers.",
+                text = stringResource(R.string.dash_quick_actions_subsonic_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = GoogleSansRounded,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -365,7 +366,7 @@ private fun SubsonicMenuCard(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Syncing", fontFamily = GoogleSansRounded)
+                        Text(stringResource(R.string.dash_status_syncing), fontFamily = GoogleSansRounded)
                     } else {
                         Icon(
                             Icons.Rounded.CloudSync,
@@ -373,7 +374,7 @@ private fun SubsonicMenuCard(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sync library", fontFamily = GoogleSansRounded)
+                        Text(stringResource(R.string.dash_action_sync_library), fontFamily = GoogleSansRounded)
                     }
                 }
 
@@ -391,7 +392,7 @@ private fun SubsonicMenuCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Disconnect", fontFamily = GoogleSansRounded)
+                    Text(stringResource(R.string.dash_action_disconnect), fontFamily = GoogleSansRounded)
                 }
             }
         }
@@ -528,7 +529,7 @@ private fun PlaylistCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${playlist.songCount} songs",
+                    text = stringResource(R.string.dash_song_count, playlist.songCount),
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = GoogleSansRounded,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -545,7 +546,7 @@ private fun PlaylistCard(
             ) {
                 Icon(
                     Icons.Rounded.Sync,
-                    contentDescription = "Sync",
+                    contentDescription = stringResource(R.string.cd_sync),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -561,7 +562,7 @@ private fun PlaylistCard(
             ) {
                 Icon(
                     Icons.Rounded.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = stringResource(R.string.cd_remove),
                     modifier = Modifier.size(20.dp)
                 )
             }

@@ -35,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
@@ -62,7 +64,7 @@ fun CustomPresetsSheet(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                text = "Saved Presets",
+                text = stringResource(R.string.presentation_batch_g_presets_saved_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
@@ -77,7 +79,7 @@ fun CustomPresetsSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No custom presets saved yet.",
+                        text = stringResource(R.string.presentation_batch_g_presets_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -157,21 +159,21 @@ private fun CustomPresetItem(
              IconButton(onClick = onPinClick) {
                 Icon(
                     imageVector = if (isPinned) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = if (isPinned) "Unpin" else "Pin",
+                    contentDescription = if (isPinned) stringResource(R.string.presentation_batch_g_presets_cd_unpin) else stringResource(R.string.presentation_batch_g_presets_cd_pin),
                     tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(onClick = onRenameClick) {
                 Icon(
                     imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Rename",
+                    contentDescription = stringResource(R.string.presentation_batch_g_presets_cd_rename),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = stringResource(R.string.presentation_batch_g_presets_cd_delete),
                     tint = MaterialTheme.colorScheme.error
                 )
             }

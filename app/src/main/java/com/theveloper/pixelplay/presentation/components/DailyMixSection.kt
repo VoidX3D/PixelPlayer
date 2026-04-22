@@ -59,6 +59,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import androidx.compose.ui.res.stringResource
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 
@@ -82,6 +83,7 @@ fun DailyMixSection(
     val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     var showSongInfoSheet by remember { mutableStateOf(false) }
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
+    val dailyMixQueueName = stringResource(R.string.presentation_batch_g_daily_mix_queue_name)
 
     Column(
         modifier = Modifier
@@ -114,7 +116,7 @@ fun DailyMixSection(
                 playerViewModel.showAndPlaySong(
                     song = song,
                     contextSongs = songs,
-                    queueName = "Daily Mix",
+                    queueName = dailyMixQueueName,
                     isVoluntaryPlay = false
                 )
                 showSongInfoSheet = false
@@ -265,13 +267,13 @@ fun DailyMixHeader(thumbnails: ImmutableList<Song>) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "DAILY MIX",
+                    text = stringResource(R.string.presentation_batch_g_daily_mix_heading),
                     style = titleStyle,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
                     modifier = Modifier.padding(start = 1.dp),
-                    text = "Based on History",
+                    text = stringResource(R.string.presentation_batch_g_daily_mix_based_on_history),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
@@ -332,6 +334,7 @@ private fun DailyMixSongList(
     playerViewModel: PlayerViewModel,
     onMoreOptionsClick: (Song) -> Unit
 ) {
+    val dailyMixQueueName = stringResource(R.string.presentation_batch_g_daily_mix_queue_name)
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val itemContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
@@ -355,7 +358,7 @@ private fun DailyMixSongList(
                     playerViewModel.showAndPlaySong(
                         song = song,
                         contextSongs = playbackQueue,
-                        queueName = "Daily Mix",
+                        queueName = dailyMixQueueName,
                         isVoluntaryPlay = false
                     )
                 },
@@ -397,7 +400,7 @@ private fun ViewAllDailyMixButton(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Check all of Daily Mix",
+                text = stringResource(R.string.presentation_batch_g_daily_mix_see_all),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium
             )

@@ -2,17 +2,19 @@ package com.theveloper.pixelplay.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.database.AiUsageEntity
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import androidx.compose.material.icons.Icons
@@ -106,18 +108,13 @@ fun AiUsageLogItem(
             // Provider and Model
             Column {
                 Text(
-                    text = usage.provider,
+                    text = stringResource(R.string.presentation_batch_h_ai_usage_provider_model, usage.provider, usage.model),
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontFamily = GoogleSansRounded,
                         letterSpacing = 0.2.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = usage.model,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -164,7 +161,7 @@ private fun TokenChip(
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = "$label: ${String.format("%, d", count)}",
+            text = "$label: ${String.format(Locale.US, "%,d", count)}",
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             color = contentColor,

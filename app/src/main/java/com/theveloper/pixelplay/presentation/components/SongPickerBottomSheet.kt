@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import coil.size.Size
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -110,7 +112,7 @@ fun SongPickerContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Add Songs",
+                        stringResource(R.string.song_picker_title),
                         style = MaterialTheme.typography.displaySmall,
                         fontFamily = GoogleSansRounded
                     )
@@ -121,8 +123,8 @@ fun SongPickerContent(
                     modifier = Modifier.padding(bottom = 18.dp, end = 8.dp),
                     shape = CircleShape,
                     onClick = { onConfirm(selectedSongIds.filterValues { it }.keys) },
-                    icon = { Icon(Icons.Rounded.Check, "Add songs") },
-                    text = { Text("Add") },
+                    icon = { Icon(Icons.Rounded.Check, stringResource(R.string.cd_confirm_add_songs)) },
+                    text = { Text(stringResource(R.string.song_picker_action_add)) },
                 )
             }
         ) { innerPadding ->
@@ -229,7 +231,7 @@ private fun SongPickerSearchField(
             focusedSupportingTextColor = Color.Transparent,
         ),
         onValueChange = onSearchQueryChange,
-        label = { Text("Search for songs...") },
+        label = { Text(stringResource(R.string.song_picker_search_label)) },
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -276,12 +278,12 @@ fun SongPickerPagingList(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = error.localizedMessage ?: "Failed to load songs",
+                        text = error.localizedMessage ?: stringResource(R.string.song_picker_error_load_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Button(onClick = { pagedSongs.retry() }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.library_retry))
                     }
                 }
             }
@@ -343,7 +345,7 @@ fun SongPickerPagingList(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Button(onClick = { pagedSongs.retry() }) {
-                                    Text("Load more")
+                                    Text(stringResource(R.string.song_picker_load_more))
                                 }
                             }
                         }

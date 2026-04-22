@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.service.MusicNotificationProvider
 import com.theveloper.pixelplay.data.service.SleepTimerReceiver
 import com.theveloper.pixelplay.data.EotStateHolder
@@ -50,6 +51,10 @@ class SleepTimerStateHolder @Inject constructor(
 
     private val _activeTimerValueDisplay = MutableStateFlow<String?>(null)
     val activeTimerValueDisplay: StateFlow<String?> = _activeTimerValueDisplay.asStateFlow()
+
+    /** When non-null, a duration-based sleep timer is active with this many minutes (matches [predefinedTimes]). */
+    private val _activeTimerDurationMinutes = MutableStateFlow<Int?>(null)
+    val activeTimerDurationMinutes: StateFlow<Int?> = _activeTimerDurationMinutes.asStateFlow()
 
     private val _playCount = MutableStateFlow(1f)
     val playCount: StateFlow<Float> = _playCount.asStateFlow()
@@ -103,7 +108,11 @@ class SleepTimerStateHolder @Inject constructor(
         val durationMillis = TimeUnit.MINUTES.toMillis(durationMinutes.toLong())
         val endTime = System.currentTimeMillis() + durationMillis
         _sleepTimerEndTimeMillis.value = endTime
-        _activeTimerValueDisplay.value = "$durationMinutes minutes"
+        _activeTimerDurationMinutes.value = durationMinutes
+        _activeTimerValueDisplay.value = context.getString(
+            R.string.sleep_timer_n_minutes_format,
+            durationMinutes
+        )
 
         // Schedule alarm for reliable triggering
         val intent = Intent(context, SleepTimerReceiver::class.java)
@@ -151,7 +160,11 @@ class SleepTimerStateHolder @Inject constructor(
             )
         }
 
-        scope.launch { toastEmitter?.invoke("Timer set for $durationMinutes minutes.") }
+        scope.launch {
+            toastEmitter?.invoke(
+                context.getString(R.string.sleep_timer_set_for_minutes_toast, durationMinutes)
+            )
+        }
     }
 
     /**
@@ -186,11 +199,14 @@ class SleepTimerStateHolder @Inject constructor(
 
         if (enable) {
             if (currentSongId == null) {
-                scope.launch { toastEmitter?.invoke("Cannot enable End of Track: No active song.") }
+                scope.launch {
+                    toastEmitter?.invoke(context.getString(R.string.sleep_timer_eot_no_song_toast))
+                }
                 return
             }
 
-            _activeTimerValueDisplay.value = "End of Track"
+            _activeTimerDurationMinutes.value = null
+            _activeTimerValueDisplay.value = context.getString(R.string.sleep_timer_display_eot)
             _isEndOfTrackTimerActive.value = true
             EotStateHolder.setEotTargetSong(currentSongId)
 
@@ -207,10 +223,18 @@ class SleepTimerStateHolder @Inject constructor(
                         EotStateHolder.eotTargetSongId.value != null &&
                         newSongId != EotStateHolder.eotTargetSongId.value) {
 
-                        val oldSongTitle = songTitleResolver?.invoke(EotStateHolder.eotTargetSongId.value) ?: "Previous track"
-                        val newSongTitle = songTitleResolver?.invoke(newSongId) ?: "Current track"
+                        val oldSongTitle = songTitleResolver?.invoke(EotStateHolder.eotTargetSongId.value)
+                            ?: context.getString(R.string.sleep_timer_label_previous_track)
+                        val newSongTitle = songTitleResolver?.invoke(newSongId)
+                            ?: context.getString(R.string.sleep_timer_label_current_track)
 
-                        toastEmitter?.invoke("End of Track timer deactivated: song changed from $oldSongTitle to $newSongTitle.")
+                        toastEmitter?.invoke(
+                            context.getString(
+                                R.string.sleep_timer_eot_song_changed_toast,
+                                oldSongTitle,
+                                newSongTitle
+                            )
+                        )
                         cancelSleepTimer(suppressDefaultToast = true)
 
                         eotSongMonitorJob?.cancel()
@@ -219,7 +243,9 @@ class SleepTimerStateHolder @Inject constructor(
                 }
             }
 
-            scope.launch { toastEmitter?.invoke("Playback will stop at end of track.") }
+            scope.launch {
+                toastEmitter?.invoke(context.getString(R.string.sleep_timer_eot_stop_at_end_toast))
+            }
         } else {
             eotSongMonitorJob?.cancel()
             if (_isEndOfTrackTimerActive.value && EotStateHolder.eotTargetSongId.value != null) {
@@ -257,12 +283,15 @@ class SleepTimerStateHolder @Inject constructor(
         EotStateHolder.setEotTargetSong(null)
 
         // Clear display
+        _activeTimerDurationMinutes.value = null
         _activeTimerValueDisplay.value = null
 
         // Handle toast
         when {
             overrideToastMessage != null -> scope.launch { toastEmitter?.invoke(overrideToastMessage) }
-            !suppressDefaultToast && wasAnythingActive -> scope.launch { toastEmitter?.invoke("Timer cancelled.") }
+            !suppressDefaultToast && wasAnythingActive -> scope.launch {
+                toastEmitter?.invoke(context.getString(R.string.sleep_timer_cancelled_toast))
+            }
         }
     }
 

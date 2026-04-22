@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +36,7 @@ import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
 import com.theveloper.pixelplay.presentation.theme.screenBackgroundColor
 import com.theveloper.pixelplay.presentation.theme.surfaceContainerColor
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.WearSleepTimerMode
 import androidx.compose.material.icons.Icons
@@ -47,6 +50,7 @@ private val TIMER_PRESETS_MINUTES = listOf(5, 10, 20, 30, 45, 60)
 fun TimerScreen(
     viewModel: WearPlayerViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val palette = LocalWearPalette.current
     val timerState by viewModel.sleepTimerUiState.collectAsState()
     val isPhoneConnected by viewModel.isPhoneConnected.collectAsState()
@@ -69,7 +73,7 @@ fun TimerScreen(
 
             item {
                 Text(
-                    text = "Sleep timer",
+                    text = stringResource(R.string.wear_sleep_timer_title),
                     style = MaterialTheme.typography.title3,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
@@ -80,9 +84,12 @@ fun TimerScreen(
             item {
                 Text(
                     text = when (timerState.mode) {
-                        WearSleepTimerMode.DURATION -> "Active: ${timerState.durationMinutes} min"
-                        WearSleepTimerMode.END_OF_TRACK -> "Active: End of track"
-                        WearSleepTimerMode.OFF -> "Timer off"
+                        WearSleepTimerMode.DURATION -> context.getString(
+                            R.string.wear_timer_active_duration,
+                            timerState.durationMinutes
+                        )
+                        WearSleepTimerMode.END_OF_TRACK -> context.getString(R.string.wear_timer_active_end_track)
+                        WearSleepTimerMode.OFF -> context.getString(R.string.wear_timer_off_status)
                     },
                     style = MaterialTheme.typography.caption2,
                     color = palette.textSecondary.copy(alpha = 0.82f),
@@ -97,9 +104,9 @@ fun TimerScreen(
                 item {
                     Text(
                         text = if (!isPhoneConnected) {
-                            "Connect your phone to set timer"
+                            context.getString(R.string.wear_connect_phone_for_timer)
                         } else {
-                            "Switch output to Phone"
+                            context.getString(R.string.wear_switch_output_to_phone)
                         },
                         style = MaterialTheme.typography.body2,
                         color = palette.textSecondary,
@@ -114,7 +121,7 @@ fun TimerScreen(
                     val minutes = TIMER_PRESETS_MINUTES[index]
                     TimerOptionChip(
                         icon = Icons.Rounded.Timer,
-                        label = "$minutes min",
+                        label = context.getString(R.string.wear_timer_minutes_format, minutes),
                         active = timerState.mode == WearSleepTimerMode.DURATION &&
                             timerState.durationMinutes == minutes,
                         activeColor = palette.shuffleActive,
@@ -127,7 +134,7 @@ fun TimerScreen(
                 item {
                     TimerOptionChip(
                         icon = Icons.Rounded.Schedule,
-                        label = "End of track",
+                        label = stringResource(R.string.wear_end_of_track),
                         active = timerState.mode == WearSleepTimerMode.END_OF_TRACK,
                         activeColor = palette.repeatActive,
                         onClick = {
@@ -139,7 +146,7 @@ fun TimerScreen(
                 item {
                     TimerOptionChip(
                         icon = Icons.Rounded.Close,
-                        label = "Turn off",
+                        label = stringResource(R.string.wear_turn_off),
                         active = timerState.mode == WearSleepTimerMode.OFF,
                         activeColor = palette.favoriteActive,
                         onClick = {

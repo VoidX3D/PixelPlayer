@@ -53,6 +53,8 @@ import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.AutoScrollingTextOnDemand
 import com.theveloper.pixelplay.presentation.components.ShimmerBox
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.SmartImage
 
 @Immutable
@@ -317,7 +319,7 @@ fun EnhancedSongListItem(
                             ) {
                                 if (selectionIndex != null && selectionIndex >= 0) {
                                     Text(
-                                        text = "$selectionIndex",
+                                        text = selectionIndex.toString(),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = selectionOverlayContentColor
@@ -325,7 +327,7 @@ fun EnhancedSongListItem(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Rounded.CheckCircle,
-                                        contentDescription = "Selected",
+                                        contentDescription = stringResource(R.string.presentation_batch_g_list_cd_selected),
                                         tint = selectionOverlayContentColor,
                                         modifier = Modifier.size(28.dp)
                                     )
@@ -400,7 +402,7 @@ fun EnhancedSongListItem(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = "More options for ${song.title}",
+                            contentDescription = stringResource(R.string.presentation_batch_g_list_cd_more_for_title, song.title),
                             modifier = Modifier.size(24.dp)
                         )
                     }

@@ -78,6 +78,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -190,7 +191,7 @@ fun ArtistSettingsScreen(
             // Multi-Artist Parsing Section
             item {
                 SettingsSection(
-                    title = "Multi-Artist Parsing",
+                    title = stringResource(R.string.presentation_batch_g_artist_section_multi_parsing),
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Person,
@@ -205,8 +206,11 @@ fun ArtistSettingsScreen(
                     ) {
                         // Configure Character Delimiters
                         SettingsItem(
-                            title = "Character Delimiters",
-                            subtitle = "Current: ${uiState.artistDelimiters.joinToString(", ")}",
+                            title = stringResource(R.string.presentation_batch_g_artist_item_char_delimiters),
+                            subtitle = stringResource(
+                                R.string.presentation_batch_g_artist_item_char_delimiters_current,
+                                uiState.artistDelimiters.joinToString(", ")
+                            ),
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Settings,
@@ -217,7 +221,7 @@ fun ArtistSettingsScreen(
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Rounded.ChevronRight,
-                                    contentDescription = "Configure",
+                                    contentDescription = stringResource(R.string.presentation_batch_g_artist_cd_configure),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
@@ -228,9 +232,17 @@ fun ArtistSettingsScreen(
 
                         // Configure Word Delimiters
                         SettingsItem(
-                            title = "Word Delimiters",
-                            subtitle = if (uiState.wordDelimiters.isEmpty()) "None"
-                                       else "Current: ${uiState.wordDelimiters.take(5).joinToString(", ")}${if (uiState.wordDelimiters.size > 5) "..." else ""}",
+                            title = stringResource(R.string.presentation_batch_g_artist_item_word_delimiters),
+                            subtitle = if (uiState.wordDelimiters.isEmpty()) {
+                                stringResource(R.string.presentation_batch_g_artist_word_none)
+                            } else {
+                                val preview = uiState.wordDelimiters.take(5).joinToString(", ") +
+                                    if (uiState.wordDelimiters.size > 5) "..." else ""
+                                stringResource(
+                                    R.string.presentation_batch_g_artist_word_current_prefix,
+                                    preview
+                                )
+                            },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Settings,
@@ -241,7 +253,7 @@ fun ArtistSettingsScreen(
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Rounded.ChevronRight,
-                                    contentDescription = "Configure",
+                                    contentDescription = stringResource(R.string.presentation_batch_g_artist_cd_configure),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
@@ -252,8 +264,8 @@ fun ArtistSettingsScreen(
 
                         // Extract from title toggle
                         SwitchSettingItem(
-                            title = "Extract Artists from Title",
-                            subtitle = "Detect feat., ft., with in song titles",
+                            title = stringResource(R.string.presentation_batch_g_artist_extract_from_title),
+                            subtitle = stringResource(R.string.presentation_batch_g_artist_extract_from_title_sub),
                             checked = uiState.extractArtistsFromTitle,
                             onCheckedChange = { viewModel.setExtractArtistsFromTitle(it) },
                             leadingIcon = {
@@ -271,7 +283,7 @@ fun ArtistSettingsScreen(
             // Library Organization Section
             item {
                 SettingsSection(
-                    title = "Library Organization",
+                    title = stringResource(R.string.presentation_batch_g_artist_section_library_org),
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.LibraryMusic,
@@ -282,8 +294,8 @@ fun ArtistSettingsScreen(
                 ) {
                     Column(modifier = Modifier.clip(shape = RoundedCornerShape(24.dp))) {
                         SwitchSettingItem(
-                            title = "Group by Album Artist",
-                            subtitle = "Show collaboration albums under main artist",
+                            title = stringResource(R.string.presentation_batch_g_artist_group_by_album_artist),
+                            subtitle = stringResource(R.string.presentation_batch_g_artist_group_by_album_artist_sub),
                             checked = uiState.groupByAlbumArtist,
                             onCheckedChange = { viewModel.setGroupByAlbumArtist(it) },
                             leadingIcon = {
@@ -301,8 +313,8 @@ fun ArtistSettingsScreen(
             // Info Card
             item {
                 InfoCard(
-                    title = "About Multi-Artist Parsing",
-                    content = "PixelPlay splits artist tags using character delimiters (/, ;, &) and word delimiters (feat., ft., vs., x). Word delimiters are matched case-insensitively.\n\n\"Extract Artists from Title\" detects patterns like (feat. Artist) in song titles.\n\nBackslash (\\) can be used to escape character delimiters."
+                    title = stringResource(R.string.presentation_batch_g_artist_info_title),
+                    content = stringResource(R.string.presentation_batch_g_artist_info_body)
                 )
             }
 
@@ -310,17 +322,17 @@ fun ArtistSettingsScreen(
             item {
                 ExamplesCard(
                     examples = listOf(
-                        "\"Artist1/Artist2\"" to "Artist1, Artist2",
-                        "\"Drake feat. Rihanna\"" to "Drake, Rihanna",
-                        "\"Marshmello x Bastille\"" to "Marshmello, Bastille",
-                        "\"Song (ft. B)\" by A" to "A, B",
-                        "\"AC\\DC\"" to "AC/DC (escaped)"
+                        stringResource(R.string.presentation_batch_g_artist_ex_1_in) to stringResource(R.string.presentation_batch_g_artist_ex_1_out),
+                        stringResource(R.string.presentation_batch_g_artist_ex_2_in) to stringResource(R.string.presentation_batch_g_artist_ex_2_out),
+                        stringResource(R.string.presentation_batch_g_artist_ex_3_in) to stringResource(R.string.presentation_batch_g_artist_ex_3_out),
+                        stringResource(R.string.presentation_batch_g_artist_ex_4_in) to stringResource(R.string.presentation_batch_g_artist_ex_4_out),
+                        stringResource(R.string.presentation_batch_g_artist_ex_5_in) to stringResource(R.string.presentation_batch_g_artist_ex_5_out)
                     )
                 )
             }
         }
         CollapsibleCommonTopBar(
-            title = "Artists",
+            title = stringResource(R.string.setcat_artists_title),
             collapseFraction = collapseFraction,
             headerHeight = currentTopBarHeightDp,
             onBackClick = { navController.popBackStack() },
@@ -358,13 +370,13 @@ private fun RescanRequiredBanner(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Rescan Required",
+                    text = stringResource(R.string.presentation_batch_g_artist_rescan_banner_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Text(
-                    text = "Artist settings have changed. Rescan your library to apply.",
+                    text = stringResource(R.string.presentation_batch_g_artist_rescan_banner_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                 )
@@ -396,7 +408,11 @@ private fun RescanRequiredBanner(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isResyncing) "Scanning..." else "Rescan",
+                    text = if (isResyncing) {
+                        stringResource(R.string.presentation_batch_g_artist_rescan_scanning)
+                    } else {
+                        stringResource(R.string.presentation_batch_g_artist_rescan)
+                    },
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -471,7 +487,7 @@ private fun ExamplesCard(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Examples",
+                    text = stringResource(R.string.presentation_batch_g_artist_examples_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -486,7 +502,7 @@ private fun ExamplesCard(
                     modifier = Modifier.padding(vertical = 4.dp)
                 ) {
                     Text(
-                        text = "♪",
+                        text = stringResource(R.string.presentation_batch_h_artist_example_bullet),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.padding(end = 8.dp)
@@ -498,7 +514,7 @@ private fun ExamplesCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = " → ",
+                        text = stringResource(R.string.presentation_batch_g_artist_example_arrow),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

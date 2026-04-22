@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -132,7 +134,7 @@ fun TelegramChannelSearchSheet(
             ) {
                 // Header with expressive typography
                 Text(
-                    text = "Add Channel",
+                    text = stringResource(R.string.presentation_batch_f_add_channel_sheet_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
@@ -142,7 +144,7 @@ fun TelegramChannelSearchSheet(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Search for a public Telegram channel to sync its music",
+                    text = stringResource(R.string.presentation_batch_f_add_channel_sheet_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     fontFamily = GoogleSansRounded,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -161,7 +163,7 @@ fun TelegramChannelSearchSheet(
                         onValueChange = viewModel::onQueryChanged,
                         placeholder = {
                             Text(
-                                "@channelname or link",
+                                stringResource(R.string.presentation_batch_f_channel_search_placeholder),
                                 fontFamily = GoogleSansRounded
                             )
                         },
@@ -206,7 +208,7 @@ fun TelegramChannelSearchSheet(
                         } else {
                             Icon(
                                 Icons.AutoMirrored.Rounded.Send,
-                                contentDescription = "Search"
+                                contentDescription = stringResource(R.string.presentation_batch_f_cd_search)
                             )
                         }
                     }
@@ -234,7 +236,7 @@ fun TelegramChannelSearchSheet(
                                 )
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Text(
-                                    text = statusMessage ?: "Searching...",
+                                    text = statusMessage ?: stringResource(R.string.presentation_batch_f_searching),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontFamily = GoogleSansRounded,
                                     color = MaterialTheme.colorScheme.primary
@@ -310,7 +312,7 @@ fun TelegramChannelSearchSheet(
                                         },
                                         text = {
                                             Text(
-                                                "Done",
+                                                stringResource(R.string.presentation_batch_f_done),
                                                 fontFamily = GoogleSansRounded,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -355,7 +357,7 @@ fun TelegramChannelSearchSheet(
                                 Spacer(modifier = Modifier.height(24.dp))
 
                                 Text(
-                                    text = "Search for a channel",
+                                    text = stringResource(R.string.presentation_batch_f_search_channel_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontFamily = GoogleSansRounded,
                                     fontWeight = FontWeight.SemiBold,
@@ -365,7 +367,7 @@ fun TelegramChannelSearchSheet(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    text = "Enter a public channel username or link\nto sync its audio files",
+                                    text = stringResource(R.string.presentation_batch_f_search_channel_body),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontFamily = GoogleSansRounded,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +52,7 @@ import androidx.paging.compose.LazyPagingItems
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
+import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.LibraryTabId
@@ -219,15 +221,15 @@ fun LibraryAlbumsTab(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error loading albums", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.library_error_loading_albums), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        error.localizedMessage ?: "Unknown error",
+                        error.localizedMessage ?: stringResource(R.string.error_unknown),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { albums.retry() }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.library_retry))
                     }
                 }
             }
@@ -529,15 +531,15 @@ fun LibraryArtistsTab(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error loading artists", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.library_error_loading_artists), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        error.localizedMessage ?: "Unknown error",
+                        error.localizedMessage ?: stringResource(R.string.error_unknown),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { artists.retry() }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.library_retry))
                     }
                 }
             }
