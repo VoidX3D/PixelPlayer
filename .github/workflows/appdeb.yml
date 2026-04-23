@@ -1,49 +1,131 @@
-name: Build Waydroid .deb Package
+name: Build Phone APK (Signed Bundle) + Waydroid .deb Package
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
-    inputs:
-      custom_version:
-        description: 'Custom version (e.g., 1.0.0)'
-        required: false
-        default: '1.0.0'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  # JOB 1: Build the Android APK (your existing workflow)
+  build-release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      apk_path: ${{ steps.apk_path.outputs.path }}
     
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Determine version
+
+      - name: Extract version from tag
         id: version
         run: |
-          if [[ "${{ github.event_name }}" == "release" ]] && [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"  # Remove v prefix if present
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ github.event.inputs.custom_version }}"
+            VERSION="${VERSION#v}"
           else
-            VERSION="1.0.0"
+            VERSION="manual-build"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Using version: $VERSION"
-      
-      - name: Download APK from release
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Decode Keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          # If you have the APK in the repo or need to download it
-          # Adjust this path to where your APK actually is
-          if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
-            cp app/build/outputs/apk/release/app-release.apk PixelPlayer.apk
-          else
-            # Or download from a specific URL
-            # curl -L -o PixelPlayer.apk "https://your-apk-url.com/PixelPlayer.apk"
-            echo "ERROR: APK not found"
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Error: RELEASE_KEYSTORE_BASE64 is empty. Please add it to GitHub Secrets."
             exit 1
           fi
+          echo $RELEASE_KEYSTORE_BASE64 | base64 -d > app/release-key.jks
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Phone signed Split APKs
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease -PenableSplits=true
+
+      - name: Find and rename APK (universal)
+        id: apk_path
+        run: |
+          # Find the universal APK (the one without split config)
+          # If you have splits, you might want the "universal" APK
+          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | grep -v "split" | head -1)
+          
+          if [ -z "$APK_FILE" ]; then
+            # If no universal APK, use any APK
+            APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          fi
+          
+          # Rename to standard name
+          cp "$APK_FILE" PixelPlayer.apk
+          echo "path=$(pwd)/PixelPlayer.apk" >> $GITHUB_OUTPUT
+          echo "APK prepared at: $(pwd)/PixelPlayer.apk"
+
+      - name: Upload Phone Split APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPlayer-phone-release-split-APKs
+          path: app/build/outputs/apk/release/
+      
+      - name: Upload APK as artifact (for .deb job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelplayer-apk
+          path: PixelPlayer.apk
+          retention-days: 7
+
+  # JOB 2: Build Waydroid .deb package (NEW)
+  build-waydroid-deb:
+    runs-on: ubuntu-latest
+    needs: build-release  # Wait for APK to be built
+    if: success()  # Only run if APK build succeeded
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download APK from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: pixelplayer-apk
+          path: ./apk
+      
+      - name: Get version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="manual-$(date +'%Y%m%d-%H%M%S')"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building .deb for version: $VERSION"
+      
+      - name: Verify APK exists
+        run: |
+          ls -la ./apk/
+          if [ ! -f ./apk/PixelPlayer.apk ]; then
+            echo "ERROR: PixelPlayer.apk not found!"
+            exit 1
+          fi
+          # Get the actual package name from the APK
+          sudo apt-get install -y aapt
+          PACKAGE_NAME=$(aapt dump badging ./apk/PixelPlayer.apk | grep "package: name=" | sed "s/package: name='\([^']*\)'.*/\1/")
+          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Detected package name: $PACKAGE_NAME"
       
       - name: Build .deb package
         run: |
@@ -51,20 +133,29 @@ jobs:
           mkdir -p pixelplayer_deb/DEBIAN
           mkdir -p pixelplayer_deb/usr/share/pixelplayer
           mkdir -p pixelplayer_deb/usr/share/applications
+          mkdir -p pixelplayer_deb/usr/share/icons/hicolor/256x256/apps
           
           # Copy APK
-          cp PixelPlayer.apk pixelplayer_deb/usr/share/pixelplayer/
+          cp ./apk/PixelPlayer.apk pixelplayer_deb/usr/share/pixelplayer/
           
-          # Create control file (FIXED VERSION FORMAT)
+          # Create control file
           cat > pixelplayer_deb/DEBIAN/control << EOF
           Package: pixelplayer-waydroid
           Version: ${{ steps.version.outputs.version }}
           Architecture: all
-          Maintainer: VoidX3D
-          Depends: waydroid, lxc, python3
-          Description: PixelPlayer Music App for Linux (Waydroid)
-           PixelPlayer is a modern music player with Material 3 design.
-           This package runs the Android version via Waydroid.
+          Maintainer: PixelPlayer Team <pixelplayer@example.com>
+          Depends: waydroid (>= 1.2.0), lxc, python3
+          Homepage: https://github.com/VoidX3D/PixelPlayer
+          Description: PixelPlayer Music App for Linux (Waydroid wrapper)
+           PixelPlayer is a modern, feature-rich music player with Material 3 design.
+           This package runs the Android version of PixelPlayer using Waydroid,
+           providing near-native performance and seamless desktop integration.
+           .
+           Features:
+           * Full music library management
+           * Queue and playlist support
+           * Beautiful Material 3 UI
+           * Gapless playback
           EOF
           
           # Create postinst script
@@ -72,24 +163,47 @@ jobs:
           #!/bin/bash
           set -e
           
-          echo "Setting up PixelPlayer with Waydroid..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  PixelPlayer - Waydroid Setup"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          PACKAGE_NAME="${{ steps.verify.outputs.package_name }}"
+          APK_PATH="/usr/share/pixelplayer/PixelPlayer.apk"
+          
+          # Check if Waydroid is installed
+          if ! command -v waydroid &> /dev/null; then
+              echo "❌ Waydroid is not installed."
+              echo "   Please install it first: sudo apt install waydroid"
+              echo "   Then re-run this package configuration."
+              exit 1
+          fi
           
           # Initialize Waydroid if not already done
           if [ ! -f /var/lib/waydroid/waydroid.prop ]; then
+              echo "📦 Initializing Waydroid (this may take a few minutes)..."
               sudo waydroid init
           fi
           
           # Start the container service
+          echo "🚀 Starting Waydroid container..."
+          sudo systemctl enable waydroid-container
           sudo systemctl start waydroid-container
           
-          # Wait for the session
-          sleep 10
+          # Wait for session to be ready
+          echo "⏳ Waiting for Waydroid session..."
+          sleep 8
           
           # Install the APK
-          waydroid app install /usr/share/pixelplayer/PixelPlayer.apk
+          echo "📱 Installing PixelPlayer APK..."
+          waydroid app install "$APK_PATH"
           
-          echo "PixelPlayer installed successfully!"
-          echo "You can find it in your app menu or run: waydroid app launch <package_name>"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ PixelPlayer installed successfully!"
+          echo ""
+          echo "You can launch PixelPlayer:"
+          echo "  • From your application menu"
+          echo "  • Or run: waydroid app launch $PACKAGE_NAME"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           
           exit 0
           EOF
@@ -100,36 +214,40 @@ jobs:
           #!/bin/bash
           set -e
           
+          PACKAGE_NAME="${{ steps.verify.outputs.package_name }}"
+          
           echo "Removing PixelPlayer from Waydroid..."
+          waydroid app remove "$PACKAGE_NAME" 2>/dev/null || true
           
-          # Get package name (you'll need to know your app's actual package name)
-          # You can find it with: waydroid app list
-          # Replace com.pixelplayer.app with your actual package ID
-          PACKAGE_NAME="com.pixelplayer.app"
-          
-          waydroid app remove $PACKAGE_NAME 2>/dev/null || true
-          
+          echo "Package removal completed."
           exit 0
           EOF
           chmod +x pixelplayer_deb/DEBIAN/prerm
           
-          # Create desktop entry (so it appears in app menu)
+          # Create desktop entry
           cat > pixelplayer_deb/usr/share/applications/pixelplayer.desktop << EOF
           [Desktop Entry]
           Name=PixelPlayer
           Comment=Modern music player
-          Exec=waydroid app launch com.pixelplayer.app
+          Exec=waydroid app launch ${{ steps.verify.outputs.package_name }}
           Icon=pixelplayer
           Terminal=false
           Type=Application
           Categories=Audio;Music;Player;
+          MimeType=audio/mpeg;audio/flac;audio/ogg;audio/x-wav;
           EOF
+          
+          # Create a simple icon placeholder (256x256)
+          # You can replace this with your actual app icon
+          convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 100,100" \
+            pixelplayer_deb/usr/share/icons/hicolor/256x256/apps/pixelplayer.png 2>/dev/null || true
           
           # Build the .deb
           dpkg --build pixelplayer_deb pixelplayer-waydroid_${{ steps.version.outputs.version }}_all.deb
           
-          # Verify the .deb was created
+          # Verify
           ls -la *.deb
+          dpkg --info pixelplayer-waydroid_*.deb || true
       
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
@@ -138,17 +256,18 @@ jobs:
           path: pixelplayer-waydroid_*.deb
           retention-days: 90
       
-      - name: Upload to release (if on release)
-        if: github.event_name == 'release'
+      - name: Upload .deb to release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: pixelplayer-waydroid_*.deb
           append_body: true
           body: |
-            ## Waydroid .deb Package
-            This package runs PixelPlayer on Linux via Waydroid.
+            ## 📦 Linux .deb Package (Waydroid)
+            
+            This package runs PixelPlayer on Linux using Waydroid.
             
             ### Installation:
             ```bash
             sudo dpkg -i pixelplayer-waydroid_*.deb
-            sudo apt-get install -f  # install dependencies
+            sudo apt-get install -f  # Installs Waydroid if needed
