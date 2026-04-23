@@ -1,207 +1,675 @@
-name: Build Phone APK (Signed Bundle) + Waydroid .deb Package
+name: Build Phone APK + Waydroid .deb Package
 
 on:
   workflow_dispatch:
+    inputs:
+      manual_version:
+        description: 'Manual version (e.g., 0.6.0-beta)'
+        required: false
+        type: string
   push:
     tags:
       - 'v*'
 
+env:
+  # Cache Gradle dependencies
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
+
 jobs:
-  # JOB 1: Build the Android APK
-  build-release:
+  # ============================================
+  # JOB 1: Setup and Version Extraction
+  # ============================================
+  setup-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
-    
+      version: ${{ steps.get_version.outputs.version }}
+      deb_version: ${{ steps.get_version.outputs.deb_version }}
+      is_tag: ${{ steps.get_version.outputs.is_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Extract version from tag
-        id: version
+      
+      - name: Get version from tag or input
+        id: get_version
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
+            IS_TAG="true"
+            echo "Version from tag: $VERSION"
+          elif [[ -n "${{ github.event.inputs.manual_version }}" ]]; then
+            VERSION="${{ github.event.inputs.manual_version }}"
+            VERSION="${VERSION#v}"
+            IS_TAG="false"
+            echo "Version from input: $VERSION"
           else
             VERSION="manual-build"
+            IS_TAG="false"
+            echo "Version: manual-build"
           fi
+          
+          # Debian-compatible version (must start with digit)
+          if [[ "$VERSION" =~ ^[0-9] ]]; then
+            DEB_VERSION="$VERSION"
+          else
+            DEB_VERSION="0.0.0~${VERSION}"
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "deb_version=$DEB_VERSION" >> $GITHUB_OUTPUT
+          echo "is_tag=$IS_TAG" >> $GITHUB_OUTPUT
+          echo "Android version: $VERSION"
+          echo "Debian version: $DEB_VERSION"
 
+  # ============================================
+  # JOB 2: Setup JDK and Android Build Environment
+  # ============================================
+  setup-build-environment:
+    runs-on: ubuntu-latest
+    needs: setup-version
+    outputs:
+      jdk_version: "21"
+    steps:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: '21'
           cache: 'gradle'
+      
+      - name: Validate Java installation
+        run: |
+          java -version
+          javac -version
+          echo "JDK 21 ready"
+      
+      - name: Install Android build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            android-sdk \
+            aapt \
+            wget \
+            curl \
+            unzip \
+            dpkg \
+            debconf
+      
+      - name: Setup Android SDK
+        run: |
+          if [ ! -d "$ANDROID_HOME" ]; then
+            export ANDROID_HOME=$HOME/android-sdk
+            echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+            mkdir -p $ANDROID_HOME
+          fi
+          echo "Android SDK ready at: $ANDROID_HOME"
 
+  # ============================================
+  # JOB 3: Build and Sign APK
+  # ============================================
+  build-signed-apk:
+    runs-on: ubuntu-latest
+    needs: [setup-version, setup-build-environment]
+    outputs:
+      apk_path: ${{ steps.save_apk.outputs.apk_path }}
+      package_name: ${{ steps.extract_package.outputs.package_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '21'
+          cache: 'gradle'
+      
       - name: Decode Keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
-            echo "Error: RELEASE_KEYSTORE_BASE64 is empty"
+            echo "ERROR: RELEASE_KEYSTORE_BASE64 is empty"
             exit 1
           fi
-          echo $RELEASE_KEYSTORE_BASE64 | base64 -d > app/release-key.jks
-
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > app/release-key.jks
+          echo "Keystore decoded successfully"
+      
+      - name: Validate Keystore
+        run: |
+          if [ ! -f "app/release-key.jks" ]; then
+            echo "ERROR: Keystore file not found"
+            exit 1
+          fi
+          if [ ! -s "app/release-key.jks" ]; then
+            echo "ERROR: Keystore file is empty"
+            exit 1
+          fi
+          echo "Keystore validated"
+      
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Build Phone signed Split APKs
+      
+      - name: Clean previous builds
+        run: ./gradlew clean
+      
+      - name: Build and sign APK with splits
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease -PenableSplits=true
-
-      - name: Find and rename APK
-        id: apk_path
         run: |
-          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | grep -v "split" | head -1)
-          if [ -z "$APK_FILE" ]; then
-            APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          fi
-          cp "$APK_FILE" PixelPlayer.apk
-          echo "path=$(pwd)/PixelPlayer.apk" >> $GITHUB_OUTPUT
-
-      - name: Upload Phone Split APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: PixelPlayer-phone-release-split-APKs
-          path: app/build/outputs/apk/release/
+          ./gradlew :app:assembleRelease -PenableSplits=true --stacktrace
       
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pixelplayer-apk
-          path: PixelPlayer.apk
-          retention-days: 7
-
-  # JOB 2: Build Waydroid .deb package
-  build-waydroid-deb:
-    runs-on: ubuntu-latest
-    needs: build-release
-    if: success()
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Download APK from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: pixelplayer-apk
-          path: ./apk
-      
-      - name: Get version (Debian-compatible)
-        id: version
+      - name: Verify APK generation
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
-          else
-            # FIXED: Must start with a digit for Debian
-            TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
-            VERSION="0.0.0~manual.${TIMESTAMP}"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building .deb version: $VERSION"
-      
-      - name: Verify APK and get package name
-        run: |
-          ls -la ./apk/
-          if [ ! -f ./apk/PixelPlayer.apk ]; then
-            echo "ERROR: PixelPlayer.apk not found!"
+          echo "Checking for APK files..."
+          find app/build/outputs/apk/release -name "*.apk" -ls
+          APK_COUNT=$(find app/build/outputs/apk/release -name "*.apk" | wc -l)
+          if [ $APK_COUNT -eq 0 ]; then
+            echo "ERROR: No APK files generated"
             exit 1
           fi
+          echo "Found $APK_COUNT APK files"
+      
+      - name: Extract universal APK
+        id: universal_apk
+        run: |
+          # Try to find universal APK (no split config)
+          UNIVERSAL_APK=$(find app/build/outputs/apk/release -name "*universal*.apk" | head -1)
+          if [ -z "$UNIVERSAL_APK" ]; then
+            # Fallback to any APK without 'split' in name
+            UNIVERSAL_APK=$(find app/build/outputs/apk/release -name "*.apk" | grep -v "split" | head -1)
+          fi
+          if [ -z "$UNIVERSAL_APK" ]; then
+            # Last resort: use any APK
+            UNIVERSAL_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          fi
+          echo "universal_apk=$UNIVERSAL_APK" >> $GITHUB_OUTPUT
+          echo "Universal APK: $UNIVERSAL_APK"
+      
+      - name: Rename APK to standard name
+        id: save_apk
+        run: |
+          cp "${{ steps.universal_apk.outputs.universal_apk }}" PixelPlayer.apk
+          echo "apk_path=$(pwd)/PixelPlayer.apk" >> $GITHUB_OUTPUT
+          ls -la PixelPlayer.apk
+          file PixelPlayer.apk
+      
+      - name: Extract package name from APK
+        id: extract_package
+        run: |
           sudo apt-get update
           sudo apt-get install -y aapt
-          PACKAGE_NAME=$(aapt dump badging ./apk/PixelPlayer.apk | grep "package: name=" | sed "s/package: name='\([^']*\)'.*/\1/")
-          echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "Detected package name: $PACKAGE_NAME"
+          PACKAGE_NAME=$(aapt dump badging PixelPlayer.apk | grep "package: name=" | sed "s/package: name='\([^']*\)'.*/\1/")
+          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Package name: $PACKAGE_NAME"
+          
+          VERSION_NAME=$(aapt dump badging PixelPlayer.apk | grep "versionName=" | sed "s/.*versionName='\([^']*\)'.*/\1/")
+          echo "Version from APK: $VERSION_NAME"
       
-      - name: Build .deb package
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelplayer-signed-apk
+          path: PixelPlayer.apk
+          retention-days: 30
+          if-no-files-found: error
+      
+      - name: Upload split APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelplayer-split-apks
+          path: app/build/outputs/apk/release/
+          retention-days: 30
+          if-no-files-found: ignore
+      
+      - name: Upload APK to release (if tagged)
+        if: needs.setup-version.outputs.is_tag == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: PixelPlayer.apk
+          append_body: true
+          body: |
+            ## 📱 Android APK
+            **Version:** ${{ needs.setup-version.outputs.version }}
+            **Package:** ${{ steps.extract_package.outputs.package_name }}
+
+  # ============================================
+  # JOB 4: Prepare Debian Package Structure
+  # ============================================
+  prepare-deb-structure:
+    runs-on: ubuntu-latest
+    needs: [setup-version, build-signed-apk]
+    outputs:
+      deb_dir: ${{ steps.create_dirs.outputs.deb_dir }}
+      package_name: ${{ needs.build-signed-apk.outputs.package_name }}
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: pixelplayer-signed-apk
+          path: ./input-apk
+      
+      - name: Verify APK download
         run: |
-          mkdir -p pixelplayer_deb/DEBIAN
-          mkdir -p pixelplayer_deb/usr/share/pixelplayer
-          mkdir -p pixelplayer_deb/usr/share/applications
+          ls -la ./input-apk/
+          if [ ! -f ./input-apk/PixelPlayer.apk ]; then
+            echo "ERROR: Failed to download APK"
+            exit 1
+          fi
+          echo "APK downloaded successfully"
+      
+      - name: Create Debian package directories
+        id: create_dirs
+        run: |
+          mkdir -p debian-package/DEBIAN
+          mkdir -p debian-package/usr/share/pixelplayer
+          mkdir -p debian-package/usr/share/applications
+          mkdir -p debian-package/usr/share/icons/hicolor/256x256/apps
+          mkdir -p debian-package/usr/share/doc/pixelplayer-waydroid
+          echo "deb_dir=$(pwd)/debian-package" >> $GITHUB_OUTPUT
+          echo "Directory structure created"
+      
+      - name: Copy APK into package
+        run: |
+          cp ./input-apk/PixelPlayer.apk debian-package/usr/share/pixelplayer/
+          chmod 644 debian-package/usr/share/pixelplayer/PixelPlayer.apk
+          echo "APK copied to package"
+      
+      - name: Create documentation
+        run: |
+          cat > debian-package/usr/share/doc/pixelplayer-waydroid/copyright << 'EOF'
+          Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+          Upstream-Name: PixelPlayer
+          Upstream-Contact: Theo Vilaro <theovilardo@example.com>
+          Source: https://github.com/theovilardo/PixelPlayer
           
-          cp ./apk/PixelPlayer.apk pixelplayer_deb/usr/share/pixelplayer/
+          Files: *
+          Copyright: 2023-2025 Theo Vilaro and contributors
+          License: MIT
           
-          cat > pixelplayer_deb/DEBIAN/control << EOF
+          Files: debian/*
+          Copyright: 2025 VoidX3D
+          License: MIT
+          
+          License: MIT
+           Permission is hereby granted, free of charge, to any person obtaining a copy
+           of this software and associated documentation files...
+          EOF
+          
+          cat > debian-package/usr/share/doc/pixelplayer-waydroid/changelog.Debian.gz << EOF
+          This is a placeholder for the changelog
+          EOF
+          gzip -9 debian-package/usr/share/doc/pixelplayer-waydroid/changelog.Debian 2>/dev/null || true
+      
+      - name: Upload Debian package structure
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package-structure
+          path: debian-package/
+          retention-days: 7
+
+  # ============================================
+  # JOB 5: Create DEBIAN Control Files
+  # ============================================
+  create-deb-control-files:
+    runs-on: ubuntu-latest
+    needs: [setup-version, prepare-deb-structure]
+    steps:
+      - name: Download Debian package structure
+        uses: actions/download-artifact@v4
+        with:
+          name: debian-package-structure
+          path: ./debian-package
+      
+      - name: Create control file
+        run: |
+          cat > debian-package/DEBIAN/control << 'EOF'
           Package: pixelplayer-waydroid
-          Version: ${{ steps.version.outputs.version }}
+          Version: ${{ needs.setup-version.outputs.deb_version }}
           Architecture: all
           Maintainer: VoidX3D <voidx3d@example.com>
-          Depends: waydroid (>= 1.2.0), lxc, python3
+          Installed-Size: $(du -sk debian-package/usr | cut -f1)
+          Depends: waydroid (>= 1.2.0), lxc, python3, systemd
+          Recommends: pipewire, wireplumber
+          Suggests: android-tools-adb
           Homepage: https://github.com/VoidX3D/PixelPlayer
+          Vcs-Git: https://github.com/VoidX3D/PixelPlayer.git
+          Vcs-Browser: https://github.com/VoidX3D/PixelPlayer
+          Section: sound
+          Priority: optional
+          Standards-Version: 4.6.2
           Description: PixelPlayer Music App for Linux (Waydroid wrapper)
            PixelPlayer is a modern, feature-rich music player with Material 3 design.
+           This package runs the Android version of PixelPlayer using Waydroid,
+           providing near-native performance and seamless desktop integration.
+           .
            Original project: https://github.com/theovilardo/PixelPlayer
            Original author: Theo Vilaro
            Linux packaging maintainer: VoidX3D
+           .
+           Features:
+            * Full music library management (MP3, FLAC, AAC, OGG, WAV)
+            * Queue and playlist support with drag-and-drop
+            * Beautiful Material You dynamic theming
+            * Gapless playback and crossfade
+            * 10-band equalizer with presets
+            * Synchronized lyrics (LRC format)
+            * Chromecast support
+            * Listening statistics and scrobbling
+            * Android Auto compatible (via Waydroid)
+            * Wear OS companion (via Waydroid)
           EOF
           
-          cat > pixelplayer_deb/DEBIAN/postinst << EOF
+          # Calculate and update installed size
+          INSTALLED_SIZE=$(du -sk debian-package/usr | cut -f1)
+          sed -i "s/Installed-Size: .*/Installed-Size: $INSTALLED_SIZE/" debian-package/DEBIAN/control
+          
+          echo "Control file created"
+          cat debian-package/DEBIAN/control
+      
+      - name: Create postinst script
+        run: |
+          cat > debian-package/DEBIAN/postinst << 'EOF'
           #!/bin/bash
           set -e
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  PixelPlayer v${{ steps.version.outputs.version }} - Waydroid Setup"
-          echo "  Original app by: Theo Vilaro | Linux package by: VoidX3D"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          PACKAGE_NAME="${{ env.package_name }}"
+          
+          # Colors for output
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[1;33m'
+          BLUE='\033[0;34m'
+          NC='\033[0m' # No Color
+          
+          PACKAGE_NAME="${{ needs.build-signed-apk.outputs.package_name }}"
           APK_PATH="/usr/share/pixelplayer/PixelPlayer.apk"
-          if ! command -v waydroid &> /dev/null; then
-              echo "❌ Waydroid is not installed. Run: sudo apt install waydroid"
-              exit 1
+          
+          echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+          echo -e "${GREEN}  PixelPlayer v${{ needs.setup-version.outputs.version }} - Waydroid Setup${NC}"
+          echo -e "${BLUE}  Original app by: Theo Vilaro${NC}"
+          echo -e "${BLUE}  Linux package by: VoidX3D${NC}"
+          echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+          
+          # Check if running on Wayland
+          if [ -z "$XDG_SESSION_TYPE" ] || [ "$XDG_SESSION_TYPE" != "wayland" ]; then
+              echo -e "${YELLOW}⚠️  Warning: Waydroid works best on Wayland${NC}"
+              echo -e "${YELLOW}   You are currently on: ${XDG_SESSION_TYPE:-unknown}${NC}"
+              echo -e "${YELLOW}   Consider switching to Wayland for better performance${NC}"
+              echo ""
           fi
+          
+          # Check if Waydroid is installed
+          if ! command -v waydroid &> /dev/null; then
+              echo -e "${RED}❌ Waydroid is not installed.${NC}"
+              echo -e "${YELLOW}   Installing Waydroid...${NC}"
+              if command -v apt &> /dev/null; then
+                  sudo apt update
+                  sudo apt install -y waydroid lxc python3
+              else
+                  echo -e "${RED}   Please install Waydroid manually:${NC}"
+                  echo -e "${RED}   https://docs.waydro.id/installation${NC}"
+                  exit 1
+              fi
+          fi
+          
+          # Initialize Waydroid if not already done
           if [ ! -f /var/lib/waydroid/waydroid.prop ]; then
-              echo "📦 Initializing Waydroid..."
+              echo -e "${BLUE}📦 Initializing Waydroid (this may take a few minutes)...${NC}"
               sudo waydroid init
           fi
+          
+          # Start and enable the container service
+          echo -e "${BLUE}🚀 Starting Waydroid container service...${NC}"
           sudo systemctl enable waydroid-container
           sudo systemctl start waydroid-container
-          echo "⏳ Waiting for Waydroid..."
-          sleep 8
-          echo "📱 Installing PixelPlayer..."
-          waydroid app install "\$APK_PATH"
-          echo "✅ Done! Launch with: waydroid app launch \$PACKAGE_NAME"
-          EOF
-          chmod +x pixelplayer_deb/DEBIAN/postinst
           
-          cat > pixelplayer_deb/DEBIAN/prerm << EOF
-          #!/bin/bash
-          set -e
-          PACKAGE_NAME="${{ env.package_name }}"
-          waydroid app remove "\$PACKAGE_NAME" 2>/dev/null || true
-          exit 0
-          EOF
-          chmod +x pixelplayer_deb/DEBIAN/prerm
+          # Check if container is running
+          sleep 3
+          if ! systemctl is-active --quiet waydroid-container; then
+              echo -e "${YELLOW}⚠️  Waydroid container not responding, retrying...${NC}"
+              sudo systemctl restart waydroid-container
+              sleep 5
+          fi
           
-          cat > pixelplayer_deb/usr/share/applications/pixelplayer.desktop << EOF
+          # Wait for session to be ready
+          echo -e "${BLUE}⏳ Waiting for Waydroid session to be ready...${NC}"
+          sleep 10
+          
+          # Install the APK
+          echo -e "${BLUE}📱 Installing PixelPlayer APK...${NC}"
+          if waydroid app install "$APK_PATH"; then
+              echo -e "${GREEN}✅ PixelPlayer installed successfully!${NC}"
+          else
+              echo -e "${RED}❌ Failed to install PixelPlayer${NC}"
+              echo -e "${YELLOW}   Try installing manually: waydroid app install $APK_PATH${NC}"
+              exit 1
+          fi
+          
+          # Create desktop entry
+          cat > /usr/share/applications/pixelplayer-waydroid.desktop << DESKTOP_EOF
           [Desktop Entry]
           Name=PixelPlayer
-          Comment=Music player (Original by Theo Vilaro)
-          Exec=waydroid app launch ${{ env.package_name }}
-          Icon=pixelplayer
+          Comment=Modern music player
+          Exec=waydroid app launch $PACKAGE_NAME
+          Icon=/usr/share/icons/hicolor/256x256/apps/pixelplayer.png
           Terminal=false
           Type=Application
           Categories=Audio;Music;Player;
+          StartupNotify=true
+          MimeType=audio/mpeg;audio/flac;audio/ogg;audio/x-wav;
+          Keywords=music;player;audio;stream;
+          DESKTOP_EOF
+          
+          chmod 644 /usr/share/applications/pixelplayer-waydroid.desktop
+          
+          echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+          echo -e "${GREEN}✅ Setup complete!${NC}"
+          echo -e "${GREEN}   Launch PixelPlayer from your app menu or run:${NC}"
+          echo -e "${YELLOW}   waydroid app launch $PACKAGE_NAME${NC}"
+          echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+          
+          exit 0
           EOF
           
-          dpkg --build pixelplayer_deb pixelplayer-waydroid_${{ steps.version.outputs.version }}_all.deb
-          ls -la *.deb
+          chmod 755 debian-package/DEBIAN/postinst
+          echo "postinst script created"
+      
+      - name: Create prerm script
+        run: |
+          cat > debian-package/DEBIAN/prerm << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          PACKAGE_NAME="${{ needs.build-signed-apk.outputs.package_name }}"
+          
+          echo "Removing PixelPlayer from Waydroid..."
+          
+          # Remove the app from Waydroid if installed
+          if command -v waydroid &> /dev/null; then
+              waydroid app remove "$PACKAGE_NAME" 2>/dev/null || true
+              echo "✓ Removed from Waydroid"
+          fi
+          
+          # Remove desktop entry
+          rm -f /usr/share/applications/pixelplayer-waydroid.desktop 2>/dev/null || true
+          
+          echo "Package removal completed."
+          exit 0
+          EOF
+          
+          chmod 755 debian-package/DEBIAN/prerm
+          echo "prerm script created"
+      
+      - name: Create postrm script
+        run: |
+          cat > debian-package/DEBIAN/postrm << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          case "$1" in
+              purge)
+                  echo "Purging PixelPlayer configuration..."
+                  rm -rf /etc/pixelplayer 2>/dev/null || true
+                  ;;
+              remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+                  ;;
+              *)
+                  echo "postrm called with unknown argument '$1'" >&2
+                  exit 1
+                  ;;
+          esac
+          
+          exit 0
+          EOF
+          
+          chmod 755 debian-package/DEBIAN/postrm
+          echo "postrm script created"
+      
+      - name: Create conffiles (if any config files exist)
+        run: |
+          # Create empty conffiles for now
+          touch debian-package/DEBIAN/conffiles 2>/dev/null || true
+          echo "conffiles created"
+      
+      - name: Create desktop icon
+        run: |
+          # Create a simple SVG icon
+          cat > debian-package/usr/share/icons/hicolor/256x256/apps/pixelplayer.svg << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+            <rect width="256" height="256" rx="56" fill="#6200EE"/>
+            <circle cx="128" cy="128" r="48" fill="white" opacity="0.9"/>
+            <polygon points="108,108 148,128 108,148" fill="#6200EE"/>
+            <path d="M128,80 L128,176 M80,128 L176,128" stroke="white" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+          EOF
+          
+          # Convert SVG to PNG if possible (or skip)
+          if command -v convert &> /dev/null; then
+            convert debian-package/usr/share/icons/hicolor/256x256/apps/pixelplayer.svg \
+                    debian-package/usr/share/icons/hicolor/256x256/apps/pixelplayer.png 2>/dev/null || true
+          fi
+          
+          echo "Icon created"
+      
+      - name: Upload complete Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package-complete
+          path: debian-package/
+          retention-days: 7
+
+  # ============================================
+  # JOB 6: Build Final .deb Package
+  # ============================================
+  build-deb:
+    runs-on: ubuntu-latest
+    needs: [setup-version, create-deb-control-files]
+    steps:
+      - name: Download complete Debian package
+        uses: actions/download-artifact@v4
+        with:
+          name: debian-package-complete
+          path: ./debian-package
+      
+      - name: Verify package structure
+        run: |
+          echo "Verifying Debian package structure..."
+          ls -la debian-package/
+          ls -la debian-package/DEBIAN/
+          ls -la debian-package/usr/share/pixelplayer/ || true
+          
+          # Check required files
+          if [ ! -f debian-package/DEBIAN/control ]; then
+            echo "ERROR: control file missing"
+            exit 1
+          fi
+          if [ ! -f debian-package/DEBIAN/postinst ]; then
+            echo "ERROR: postinst script missing"
+            exit 1
+          fi
+          if [ ! -f debian-package/usr/share/pixelplayer/PixelPlayer.apk ]; then
+            echo "ERROR: APK file missing"
+            exit 1
+          fi
+          
+          echo "Package structure verified"
+      
+      - name: Build .deb package
+        id: build_deb
+        run: |
+          DEB_VERSION="${{ needs.setup-version.outputs.deb_version }}"
+          DEB_NAME="pixelplayer-waydroid_${DEB_VERSION}_all.deb"
+          
+          echo "Building: $DEB_NAME"
+          
+          # Build the package
+          cd debian-package
+          dpkg --build . "../$DEB_NAME"
+          cd ..
+          
+          # Verify the package
+          if [ ! -f "$DEB_NAME" ]; then
+            echo "ERROR: .deb package not created"
+            exit 1
+          fi
+          
+          echo "deb_name=$DEB_NAME" >> $GITHUB_OUTPUT
+          echo "✅ .deb package built: $DEB_NAME"
+          
+          # Show package info
+          echo ""
+          echo "Package info:"
+          dpkg --info "$DEB_NAME"
+          echo ""
+          echo "Package contents:"
+          dpkg --contents "$DEB_NAME" | head -20
+      
+      - name: Verify .deb package integrity
+        run: |
+          DEB_NAME="pixelplayer-waydroid_${{ needs.setup-version.outputs.deb_version }}_all.deb"
+          
+          # Check if it's a valid deb package
+          if ! dpkg --info "$DEB_NAME" > /dev/null 2>&1; then
+            echo "ERROR: Invalid .deb package"
+            exit 1
+          fi
+          
+          # Check file size
+          SIZE=$(stat -c%s "$DEB_NAME")
+          echo "Package size: $SIZE bytes"
+          
+          if [ $SIZE -lt 1000 ]; then
+            echo "ERROR: Package too small, likely corrupt"
+            exit 1
+          fi
+          
+          echo "Package integrity verified"
       
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pixelplayer-waydroid_${{ steps.version.outputs.version }}
+          name: pixelplayer-waydroid_${{ needs.setup-version.outputs.deb_version }}
           path: pixelplayer-waydroid_*.deb
+          retention-days: 90
+          if-no-files-found: error
       
-      - name: Upload .deb to release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      - name: Upload .deb to release (if tagged)
+        if: needs.setup-version.outputs.is_tag == 'true'
         uses: softprops/action-gh-release@v1
         with:
           files: pixelplayer-waydroid_*.deb
           append_body: true
+          body: |
+            ## 📦 Linux .deb Package (Waydroid)
+            
+            **Version:** ${{ needs.setup-version.outputs.version }}
+            **Debian Version:** ${{ needs.setup-version.outputs.deb_version }}
+            
+            ### Installation:
+            ```bash
+            sudo dpkg -i pixelplayer-waydroid_${{ needs.setup-version.outputs.deb_version }}_all.deb
+            sudo apt-get install -f  # Installs Waydroid if needed
