@@ -1,4 +1,4 @@
-name: Build Phone APK + Waydroid .deb Package
+name: Build Phone APK (Signed Bundle) + Waydroid .deb Package
 
 on:
   workflow_dispatch:
@@ -27,7 +27,6 @@ jobs:
             VERSION="manual-build"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -41,7 +40,7 @@ jobs:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
-            echo "Error: RELEASE_KEYSTORE_BASE64 is empty. Please add it to GitHub Secrets."
+            echo "Error: RELEASE_KEYSTORE_BASE64 is empty"
             exit 1
           fi
           echo $RELEASE_KEYSTORE_BASE64 | base64 -d > app/release-key.jks
@@ -56,35 +55,28 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease -PenableSplits=true
 
-      - name: Extract and rename APK
-        id: apk_info
+      - name: Find and rename APK
+        id: apk_path
         run: |
-          # Find the APK
           APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | grep -v "split" | head -1)
           if [ -z "$APK_FILE" ]; then
             APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           fi
           cp "$APK_FILE" PixelPlayer.apk
-          
-          # Extract package name
-          sudo apt-get update
-          sudo apt-get install -y aapt2
-          PACKAGE_NAME=$(aapt2 dump packagename PixelPlayer.apk)
-          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-          echo "Detected package: $PACKAGE_NAME"
+          echo "path=$(pwd)/PixelPlayer.apk" >> $GITHUB_OUTPUT
 
-      - name: Upload APK artifact
+      - name: Upload Phone Split APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPlayer-phone-release-split-APKs
+          path: app/build/outputs/apk/release/
+      
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: pixelplayer-apk
           path: PixelPlayer.apk
           retention-days: 7
-      
-      - name: Upload split APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: PixelPlayer-phone-release-split-APKs
-          path: app/build/outputs/apk/release/
 
   # JOB 2: Build Waydroid .deb package
   build-waydroid-deb:
@@ -93,20 +85,14 @@ jobs:
     if: success()
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
       - name: Download APK from build job
         uses: actions/download-artifact@v4
         with:
           name: pixelplayer-apk
           path: ./apk
-      
-      - name: Get package name from APK
-        id: apk_info
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y aapt2
-          PACKAGE_NAME=$(aapt2 dump packagename ./apk/PixelPlayer.apk)
-          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-          echo "Detected package: $PACKAGE_NAME"
       
       - name: Get version (Debian-compatible)
         id: version
@@ -114,30 +100,35 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
-            # Ensure version starts with digit
-            if [[ ! "$VERSION" =~ ^[0-9] ]]; then
-              echo "ERROR: Tag version '$VERSION' must start with a digit"
-              exit 1
-            fi
           else
-            # Manual build: MUST start with a digit
+            # FIXED: Must start with a digit for Debian
             TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
             VERSION="0.0.0~manual.${TIMESTAMP}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building .deb version: $VERSION"
       
+      - name: Verify APK and get package name
+        run: |
+          ls -la ./apk/
+          if [ ! -f ./apk/PixelPlayer.apk ]; then
+            echo "ERROR: PixelPlayer.apk not found!"
+            exit 1
+          fi
+          sudo apt-get update
+          sudo apt-get install -y aapt
+          PACKAGE_NAME=$(aapt dump badging ./apk/PixelPlayer.apk | grep "package: name=" | sed "s/package: name='\([^']*\)'.*/\1/")
+          echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo "Detected package name: $PACKAGE_NAME"
+      
       - name: Build .deb package
         run: |
-          # Create package structure
           mkdir -p pixelplayer_deb/DEBIAN
           mkdir -p pixelplayer_deb/usr/share/pixelplayer
           mkdir -p pixelplayer_deb/usr/share/applications
           
-          # Copy APK
           cp ./apk/PixelPlayer.apk pixelplayer_deb/usr/share/pixelplayer/
           
-          # Create control file with VALID version
           cat > pixelplayer_deb/DEBIAN/control << EOF
           Package: pixelplayer-waydroid
           Version: ${{ steps.version.outputs.version }}
@@ -147,108 +138,68 @@ jobs:
           Homepage: https://github.com/VoidX3D/PixelPlayer
           Description: PixelPlayer Music App for Linux (Waydroid wrapper)
            PixelPlayer is a modern, feature-rich music player with Material 3 design.
-           This package runs the Android version of PixelPlayer using Waydroid.
-           .
            Original project: https://github.com/theovilardo/PixelPlayer
            Original author: Theo Vilaro
            Linux packaging maintainer: VoidX3D
           EOF
           
-          # Create postinst script with correct package name
           cat > pixelplayer_deb/DEBIAN/postinst << EOF
           #!/bin/bash
           set -e
-          
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  PixelPlayer v${{ steps.version.outputs.version }} - Waydroid Setup"
-          echo "  Original app by: Theo Vilaro"
-          echo "  Linux package by: VoidX3D"
+          echo "  Original app by: Theo Vilaro | Linux package by: VoidX3D"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
-          PACKAGE_NAME="${{ steps.apk_info.outputs.package_name }}"
+          PACKAGE_NAME="${{ env.package_name }}"
           APK_PATH="/usr/share/pixelplayer/PixelPlayer.apk"
-          
-          # Check if Waydroid is installed
           if ! command -v waydroid &> /dev/null; then
-              echo "❌ Waydroid is not installed."
-              echo "   Please install it first: sudo apt install waydroid"
-              echo "   Then re-run: sudo dpkg --configure -a"
+              echo "❌ Waydroid is not installed. Run: sudo apt install waydroid"
               exit 1
           fi
-          
-          # Initialize Waydroid if not already done
           if [ ! -f /var/lib/waydroid/waydroid.prop ]; then
-              echo "📦 Initializing Waydroid (this may take a few minutes)..."
+              echo "📦 Initializing Waydroid..."
               sudo waydroid init
           fi
-          
-          # Start the container service
-          echo "🚀 Starting Waydroid container..."
           sudo systemctl enable waydroid-container
           sudo systemctl start waydroid-container
-          
-          # Wait for session to be ready
-          echo "⏳ Waiting for Waydroid session..."
+          echo "⏳ Waiting for Waydroid..."
           sleep 8
-          
-          # Install the APK
-          echo "📱 Installing PixelPlayer APK..."
+          echo "📱 Installing PixelPlayer..."
           waydroid app install "\$APK_PATH"
-          
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ PixelPlayer installed successfully!"
-          echo ""
-          echo "Launch with: waydroid app launch \$PACKAGE_NAME"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
-          exit 0
+          echo "✅ Done! Launch with: waydroid app launch \$PACKAGE_NAME"
           EOF
           chmod +x pixelplayer_deb/DEBIAN/postinst
           
-          # Create prerm script
           cat > pixelplayer_deb/DEBIAN/prerm << EOF
           #!/bin/bash
           set -e
-          
-          PACKAGE_NAME="${{ steps.apk_info.outputs.package_name }}"
-          
-          echo "Removing PixelPlayer from Waydroid..."
+          PACKAGE_NAME="${{ env.package_name }}"
           waydroid app remove "\$PACKAGE_NAME" 2>/dev/null || true
-          
-          echo "Package removal completed."
           exit 0
           EOF
           chmod +x pixelplayer_deb/DEBIAN/prerm
           
-          # Create desktop entry
           cat > pixelplayer_deb/usr/share/applications/pixelplayer.desktop << EOF
           [Desktop Entry]
           Name=PixelPlayer
-          Comment=Music player (Original by Theo Vilaro | Linux port by VoidX3D)
-          Exec=waydroid app launch ${{ steps.apk_info.outputs.package_name }}
+          Comment=Music player (Original by Theo Vilaro)
+          Exec=waydroid app launch ${{ env.package_name }}
           Icon=pixelplayer
           Terminal=false
           Type=Application
           Categories=Audio;Music;Player;
-          MimeType=audio/mpeg;audio/flac;audio/ogg;audio/x-wav;
           EOF
           
-          # Build the .deb
           dpkg --build pixelplayer_deb pixelplayer-waydroid_${{ steps.version.outputs.version }}_all.deb
-          
-          # Verify
-          echo "✅ .deb package built:"
           ls -la *.deb
-          dpkg --info pixelplayer-waydroid_*.deb
       
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
           name: pixelplayer-waydroid_${{ steps.version.outputs.version }}
           path: pixelplayer-waydroid_*.deb
-          retention-days: 90
       
-      - name: Attach .deb to release
+      - name: Upload .deb to release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
