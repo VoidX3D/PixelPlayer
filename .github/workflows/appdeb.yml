@@ -1,0 +1,55 @@
+# .github/workflows/build-waydroid-deb.yml
+name: Build Waydroid .deb Package
+
+on:
+  release:
+    types: [published]  # Triggers when you tag a new Android release
+  workflow_dispatch:     # Or manually trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download APK from release
+        run: |
+          curl -L -o PixelPlayer.apk \
+            https://github.com/yourname/PixelPlayer/releases/download/${{ github.ref_name }}/PixelPlayer.apk
+      
+      - name: Build .deb package
+        run: |
+          # Create package structure
+          mkdir -p pixelplayer_deb/DEBIAN
+          mkdir -p pixelplayer_deb/usr/share/pixelplayer
+          
+          # Copy APK
+          cp PixelPlayer.apk pixelplayer_deb/usr/share/pixelplayer/
+          
+          # Create control file
+          cat > pixelplayer_deb/DEBIAN/control << 'EOF'
+          Package: pixelplayer-waydroid
+          Version: ${{ github.ref_name }}
+          Architecture: all
+          Depends: waydroid, lxc, python3
+          Description: PixelPlayer Music App (Waydroid wrapper)
+          EOF
+          
+          # Create postinst script
+          cat > pixelplayer_deb/DEBIAN/postinst << 'EOF'
+          #!/bin/bash
+          sudo waydroid init 2>/dev/null || true
+          sudo systemctl start waydroid-container
+          sleep 5
+          waydroid app install /usr/share/pixelplayer/PixelPlayer.apk
+          EOF
+          chmod +x pixelplayer_deb/DEBIAN/postinst
+          
+          # Build the .deb
+          dpkg --build pixelplayer_deb pixelplayer-waydroid_${{ github.ref_name }}_all.deb
+      
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelplayer-waydroid
+          path: pixelplayer-waydroid_*.deb
