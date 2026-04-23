@@ -673,3 +673,80 @@ jobs:
             ```bash
             sudo dpkg -i pixelplayer-waydroid_${{ needs.setup-version.outputs.deb_version }}_all.deb
             sudo apt-get install -f  # Installs Waydroid if needed
+            ```
+            
+            ### Requirements:
+            - Wayland display server (default on modern Linux distros)
+            - ~2GB free disk space for Android system image
+            - Internet connection for first-time setup
+            
+            ### Launch:
+            After installation, find PixelPlayer in your app menu or run:
+            ```bash
+            waydroid app launch ${{ needs.build-signed-apk.outputs.package_name }}
+            ```
+            
+            ### Troubleshooting:
+            - If Waydroid isn't working, run: `sudo waydroid init`
+            - For X11 users: use `cage` to run Waydroid: `cage -- waydroid show-full-ui`
+            
+            ---
+            *Original Android app by [Theo Vilaro](https://github.com/theovilardo/PixelPlayer)*
+            *Linux packaging by [VoidX3D](https://github.com/VoidX3D)*
+
+  # ============================================
+  # JOB 7: Cleanup and Summary
+  # ============================================
+  cleanup-and-summary:
+    runs-on: ubuntu-latest
+    needs: [setup-version, build-signed-apk, build-deb]
+    if: always()
+    steps:
+      - name: Generate build summary
+        run: |
+          echo "# PixelPlayer Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ needs.setup-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Debian Version:** ${{ needs.setup-version.outputs.deb_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tagged Release:** ${{ needs.setup-version.outputs.is_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package Name:** ${{ needs.build-signed-apk.outputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Signed APK" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Split APKs" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Debian Package (.deb)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.setup-version.outputs.is_tag }}" == "true" ]; then
+            echo "## Release" >> $GITHUB_STEP_SUMMARY
+            echo "Both APK and .deb have been attached to the GitHub release." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Manual Build" >> $GITHUB_STEP_SUMMARY
+            echo "Download artifacts from the Artifacts section below." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Test the APK on Android devices" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the .deb on a Linux machine with Waydroid" >> $GITHUB_STEP_SUMMARY
+          echo "3. Report any issues to the maintainer" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Check build status
+        run: |
+          echo "=========================================="
+          echo "PixelPlayer Build Complete"
+          echo "=========================================="
+          echo "Version: ${{ needs.setup-version.outputs.version }}"
+          if [ "${{ needs.build-signed-apk.result }}" == "success" ]; then
+            echo "✅ APK build: SUCCESS"
+          else
+            echo "❌ APK build: FAILED"
+          fi
+          if [ "${{ needs.build-deb.result }}" == "success" ]; then
+            echo "✅ .deb build: SUCCESS"
+          else
+            echo "❌ .deb build: FAILED"
+          fi
+          echo "=========================================="
