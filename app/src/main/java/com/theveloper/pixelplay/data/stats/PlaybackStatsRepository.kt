@@ -198,6 +198,22 @@ class PlaybackStatsRepository @Inject constructor(
     ): PlaybackStatsSummary = withContext(Dispatchers.IO) {
         val zoneId = ZoneId.systemDefault()
         val allEvents = readEvents()
+        buildSummaryFromEvents(
+            range = range,
+            songs = songs,
+            nowMillis = nowMillis,
+            allEvents = allEvents,
+            zoneId = zoneId
+        )
+    }
+
+    internal fun buildSummaryFromEvents(
+        range: StatsTimeRange,
+        songs: List<Song>,
+        nowMillis: Long,
+        allEvents: List<PlaybackEvent>,
+        zoneId: ZoneId = ZoneId.systemDefault()
+    ): PlaybackStatsSummary {
         val (startBound, endBound) = range.resolveBounds(allEvents, nowMillis, zoneId)
         val filteredEvents = allEvents.mapNotNull { event ->
             val start = event.startMillis()
@@ -223,9 +239,7 @@ class PlaybackStatsRepository @Inject constructor(
         }
 
         val songMap = songs.associateBy { it.id }
-        val normalizedEvents = filteredEvents.map { event ->
-            normalizeEventDuration(event, songMap[event.songId])
-        }
+        val normalizedEvents = filteredEvents
 
         val segmentsBySong = normalizedEvents
             .groupBy { it.songId }
@@ -403,7 +417,7 @@ class PlaybackStatsRepository @Inject constructor(
             endBound = endBound
         )
 
-        PlaybackStatsSummary(
+        return PlaybackStatsSummary(
             range = range,
             startTimestamp = startBound,
             endTimestamp = endBound,
@@ -539,30 +553,6 @@ class PlaybackStatsRepository @Inject constructor(
             durationMs = finalDuration,
             startTimestamp = finalStart,
             endTimestamp = safeEnd
-        )
-    }
-
-    private fun normalizeEventDuration(
-        event: PlaybackEvent,
-        song: Song?
-    ): PlaybackEvent {
-        val safeEnd = event.endMillis()
-        val trackDuration = song?.duration?.takeIf { it > 0L }
-        val boundedDuration = event.durationMs
-            .coerceAtLeast(0L)
-            .let { duration ->
-                val cappedByTrack = trackDuration?.let { min(duration, it) } ?: duration
-                min(cappedByTrack, MAX_REASONABLE_EVENT_DURATION_MS)
-            }
-        val adjustedStart = max(safeEnd - boundedDuration, 0L)
-        if (boundedDuration == event.durationMs && adjustedStart == event.startMillis()) {
-            return event
-        }
-        return event.copy(
-            durationMs = boundedDuration,
-            startTimestamp = adjustedStart,
-            endTimestamp = safeEnd,
-            timestamp = safeEnd
         )
     }
 
@@ -1062,8 +1052,7 @@ class PlaybackStatsRepository @Inject constructor(
         private const val MAX_PLAYBACK_HISTORY_LIMIT = 5_000
         private const val MAX_FILE_UPDATE_RETRIES = 3
         private val MAX_HISTORY_AGE_MS = TimeUnit.DAYS.toMillis(730) // Keep roughly two years of history
-        private val MAX_REASONABLE_EVENT_DURATION_MS = TimeUnit.HOURS.toMillis(8)
-        private val SEGMENT_JOIN_TOLERANCE_MS = TimeUnit.SECONDS.toMillis(2)
+        private const val SEGMENT_JOIN_TOLERANCE_MS = 0L
     }
 }
 

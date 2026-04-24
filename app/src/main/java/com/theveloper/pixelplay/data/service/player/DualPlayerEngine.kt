@@ -3,11 +3,14 @@ package com.theveloper.pixelplay.data.service.player
 import android.content.Context
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.os.Build
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -66,10 +69,17 @@ class DualPlayerEngine @Inject constructor(
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
 ) {
+    private companion object {
+        private const val AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS = 4_000L
+        private val LOCAL_MEDIA_SCHEMES = setOf("content", "file", "android.resource")
+    }
+
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     var hiFiModeEnabled: Boolean = false
         private set
+    private var audioOffloadEnabled = !shouldDisableAudioOffloadByDefault()
     private var transitionJob: Job? = null
+    private var bufferingFallbackJob: Job? = null
     private var transitionRunning = false
 
     private lateinit var playerA: ExoPlayer
@@ -86,6 +96,7 @@ class DualPlayerEngine @Inject constructor(
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private var audioFocusRequest: AudioFocusRequest? = null
     private var isFocusLossPause = false
+    private var lastPlayWhenReadyAtMs: Long = 0L
 
     private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
@@ -117,11 +128,19 @@ class DualPlayerEngine @Inject constructor(
     private val masterPlayerListener = object : Player.Listener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (playWhenReady) {
+                lastPlayWhenReadyAtMs = SystemClock.elapsedRealtime()
                 requestAudioFocus()
             } else {
+                cancelAudioOffloadFallback()
                 if (!isFocusLossPause) {
                     abandonAudioFocus()
                 }
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) {
+                cancelAudioOffloadFallback()
             }
         }
 
@@ -134,6 +153,7 @@ class DualPlayerEngine @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            cancelAudioOffloadFallback()
             // Integración de feature/telegram-cloud-sync
             val uri = mediaItem?.localConfiguration?.uri
             if (uri?.scheme == "telegram") {
@@ -176,6 +196,13 @@ class DualPlayerEngine @Inject constructor(
                 }
             } catch (e: Exception) {
                 Timber.w(e, "Error during pre-resolution in onMediaItemTransition")
+            }
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            when (playbackState) {
+                Player.STATE_BUFFERING -> scheduleAudioOffloadFallbackIfNeeded(playerA)
+                Player.STATE_READY, Player.STATE_IDLE, Player.STATE_ENDED -> cancelAudioOffloadFallback()
             }
         }
     }
@@ -273,6 +300,100 @@ class DualPlayerEngine @Inject constructor(
             audioManager.abandonAudioFocusRequest(it)
             audioFocusRequest = null
         }
+    }
+
+    private fun scheduleAudioOffloadFallbackIfNeeded(player: ExoPlayer) {
+        cancelAudioOffloadFallback()
+        if (!audioOffloadEnabled || transitionRunning || !player.playWhenReady) return
+        if (!isLikelyLocalMedia(player.currentMediaItem)) return
+
+        val watchedMediaId = player.currentMediaItem?.mediaId ?: return
+        bufferingFallbackJob = scope.launch {
+            delay(AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS)
+
+            val currentMediaId = player.currentMediaItem?.mediaId
+            if (!audioOffloadEnabled || transitionRunning || player !== playerA) return@launch
+            if (currentMediaId != watchedMediaId) return@launch
+            if (player.playbackState != Player.STATE_BUFFERING || player.isPlaying || !player.playWhenReady) return@launch
+            if (player.currentPosition > 1_000L || player.bufferedPosition <= 0L) return@launch
+
+            val timeSincePlayRequestMs = (SystemClock.elapsedRealtime() - lastPlayWhenReadyAtMs).coerceAtLeast(0L)
+            if (timeSincePlayRequestMs < AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS) return@launch
+
+            disableAudioOffloadForSession(
+                reason = "Local media stayed buffering for ${AUDIO_OFFLOAD_BUFFERING_FALLBACK_MS}ms after play request " +
+                    "(mediaId=$watchedMediaId, buffered=${player.bufferedPosition})"
+            )
+        }
+    }
+
+    private fun cancelAudioOffloadFallback() {
+        bufferingFallbackJob?.cancel()
+        bufferingFallbackJob = null
+    }
+
+    private fun isLikelyLocalMedia(mediaItem: MediaItem?): Boolean {
+        val scheme = mediaItem?.localConfiguration?.uri?.scheme?.lowercase()
+        return scheme == null || scheme in LOCAL_MEDIA_SCHEMES
+    }
+
+    private fun shouldDisableAudioOffloadByDefault(): Boolean {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val brand = Build.BRAND.lowercase()
+        val isXiaomiFamilyDevice = manufacturer == "xiaomi" || brand == "xiaomi" || brand == "redmi" || brand == "poco"
+        return isXiaomiFamilyDevice && Build.VERSION.SDK_INT >= 36
+    }
+
+    private fun disableAudioOffloadForSession(reason: String) {
+        if (!audioOffloadEnabled) return
+        if (transitionRunning) {
+            Timber.tag("DualPlayerEngine").w("Skipping offload fallback during active transition. %s", reason)
+            return
+        }
+
+        audioOffloadEnabled = false
+        rebuildPlayersPreservingMasterState(
+            logMessage = "Audio offload disabled for current session after playback stall. $reason"
+        )
+    }
+
+    private fun rebuildPlayersPreservingMasterState(logMessage: String) {
+        cancelAudioOffloadFallback()
+
+        val desiredPlayWhenReady = playerA.playWhenReady
+        val positionMs = playerA.currentPosition
+        val currentIndex = playerA.currentMediaItemIndex.coerceAtLeast(0)
+        val mediaItems = (0 until playerA.mediaItemCount).map { playerA.getMediaItemAt(it) }
+        val repeatMode = playerA.repeatMode
+        val shuffleMode = playerA.shuffleModeEnabled
+        val volume = playerA.volume
+        val pauseAtEnd = playerA.pauseAtEndOfMediaItems
+        val playbackParameters: PlaybackParameters = playerA.playbackParameters
+
+        playerA.removeListener(masterPlayerListener)
+        playerA.release()
+        playerB.release()
+
+        playerA = buildPlayer(handleAudioFocus = false)
+        playerB = buildPlayer(handleAudioFocus = false)
+
+        playerA.addListener(masterPlayerListener)
+        playerA.volume = volume
+        playerA.pauseAtEndOfMediaItems = pauseAtEnd
+        playerA.playbackParameters = playbackParameters
+
+        if (mediaItems.isNotEmpty()) {
+            playerA.setMediaItems(mediaItems, currentIndex, positionMs)
+            playerA.repeatMode = repeatMode
+            playerA.shuffleModeEnabled = shuffleMode
+            playerA.prepare()
+            playerA.playWhenReady = desiredPlayWhenReady
+        }
+
+        _activeAudioSessionId.value = playerA.audioSessionId
+        onPlayerSwappedListeners.forEach { it(playerA) }
+
+        Timber.tag("DualPlayerEngine").d(logMessage)
     }
 
     private fun buildPlayer(handleAudioFocus: Boolean): ExoPlayer {
@@ -374,7 +495,13 @@ class DualPlayerEngine @Inject constructor(
             .build().apply {
             setAudioAttributes(audioAttributes, handleAudioFocus)
             val offloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
-                .setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
+                .setAudioOffloadMode(
+                    if (audioOffloadEnabled) {
+                        TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+                    } else {
+                        TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                    }
+                )
                 .build()
             setTrackSelectionParameters(
                 trackSelectionParameters
@@ -389,6 +516,7 @@ class DualPlayerEngine @Inject constructor(
             setWakeMode(C.WAKE_MODE_NETWORK)
             // Explicitly keep both players live so they can overlap without affecting each other
             playWhenReady = false
+            Timber.tag("DualPlayerEngine").d("Built player with audio offload %s", if (audioOffloadEnabled) "enabled" else "disabled")
         }
     }
 
@@ -412,39 +540,7 @@ class DualPlayerEngine @Inject constructor(
         }
         hiFiModeEnabled = enabled
 
-        // Save full queue and playback state before releasing
-        val wasPlaying = playerA.isPlaying
-        val positionMs = playerA.currentPosition
-        val currentIndex = playerA.currentMediaItemIndex.coerceAtLeast(0)
-        val mediaItems = (0 until playerA.mediaItemCount).map { playerA.getMediaItemAt(it) }
-        val repeatMode = playerA.repeatMode
-        val shuffleMode = playerA.shuffleModeEnabled
-
-        playerA.removeListener(masterPlayerListener)
-        playerA.release()
-        playerB.release()
-
-        playerA = buildPlayer(handleAudioFocus = false)
-        playerB = buildPlayer(handleAudioFocus = false)
-
-        // Re-attach listener to new master player
-        playerA.addListener(masterPlayerListener)
-
-        // Restore queue and position so playback continues seamlessly
-        if (mediaItems.isNotEmpty()) {
-            playerA.setMediaItems(mediaItems, currentIndex, positionMs)
-            playerA.repeatMode = repeatMode
-            playerA.shuffleModeEnabled = shuffleMode
-            playerA.prepare()
-            playerA.playWhenReady = wasPlaying
-        }
-
-        _activeAudioSessionId.value = playerA.audioSessionId
-
-        // Notify MusicService to reconnect MediaSession to the new player instance
-        onPlayerSwappedListeners.forEach { it(playerA) }
-
-        Timber.tag("DualPlayerEngine").d("Hi-Fi mode set to $enabled — players rebuilt")
+        rebuildPlayersPreservingMasterState("Hi-Fi mode set to $enabled — players rebuilt")
     }
 
     /**
@@ -956,6 +1052,7 @@ class DualPlayerEngine @Inject constructor(
      */
     fun release() {
         transitionJob?.cancel()
+        cancelAudioOffloadFallback()
         // OPT #11: Cancel the scope to prevent coroutine leaks after release().
         // Without this, any in-flight scope.launch { } coroutines (e.g. resolveCloudUri,
         // preResolveTelegramUri) would continue running even after both ExoPlayers are released.

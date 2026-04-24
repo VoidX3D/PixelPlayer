@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Appearance -->
+    <string name="setcat_global_theme">Thème global</string>
+    <string name="setcat_language_label">Langue de l\'app</string>
+    <string name="setcat_language_desc">Choisissez la langue utilisée dans l\'interface de l\'application.</string>
+    <string name="setcat_language_system">Par défaut du système</string>
+    <string name="setcat_language_english">Anglais</string>
+    <string name="setcat_language_spanish">Espagnol</string>
+    <string name="setcat_language_french">Français</string>
+    <string name="setcat_language_russian">Russe</string>
+</resources>

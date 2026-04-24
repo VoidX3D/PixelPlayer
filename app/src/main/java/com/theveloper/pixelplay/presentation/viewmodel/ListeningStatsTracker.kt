@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Singleton
 import timber.log.Timber
 
 /**
@@ -27,6 +28,7 @@ import timber.log.Timber
  * - Record play statistics when session ends
  * - Handle voluntary vs automatic plays
  */
+@Singleton
 class ListeningStatsTracker @Inject constructor(
     private val dailyMixManager: DailyMixManager,
     private val playbackStatsRepository: PlaybackStatsRepository
@@ -92,9 +94,7 @@ class ListeningStatsTracker @Inject constructor(
     fun onPlayStateChanged(isPlaying: Boolean, positionMs: Long) {
         val session = currentSession ?: return
         val nowRealtime = SystemClock.elapsedRealtime()
-        if (session.isPlaying) {
-            session.accumulatedListeningMs += (nowRealtime - session.lastRealtimeMs).coerceAtLeast(0L)
-        }
+        accumulateRealtimeListening(session, nowRealtime)
         session.isPlaying = isPlaying
         session.lastRealtimeMs = nowRealtime
         session.lastKnownPositionMs = positionMs.coerceAtLeast(0L)
@@ -104,12 +104,7 @@ class ListeningStatsTracker @Inject constructor(
     fun onProgress(positionMs: Long, isPlaying: Boolean) {
         val session = currentSession ?: return
         val nowRealtime = SystemClock.elapsedRealtime()
-        if (session.isPlaying) {
-            val delta = (nowRealtime - session.lastRealtimeMs).coerceAtLeast(0L)
-            if (delta > 0) {
-                session.accumulatedListeningMs += delta
-            }
-        }
+        accumulateRealtimeListening(session, nowRealtime)
         session.isPlaying = isPlaying
         session.lastRealtimeMs = nowRealtime
         session.lastKnownPositionMs = positionMs.coerceAtLeast(0L)
@@ -130,9 +125,7 @@ class ListeningStatsTracker @Inject constructor(
         if (existing?.songId == song.id) {
             updateDuration(durationMs)
             val nowRealtime = SystemClock.elapsedRealtime()
-            if (existing.isPlaying) {
-                existing.accumulatedListeningMs += (nowRealtime - existing.lastRealtimeMs).coerceAtLeast(0L)
-            }
+            accumulateRealtimeListening(existing, nowRealtime)
             existing.isPlaying = isPlaying
             existing.lastRealtimeMs = nowRealtime
             existing.lastKnownPositionMs = positionMs.coerceAtLeast(0L)
@@ -152,17 +145,18 @@ class ListeningStatsTracker @Inject constructor(
     fun finalizeCurrentSession(forceSynchronousPersistence: Boolean = false) {
         val session = currentSession ?: return
         val nowRealtime = SystemClock.elapsedRealtime()
-        if (session.isPlaying) {
-            session.accumulatedListeningMs += (nowRealtime - session.lastRealtimeMs).coerceAtLeast(0L)
-        }
-        val totalCap = if (session.totalDurationMs > 0) session.totalDurationMs else Long.MAX_VALUE
-        val listened = session.accumulatedListeningMs.coerceAtMost(totalCap).coerceAtLeast(0L)
+        val nowEpoch = System.currentTimeMillis()
+        accumulateRealtimeListening(session, nowRealtime)
+        val listened = session.accumulatedListeningMs.coerceAtLeast(0L)
         if (listened >= MIN_SESSION_LISTEN_MS) {
-            val rawEndTimestamp = session.lastUpdateEpochMs.takeIf { it > 0L }
-                ?: (session.startedAtEpochMs + listened)
+            val rawEndTimestamp = when {
+                session.isPlaying -> nowEpoch
+                session.lastUpdateEpochMs > 0L -> session.lastUpdateEpochMs
+                else -> session.startedAtEpochMs + listened
+            }
             val timestamp = rawEndTimestamp
                 .coerceAtLeast(session.startedAtEpochMs.coerceAtLeast(0L))
-                .coerceAtMost(System.currentTimeMillis())
+                .coerceAtMost(nowEpoch)
             val songId = session.songId
             val historyEntry = PlaybackStatsRepository.PlaybackHistoryEntry(
                 songId = songId,
@@ -226,6 +220,14 @@ class ListeningStatsTracker @Inject constructor(
             durationMs = listened,
             timestamp = timestamp
         )
+    }
+
+    private fun accumulateRealtimeListening(session: ActiveSession, nowRealtime: Long) {
+        if (!session.isPlaying) return
+        val delta = (nowRealtime - session.lastRealtimeMs).coerceAtLeast(0L)
+        if (delta > 0L) {
+            session.accumulatedListeningMs += delta
+        }
     }
 
     private fun CoroutineScope?.isActive(): Boolean {

@@ -5,6 +5,7 @@ import com.theveloper.pixelplay.data.model.Song
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.io.path.createTempDirectory
@@ -30,16 +31,115 @@ class PlaybackStatsRepositoryTest {
             endTimestamp = now
         )
 
-        repository.importEventsFromBackup(listOf(boundaryTouchingEvent))
-
-        val summary = repository.loadSummary(
+        val summary = repository.buildSummaryFromEvents(
             range = StatsTimeRange.DAY,
             songs = listOf(song("song-1")),
+            allEvents = listOf(boundaryTouchingEvent),
             nowMillis = now
         )
 
         assertThat(summary.totalDurationMs).isEqualTo(0L)
         assertThat(summary.totalPlayCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `loadSummary preserves playback longer than track duration`() = runTest {
+        val repository = createRepository()
+        val zoneId = ZoneId.systemDefault()
+        val start = LocalDate.of(2026, 4, 10)
+            .atTime(10, 0)
+            .atZone(zoneId)
+            .toInstant()
+            .toEpochMilli()
+        val listenedMs = TimeUnit.MINUTES.toMillis(15)
+        val event = PlaybackStatsRepository.PlaybackEvent(
+            songId = "song-1",
+            timestamp = start + listenedMs,
+            durationMs = listenedMs,
+            startTimestamp = start,
+            endTimestamp = start + listenedMs
+        )
+
+        val summary = repository.buildSummaryFromEvents(
+            range = StatsTimeRange.DAY,
+            songs = listOf(song("song-1", durationMs = TimeUnit.MINUTES.toMillis(3))),
+            allEvents = listOf(event),
+            nowMillis = start + listenedMs + 1_000L
+        )
+
+        assertThat(summary.totalDurationMs).isEqualTo(listenedMs)
+        assertThat(summary.totalPlayCount).isEqualTo(1)
+        assertThat(summary.songs.single().totalDurationMs).isEqualTo(listenedMs)
+    }
+
+    @Test
+    fun `loadSummary does not count short gaps between spans as listened time`() = runTest {
+        val repository = createRepository()
+        val zoneId = ZoneId.systemDefault()
+        val start = LocalDate.of(2026, 4, 10)
+            .atTime(12, 0)
+            .atZone(zoneId)
+            .toInstant()
+            .toEpochMilli()
+        val firstDurationMs = 10_000L
+        val secondDurationMs = 10_000L
+        val gapMs = 1_000L
+        val events = listOf(
+            PlaybackStatsRepository.PlaybackEvent(
+                songId = "song-1",
+                timestamp = start + firstDurationMs,
+                durationMs = firstDurationMs,
+                startTimestamp = start,
+                endTimestamp = start + firstDurationMs
+            ),
+            PlaybackStatsRepository.PlaybackEvent(
+                songId = "song-2",
+                timestamp = start + firstDurationMs + gapMs + secondDurationMs,
+                durationMs = secondDurationMs,
+                startTimestamp = start + firstDurationMs + gapMs,
+                endTimestamp = start + firstDurationMs + gapMs + secondDurationMs
+            )
+        )
+
+        val summary = repository.buildSummaryFromEvents(
+            range = StatsTimeRange.DAY,
+            songs = listOf(song("song-1"), song("song-2")),
+            allEvents = events,
+            nowMillis = start + firstDurationMs + gapMs + secondDurationMs + 1_000L
+        )
+
+        assertThat(summary.totalDurationMs).isEqualTo(firstDurationMs + secondDurationMs)
+        assertThat(summary.totalPlayCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `buildSummaryFromEvents uses event spans without filesystem persistence`() = runTest {
+        val repository = createRepository()
+        val start = LocalDate.of(2026, 4, 10)
+            .atTime(9, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val durationMs = 30_000L
+        val events = listOf(
+            PlaybackStatsRepository.PlaybackEvent(
+                songId = "song-1",
+                timestamp = start + durationMs,
+                durationMs = durationMs,
+                startTimestamp = start,
+                endTimestamp = start + durationMs
+            )
+        )
+
+        val summary = repository.buildSummaryFromEvents(
+            range = StatsTimeRange.DAY,
+            songs = listOf(song("song-1")),
+            allEvents = events,
+            nowMillis = start + durationMs + 1_000L
+        )
+
+        assertThat(summary.totalDurationMs).isEqualTo(durationMs)
+        assertThat(summary.uniqueSongs).isEqualTo(1)
     }
 
     private fun createRepository(): PlaybackStatsRepository {
@@ -51,7 +151,7 @@ class PlaybackStatsRepositoryTest {
         return PlaybackStatsRepository(testContext)
     }
 
-    private fun song(songId: String): Song = Song(
+    private fun song(songId: String, durationMs: Long = 5 * 60 * 1000L): Song = Song(
         id = songId,
         title = "Song $songId",
         artist = "Artist",
@@ -61,7 +161,7 @@ class PlaybackStatsRepositoryTest {
         path = "/music/$songId.mp3",
         contentUriString = "content://media/external/audio/media/$songId",
         albumArtUriString = null,
-        duration = 5 * 60 * 1000L,
+        duration = durationMs,
         mimeType = "audio/mpeg",
         bitrate = 320_000,
         sampleRate = 44_100

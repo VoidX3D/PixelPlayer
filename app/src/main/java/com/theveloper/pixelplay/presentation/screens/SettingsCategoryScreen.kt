@@ -525,11 +525,7 @@ fun SettingsCategoryScreen(
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.setcat_language_label),
                                     description = stringResource(R.string.setcat_language_desc),
-                                    options = mapOf(
-                                        AppLanguage.SYSTEM to stringResource(R.string.setcat_language_system),
-                                        AppLanguage.ENGLISH to stringResource(R.string.setcat_language_english),
-                                        AppLanguage.SPANISH to stringResource(R.string.setcat_language_spanish)
-                                    ),
+                                    options = AppLanguage.getLanguageOptions(context),
                                     selectedKey = uiState.appLanguageTag,
                                     onSelectionChanged = {
                                         settingsViewModel.setAppLanguage(it)
