@@ -371,8 +371,8 @@ fun UnifiedPlayerSheetV2(
     val currentBottomPadding = sheetVisualState.currentBottomPadding
     val playerContentAreaHeightPxProvider = sheetVisualState.playerContentAreaHeightPxProvider
     val visualSheetTranslationYProvider = sheetVisualState.visualSheetTranslationYProvider
-    val overallSheetTopCornerRadius = sheetVisualState.overallSheetTopCornerRadius
-    val playerContentActualBottomRadius = sheetVisualState.playerContentActualBottomRadius
+    val overallSheetTopCornerRadiusProvider = sheetVisualState.overallSheetTopCornerRadiusProvider
+    val playerContentActualBottomRadiusProvider = sheetVisualState.playerContentActualBottomRadiusProvider
     val currentHorizontalPaddingStartPxProvider = sheetVisualState.currentHorizontalPaddingStartPxProvider
     val currentHorizontalPaddingEndPxProvider = sheetVisualState.currentHorizontalPaddingEndPxProvider
 
@@ -516,8 +516,15 @@ fun UnifiedPlayerSheetV2(
     // miniReadyAlpha fades the shadow in during the initial song-appear animation.
     val visualCardShadowElevation by remember(showQueueSheet, miniReadyAlpha) {
         derivedStateOf {
-            if (showQueueSheet || playerContentExpansionFraction.value > 0.18f) 0.dp
-            else (3f * miniReadyAlpha).dp
+            if (
+                showQueueSheet ||
+                playerContentExpansionFraction.isRunning ||
+                playerContentExpansionFraction.value > 0.18f
+            ) {
+                0.dp
+            } else {
+                (3f * miniReadyAlpha).dp
+            }
         }
     }
 
@@ -533,8 +540,8 @@ fun UnifiedPlayerSheetV2(
         miniPlayerContentHeightPx = miniPlayerContentHeightPx,
         currentSheetContentState = currentSheetContentState,
         showPlayerContentArea = showPlayerContentArea,
-        overallSheetTopCornerRadius = overallSheetTopCornerRadius,
-        playerContentActualBottomRadius = playerContentActualBottomRadius,
+        overallSheetTopCornerRadiusProvider = overallSheetTopCornerRadiusProvider,
+        playerContentActualBottomRadiusProvider = playerContentActualBottomRadiusProvider,
         useSmoothCorners = useSmoothCorners,
         isDragging = sheetBackAndDragState.isDragging,
         onAnimateSheet = { targetExpanded, animationSpec, initialVelocity ->
@@ -640,7 +647,7 @@ fun UnifiedPlayerSheetV2(
                         UnifiedPlayerMiniAndFullLayers(
                             currentSong = infrequentPlayerState.currentSong,
                             miniPlayerScheme = miniPlayerScheme,
-                            overallSheetTopCornerRadius = overallSheetTopCornerRadius,
+                            overallSheetTopCornerRadiusProvider = overallSheetTopCornerRadiusProvider,
                             infrequentPlayerState = infrequentPlayerState,
                             isCastConnecting = isCastConnecting,
                             isPreparingPlayback = isPreparingPlayback,
@@ -648,6 +655,7 @@ fun UnifiedPlayerSheetV2(
                             albumColorScheme = albumColorScheme,
                             bottomSheetOpenFraction = bottomSheetOpenFraction,
                             fullPlayerVisualState = fullPlayerVisualState,
+                            containerHeight = containerHeight,
                             currentQueueSourceName = currentQueueSourceName,
                             currentSheetContentState = currentSheetContentState,
                             carouselStyle = carouselStyle,

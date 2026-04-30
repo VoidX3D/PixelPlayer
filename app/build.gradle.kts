@@ -11,7 +11,7 @@ plugins {
 }
 
 val enableAbiSplits = providers.gradleProperty("pixelplay.enableAbiSplits")
-    .orElse("false")
+    .orElse("true")
     .map(String::toBoolean)
     .get()
 
@@ -120,14 +120,14 @@ android {
         }
     }
 
-    // Keep everyday debug builds lean. Split APKs can still be enabled explicitly for release packaging.
+    // CI builds installable phone APKs per supported Android device ABI.
     splits {
         abi {
             isEnable = enableAbiSplits
             reset()
             if (enableAbiSplits) {
-                include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
-                isUniversalApk = true
+                include("arm64-v8a", "armeabi-v7a")
+                isUniversalApk = false
             }
         }
     }

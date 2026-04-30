@@ -73,7 +73,7 @@ class DeckController(
                         .build()
                 )
                 setHandleAudioBecomingNoisy(true)
-                setWakeMode(C.WAKE_MODE_NETWORK)
+                setWakeMode(C.WAKE_MODE_LOCAL)
             }
     }
 

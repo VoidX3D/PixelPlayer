@@ -36,6 +36,10 @@
         <item quantity="other">%d songs selected</item>
     </plurals>
 
+    <!-- PlaylistContainer -->
+    <string name="presentation_batch_e_no_playlist_created">No playlist has been created.</string>
+    <string name="presentation_batch_e_new_playlist_hint">Touch the \'New Playlist\' button to start.</string>
+
     <!-- PlaylistCreationDialogs: create flow -->
     <string name="presentation_batch_e_create_playlist_title">Create playlist</string>
     <string name="presentation_batch_e_create_playlist_subtitle">Choose the creation flow.</string>

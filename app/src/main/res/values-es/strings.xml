@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">PixelPlayer</string>
     <string name="app_name_change_title">Cambio de nombre de la app</string>
     <string name="app_name_change_message">Hemos cambiado el nombre de nuestra app de PixelPlay a PixelPlayer debido a un problema de marca registrada. ¡Sigue reproduciendo!</string>

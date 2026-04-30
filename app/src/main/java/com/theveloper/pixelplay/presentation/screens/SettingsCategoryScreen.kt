@@ -434,7 +434,7 @@ fun SettingsCategoryScreen(
                                     valueText = { value -> "${(value / 1000).toInt()}s" }
                                 )
                                 SliderSettingsItem(
-                                    label = "Minimum Tracks Per Album",
+                                    label = stringResource(R.string.setcat_min_tracks_per_album),
                                     value = minTracksPerAlbumDraft,
                                     valueRange = 1f..5f,
                                     steps = 3, // 1, 2, 3, 4, 5

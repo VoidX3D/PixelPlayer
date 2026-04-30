@@ -4,15 +4,18 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 import kotlinx.coroutines.CoroutineScope
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -36,8 +39,8 @@ internal fun rememberSheetInteractionState(
     miniPlayerContentHeightPx: Float,
     currentSheetContentState: PlayerSheetState,
     showPlayerContentArea: Boolean,
-    overallSheetTopCornerRadius: Dp,
-    playerContentActualBottomRadius: Dp,
+    overallSheetTopCornerRadiusProvider: () -> Dp,
+    playerContentActualBottomRadiusProvider: () -> Dp,
     useSmoothCorners: Boolean,
     isDragging: Boolean,
     onAnimateSheet: suspend (
@@ -50,51 +53,23 @@ internal fun rememberSheetInteractionState(
     onDraggingChange: (Boolean) -> Unit,
     onDraggingPlayerAreaChange: (Boolean) -> Unit
 ): SheetInteractionState {
-    val useSmoothShape by remember(useSmoothCorners, isDragging, playerContentExpansionFraction.isRunning) {
-        derivedStateOf {
-            useSmoothCorners && !isDragging && !playerContentExpansionFraction.isRunning
-        }
-    }
-
-    // ── OPT #3: Freeze shape during animation / drag ─────────────────────────────
-    // The radii change continuously at ~60fps during expand/collapse animations,
-    // which would cause `remember(...)` to create a new Shape on every frame.
-    // Instead, we only let `remember` invalidate when the sheet is *settled*.
-    // During motion the previously captured shape is reused — the visual change
-    // is imperceptible over the 300ms animation window.
-    val isAnimatingOrDragging by remember(playerContentExpansionFraction, isDragging) {
-        derivedStateOf { playerContentExpansionFraction.isRunning || isDragging }
-    }
-
+    val useSmoothCornersState = rememberUpdatedState(useSmoothCorners)
+    val isDraggingState = rememberUpdatedState(isDragging)
     val playerShadowShape = remember(
-        overallSheetTopCornerRadius,
-        playerContentActualBottomRadius,
-        useSmoothShape,
-        isAnimatingOrDragging
+        overallSheetTopCornerRadiusProvider,
+        playerContentActualBottomRadiusProvider,
+        playerContentExpansionFraction
     ) {
-        // Use fast RoundedCornerShape during animation; smooth only when settled.
-        val effectiveSmooth = useSmoothShape && !isAnimatingOrDragging
-        if (effectiveSmooth) {
-            AbsoluteSmoothCornerShape(
-                cornerRadiusTL = overallSheetTopCornerRadius,
-                smoothnessAsPercentBL = 60,
-                cornerRadiusTR = overallSheetTopCornerRadius,
-                smoothnessAsPercentBR = 60,
-                cornerRadiusBR = playerContentActualBottomRadius,
-                smoothnessAsPercentTL = 60,
-                cornerRadiusBL = playerContentActualBottomRadius,
-                smoothnessAsPercentTR = 60
-            )
-        } else {
-            RoundedCornerShape(
-                topStart = overallSheetTopCornerRadius,
-                topEnd = overallSheetTopCornerRadius,
-                bottomStart = playerContentActualBottomRadius,
-                bottomEnd = playerContentActualBottomRadius
-            )
-        }
+        PlayerSheetDynamicShape(
+            topRadiusProvider = overallSheetTopCornerRadiusProvider,
+            bottomRadiusProvider = playerContentActualBottomRadiusProvider,
+            useSmoothShapeProvider = {
+                useSmoothCornersState.value &&
+                    !isDraggingState.value &&
+                    !playerContentExpansionFraction.isRunning
+            }
+        )
     }
-
 
     val collapsedYState = rememberUpdatedState(sheetCollapsedTargetY)
     val expandedYState = rememberUpdatedState(sheetExpandedTargetY)
@@ -143,3 +118,40 @@ internal fun rememberSheetInteractionState(
         canDragSheet = showPlayerContentArea
     )
 }
+
+private class PlayerSheetDynamicShape(
+    private val topRadiusProvider: () -> Dp,
+    private val bottomRadiusProvider: () -> Dp,
+    private val useSmoothShapeProvider: () -> Boolean
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val topRadius = topRadiusProvider().nonNegative()
+        val bottomRadius = bottomRadiusProvider().nonNegative()
+        val shape = if (useSmoothShapeProvider()) {
+            AbsoluteSmoothCornerShape(
+                cornerRadiusTL = topRadius,
+                smoothnessAsPercentBL = 60,
+                cornerRadiusTR = topRadius,
+                smoothnessAsPercentBR = 60,
+                cornerRadiusBR = bottomRadius,
+                smoothnessAsPercentTL = 60,
+                cornerRadiusBL = bottomRadius,
+                smoothnessAsPercentTR = 60
+            )
+        } else {
+            RoundedCornerShape(
+                topStart = topRadius,
+                topEnd = topRadius,
+                bottomStart = bottomRadius,
+                bottomEnd = bottomRadius
+            )
+        }
+        return shape.createOutline(size, layoutDirection, density)
+    }
+}
+
+private fun Dp.nonNegative(): Dp = takeIf { it.value.isFinite() && it.value > 0f } ?: 0.dp

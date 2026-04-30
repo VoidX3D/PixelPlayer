@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -24,8 +27,10 @@ import androidx.compose.ui.unit.dp
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import coil.size.Dimension
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.utils.LocalArtworkUri
@@ -62,20 +67,44 @@ fun OptimizedAlbumArt(
         return
     }
 
+    val memoryCacheKey = remember(uri, targetSize) {
+        albumArtMemoryCacheKey(uri, targetSize)
+    }
+    val placeholderMemoryCacheKey = remember(memoryCacheKey, uri) {
+        when (uri) {
+            is ImageRequest -> uri.placeholderMemoryCacheKey
+                ?: uri.memoryCacheKey
+                ?: memoryCacheKey?.let { MemoryCache.Key(it) }
+            else -> memoryCacheKey?.let { MemoryCache.Key(it) }
+        }
+    }
     val requestModel = remember(context, uri, targetSize) {
         when (uri) {
-            is ImageRequest -> uri
+            is ImageRequest -> uri.newBuilder(context).apply {
+                if (uri.memoryCacheKey == null) {
+                    memoryCacheKey(memoryCacheKey)
+                }
+                placeholderMemoryCacheKey(placeholderMemoryCacheKey)
+            }.build()
             else -> ImageRequest.Builder(context)
                 .data(uri)
                 .crossfade(350) // Use Coil's native crossfade
-                .placeholder(R.drawable.ic_music_placeholder)
                 .error(R.drawable.ic_music_placeholder)
                 .size(targetSize)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(if (isStableLocalArtwork) CachePolicy.DISABLED else CachePolicy.ENABLED)
+                .apply {
+                    if (memoryCacheKey != null) {
+                        memoryCacheKey(memoryCacheKey)
+                    }
+                    if (placeholderMemoryCacheKey != null) {
+                        placeholderMemoryCacheKey(placeholderMemoryCacheKey)
+                    }
+                }
                 .build()
         }
     }
+    var lastSuccessPainter by remember(requestModel.data) { mutableStateOf<Painter?>(null) }
 
     // Use SubcomposeAsyncImage with Coil's native crossfade instead of Crossfade wrapper
     // This avoids recompositions on painter.state changes during scroll.
@@ -84,8 +113,14 @@ fun OptimizedAlbumArt(
         contentDescription = "Album art of $title",
         modifier = modifier,
         contentScale = ContentScale.Crop,
-        loading = {
-            if (placeholderModel != null) {
+        onSuccess = { state ->
+            lastSuccessPainter = state.painter
+        },
+        loading = { state ->
+            val cachedPainter = state.painter ?: lastSuccessPainter
+            if (cachedPainter != null) {
+                SubcomposeAsyncImageContent(painter = cachedPainter)
+            } else if (placeholderModel != null) {
                  SubcomposeAsyncImage(
                     model = placeholderModel,
                     contentDescription = null,
@@ -99,7 +134,12 @@ fun OptimizedAlbumArt(
             }
         },
         error = {
-            PlaceholderContent(title = title)
+            val cachedPainter = lastSuccessPainter
+            if (cachedPainter != null) {
+                SubcomposeAsyncImageContent(painter = cachedPainter)
+            } else {
+                PlaceholderContent(title = title)
+            }
         },
         success = {
             SubcomposeAsyncImageContent()
@@ -172,6 +212,29 @@ private fun renderDirectAlbumArt(
             true
         }
         else -> false
+    }
+}
+
+internal fun albumArtMemoryCacheKey(model: Any?, targetSize: Size): String? {
+    val data = when (model) {
+        is ImageRequest -> model.data
+        else -> model
+    } ?: return null
+
+    val baseKey = when (data) {
+        is String -> data.takeIf { it.isNotBlank() }
+        is Uri -> data.toString().takeIf { it.isNotBlank() }
+        else -> null
+    } ?: return null
+
+    if (targetSize == Size.ORIGINAL) return baseKey
+
+    val width = (targetSize.width as? Dimension.Pixels)?.px
+    val height = (targetSize.height as? Dimension.Pixels)?.px
+    return if (width != null && height != null) {
+        "${baseKey}_${width}x${height}"
+    } else {
+        "${baseKey}_${targetSize.width}x${targetSize.height}"
     }
 }
 

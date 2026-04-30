@@ -250,13 +250,14 @@ class TransitionController @Inject constructor(
                     return@collectLatest
                 }
 
-                // Wait loop with adaptive sleep
+                // Wait loop with adaptive sleep. 250ms near-end cadence still lands the crossfade
+                // within ±125ms of the target — imperceptible for a multi-second overlap, and 5×
+                // fewer wakeups in the last second of every track.
                 while (player.currentPosition < transitionPoint && isActive) {
                     val remaining = transitionPoint - player.currentPosition
                     val sleep = when {
                         remaining > 5000 -> 1000L
-                        remaining > 1000 -> 250L
-                        else -> 50L // Tight loop near the end
+                        else -> 250L
                     }
                     if (remaining < 2000 && remaining % 500 < 50) {
                         Timber.tag("TransitionDebug").v("Countdown: %d ms to transition", remaining)

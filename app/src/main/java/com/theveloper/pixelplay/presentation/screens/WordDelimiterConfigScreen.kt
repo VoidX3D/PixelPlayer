@@ -1,3 +1,5 @@
+package com.theveloper.pixelplay.presentation.screens
+
 import android.widget.Toast
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,7 +71,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.viewmodel.ArtistSettingsViewModel
 import kotlinx.coroutines.launch
@@ -366,7 +370,7 @@ fun WordDelimiterConfigScreen(
                         modifier = Modifier
                             .width(52.dp)
                             .height(36.dp),
-                        shape = androidx.compose.foundation.shape.CircleShape
+                        shape = CircleShape
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.RestartAlt,
@@ -379,7 +383,7 @@ fun WordDelimiterConfigScreen(
         )
 
         if (showResetDialog) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = { showResetDialog = false },
                 title = {
                     Text(
@@ -418,7 +422,7 @@ fun WordDelimiterConfigScreen(
                     }
                 },
                 dismissButton = {
-                    androidx.compose.material3.TextButton(
+                    TextButton(
                         onClick = { showResetDialog = false }
                     ) {
                         Text(stringResource(R.string.cancel))

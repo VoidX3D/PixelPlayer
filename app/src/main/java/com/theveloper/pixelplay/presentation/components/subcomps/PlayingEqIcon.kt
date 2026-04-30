@@ -27,8 +27,11 @@ fun PlayingEqIcon(
     bars: Int = 3,
     minHeightFraction: Float = 0.28f,
     maxHeightFraction: Float = 1.0f,
-    phaseDurationMillis: Int = 2400,   // ciclo más lento
-    wanderDurationMillis: Int = 8000,  // patrón más largo
+    // Slower cycles mean fewer animation frames / Canvas redraws per second while the icon
+    // is visible. With many current-song indicators potentially on screen (home, queue,
+    // lyrics sheet), this noticeably lowers screen-on CPU on weaker devices.
+    phaseDurationMillis: Int = 3600,   // ciclo más lento
+    wanderDurationMillis: Int = 12000, // patrón más largo
     gapFraction: Float = 0.30f
 ) {
     val fullRotation = (2f * PI).toFloat()

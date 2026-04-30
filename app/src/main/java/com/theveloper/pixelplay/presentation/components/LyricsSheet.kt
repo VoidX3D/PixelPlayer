@@ -69,14 +69,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.animation.core.Animatable
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.consumePositionChange
@@ -123,6 +121,7 @@ import com.theveloper.pixelplay.data.preferences.dataStore
 import androidx.compose.ui.graphics.TransformOrigin
 
 import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
@@ -132,6 +131,86 @@ import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextOverflow
 import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.utils.MultiLangRomanizer
+
+internal data class LyricsSheetColors(
+    val container: Color,
+    val content: Color,
+    val controlContainer: Color,
+    val controlContent: Color,
+    val accent: Color,
+    val accentContent: Color,
+    val lyricHighlight: Color,
+    val playPauseContainer: Color,
+    val playPauseContent: Color,
+    val syncButtonContainer: Color,
+    val syncButtonContent: Color
+)
+
+internal fun lyricsSheetColors(colorScheme: ColorScheme): LyricsSheetColors {
+    val container = colorScheme.primaryContainer
+    val content = colorScheme.onPrimaryContainer
+    val accent = colorScheme.primary
+    val accentContent = colorScheme.onPrimary
+
+    return LyricsSheetColors(
+        container = container,
+        content = content,
+        controlContainer = colorScheme.surfaceContainerLowest,
+        controlContent = colorScheme.onSurface,
+        accent = accent,
+        accentContent = accentContent,
+        lyricHighlight = preferredContrastColor(
+            background = container,
+            preferred = accent,
+            fallback = content
+        ),
+        playPauseContainer = colorScheme.tertiaryFixedDim,
+        playPauseContent = colorScheme.onTertiaryFixed,
+        syncButtonContainer = colorScheme.secondaryFixedDim,
+        syncButtonContent = colorScheme.onSecondaryFixed
+    )
+}
+
+private fun preferredContrastColor(
+    background: Color,
+    preferred: Color,
+    fallback: Color,
+    minContrastRatio: Double = 4.5
+): Color {
+    if (contrastRatio(preferred, background) >= minContrastRatio) return preferred
+    if (contrastRatio(fallback, background) >= minContrastRatio) return fallback
+
+    val blackContrast = contrastRatio(Color.Black, background)
+    val whiteContrast = contrastRatio(Color.White, background)
+    return if (blackContrast >= whiteContrast) Color.Black else Color.White
+}
+
+private fun contrastRatio(foreground: Color, background: Color): Double {
+    val foregroundLuminance = foreground.relativeLuminance()
+    val backgroundLuminance = background.relativeLuminance()
+    val lighter = maxOf(foregroundLuminance, backgroundLuminance)
+    val darker = minOf(foregroundLuminance, backgroundLuminance)
+    return (lighter + 0.05) / (darker + 0.05)
+}
+
+private fun Color.relativeLuminance(): Double {
+    val argb = encodedSrgbArgb()
+    val red = linearizedChannel((argb shr 16) and 0xFF)
+    val green = linearizedChannel((argb shr 8) and 0xFF)
+    val blue = linearizedChannel(argb and 0xFF)
+    return (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
+}
+
+private fun Color.encodedSrgbArgb(): Int = (value shr 32).toInt()
+
+private fun linearizedChannel(channel: Int): Double {
+    val value = channel / 255.0
+    return if (value <= 0.03928) {
+        value / 12.92
+    } else {
+        ((value + 0.055) / 1.055).pow(2.4)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -148,14 +227,7 @@ fun LyricsSheet(
     lyricsSyncOffset: Int,
     onLyricsSyncOffsetChange: (Int) -> Unit,
     lyricsTextStyle: TextStyle,
-    backgroundColor: Color,
-    onBackgroundColor: Color,
-    containerColor: Color,
-    contentColor: Color,
-    accentColor: Color,
-    onAccentColor: Color,
-    tertiaryColor: Color,
-    onTertiaryColor: Color,
+    colorScheme: ColorScheme,
     onBackClick: () -> Unit,
     onSeekTo: (Long) -> Unit,
     onPlayPause: () -> Unit,
@@ -181,11 +253,21 @@ fun LyricsSheet(
 ) {
     BackHandler { onBackClick() }
     val stablePlayerState by stablePlayerStateFlow.collectAsStateWithLifecycle()
+    val sheetColors = remember(colorScheme) { lyricsSheetColors(colorScheme) }
+    val backgroundColor = sheetColors.controlContainer
+    val onBackgroundColor = sheetColors.controlContent
+    val containerColor = sheetColors.container
+    val contentColor = sheetColors.content
+    val accentColor = sheetColors.accent
+    val onAccentColor = sheetColors.accentContent
+    val lyricHighlightColor = sheetColors.lyricHighlight
+    val playPauseColor = sheetColors.playPauseContainer
+    val onPlayPauseColor = sheetColors.playPauseContent
 
-    val isLoadingLyrics by remember { derivedStateOf { stablePlayerState.isLoadingLyrics } }
-    val lyrics by remember { derivedStateOf { stablePlayerState.lyrics } }
-    val isPlaying by remember { derivedStateOf { stablePlayerState.isPlaying } }
-    val currentSong by remember { derivedStateOf { stablePlayerState.currentSong } }
+    val isLoadingLyrics by remember(stablePlayerState) { derivedStateOf { stablePlayerState.isLoadingLyrics } }
+    val lyrics by remember(stablePlayerState) { derivedStateOf { stablePlayerState.lyrics } }
+    val isPlaying by remember(stablePlayerState) { derivedStateOf { stablePlayerState.isPlaying } }
+    val currentSong by remember(stablePlayerState) { derivedStateOf { stablePlayerState.currentSong } }
 
     val hasTranslatedLyrics = remember(lyrics) {
         // Translated lyrics read same timestamp on the lrc, not possible in plain type lyrics
@@ -286,7 +368,6 @@ fun LyricsSheet(
     val coroutineScope = rememberCoroutineScope()
 
     // Auto-hide controls logic
-    // Auto-hide controls logic
     LaunchedEffect(immersiveLyricsEnabled, lastInteractionTime, showSyncedLyrics, isImmersiveTemporarilyDisabled) {
         if (immersiveLyricsEnabled && showSyncedLyrics == true && !isImmersiveTemporarilyDisabled) {
             delay(immersiveLyricsTimeout)
@@ -327,7 +408,7 @@ fun LyricsSheet(
 
     if (showFetchLyricsDialog) {
         MaterialTheme(
-            colorScheme = LocalMaterialTheme.current,
+            colorScheme = colorScheme,
             typography = MaterialTheme.typography,
             shapes = MaterialTheme.shapes
         ) {
@@ -403,9 +484,7 @@ fun LyricsSheet(
         )
     }
 
-
     
-
 
     Scaffold(
         modifier = modifier
@@ -503,7 +582,6 @@ fun LyricsSheet(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .zIndex(2f)
-                        // .fillMaxWidth() removed to allow wrapping
                         .wrapContentWidth(),
                     label = "headerAnimation"
                 ) { song ->
@@ -517,17 +595,11 @@ fun LyricsSheet(
                             .background(
                                 color = backgroundColor,
                                 shape = CircleShape
-//                                shape = RoundedCornerShape(
-//                                    topStart = 16.dp,
-//                                    topEnd = 50.dp,
-//                                    bottomEnd = 50.dp,
-//                                    bottomStart = 16.dp
-//                                )
                             )
                             .wrapContentWidth()
                             .animateContentSize(), // Animate width changes
                         backgroundColor = backgroundColor, // Distinct solid background
-                        contentColor = contentColor,
+                        contentColor = onBackgroundColor,
                         isPlaying = isPlaying
                     )
                 }
@@ -575,7 +647,7 @@ fun LyricsSheet(
                                 playbackPositionFlow = playbackPositionFlow,
                                 lyricsSyncOffset = lyricsSyncOffset,
                                 positionOverrideMs = previewSeekPositionMs,
-                                accentColor = accentColor,
+                                accentColor = lyricHighlightColor,
                                 textStyle = scaledTextStyle,
                                 onLineClick = { syncedLine -> 
                                     onSeekTo(
@@ -603,7 +675,7 @@ fun LyricsSheet(
                                                 providerText = context.resources.getString(R.string.lyrics_provided_by),
                                                 uri = context.resources.getString(R.string.lrclib_uri),
                                                 textAlign = TextAlign.Center,
-                                                accentColor = accentColor,
+                                                accentColor = lyricHighlightColor,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 16.dp)
@@ -696,14 +768,7 @@ fun LyricsSheet(
                             }
                         }
                 ) {
-                // Sync Offset Controls (Visible only if synced lyrics are shown AND enabled via some toggle, 
-                // but user didn't specify a toggle for this in the new toolbar, just "encolumnada". 
-                // "no debemos perder acceos a las opciones actuales".
-                // I'll show them if showSyncedLyrics is true. Or maybe I should add a toggle in the toolbar?
-                // The prompt ends with "el Slider lo vas a cambiar por el WavySliderExpressive...".
-                // I will keep the offsets here.
-                
-                AnimatedVisibility(
+                                AnimatedVisibility(
                     visible = showSyncedLyrics == true && lyrics?.synced != null && showSyncControls,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut()
@@ -715,8 +780,8 @@ fun LyricsSheet(
                         offsetMillis = lyricsSyncOffset,
                         onOffsetChange = onLyricsSyncOffsetChange,
                         backgroundColor = backgroundColor,
-                        accentColor = accentColor,
-                        onAccentColor = onAccentColor,
+                        accentColor = sheetColors.syncButtonContainer,
+                        onAccentColor = sheetColors.syncButtonContent,
                         onBackgroundColor = onBackgroundColor
                     )
                 }
@@ -740,7 +805,7 @@ fun LyricsSheet(
                         modifier = Modifier
                             .size(78.dp)
                             .clip(RoundedCornerShape(playPauseCornerRadius))
-                            .background(tertiaryColor)
+                            .background(playPauseColor)
                             .clickable {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onPlayPause()
@@ -756,14 +821,14 @@ fun LyricsSheet(
                                     modifier = Modifier.size(32.dp),
                                     imageVector = Icons.Rounded.Pause,
                                     contentDescription = "Pause",
-                                    tint = onTertiaryColor
+                                    tint = onPlayPauseColor
                                 )
                             } else {
                                 Icon(
                                     modifier = Modifier.size(32.dp),
                                     imageVector = Icons.Rounded.PlayArrow,
                                     contentDescription = stringResource(R.string.cd_play),
-                                    tint = onTertiaryColor
+                                    tint = onPlayPauseColor
                                 )
                             }
                         }
@@ -808,7 +873,7 @@ fun LyricsSheet(
 
         if (showMoreSheet) {
             MaterialTheme(
-                colorScheme = LocalMaterialTheme.current,
+                colorScheme = colorScheme,
                 typography = MaterialTheme.typography,
                 shapes = MaterialTheme.shapes
             ) {
@@ -880,7 +945,6 @@ fun LyricsSheet(
             }
         }
 
-
        // Show Controls Button (Overlay)
        AnimatedVisibility(
             visible = immersiveMode,
@@ -894,8 +958,8 @@ fun LyricsSheet(
                 onClick = { resetImmersiveTimer() },
                 modifier = Modifier.size(48.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = backgroundColor,
-                    contentColor = accentColor
+                    containerColor = accentColor,
+                    contentColor = onAccentColor
                 )
             ) {
                 Icon(
@@ -1334,12 +1398,13 @@ fun LyricLineRow(
     if (sanitizedWordClusters.isNullOrEmpty()) {
         Column(
             modifier = animatedModifier
+                .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
                 .padding(vertical = verticalPadding, horizontal = 2.dp),
             horizontalAlignment = horizontalAlignment
         ) {
-            Box(contentAlignment = boxAlignment) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = boxAlignment) {
                 // Invisible bold text to reserve layout space and prevent reflow
                 Text(
                     text = sanitizedLine,
@@ -1391,12 +1456,14 @@ fun LyricLineRow(
 
         Column(
             modifier = animatedModifier
+                .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
                 .padding(vertical = verticalPadding, horizontal = 2.dp),
             horizontalAlignment = horizontalAlignment
         ) {
             FlowRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = when (lyricsAlignment) {
                     "center" -> Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally)
                     "right" -> Arrangement.spacedBy(3.dp, Alignment.End)
@@ -1405,21 +1472,17 @@ fun LyricLineRow(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 sanitizedWordClusters.forEach { cluster ->
-                    key("${line.time}_${cluster.startIndex}") {
-                        Row {
-                            cluster.words.forEachIndexed { clusterOffset, word ->
-                                val wordIndex = cluster.startIndex + clusterOffset
-                                key("${line.time}_${word.time}_${word.word}_$wordIndex") {
-                                    LyricWordSpan(
-                                        word = word,
-                                        isHighlighted = isCurrentLine && wordIndex == highlightedWordIndex,
-                                        useAnimatedLyrics = useAnimatedLyrics,
-                                        style = style,
-                                        highlightedColor = accentColor,
-                                        unhighlightedColor = unhighlightedColor
-                                    )
-                                }
-                            }
+                    cluster.words.forEachIndexed { clusterOffset, word ->
+                        val wordIndex = cluster.startIndex + clusterOffset
+                        key("${line.time}_${word.time}_${word.word}_$wordIndex") {
+                            LyricWordSpan(
+                                word = word,
+                                isHighlighted = isCurrentLine && wordIndex == highlightedWordIndex,
+                                useAnimatedLyrics = useAnimatedLyrics,
+                                style = style,
+                                highlightedColor = accentColor,
+                                unhighlightedColor = unhighlightedColor
+                            )
                         }
                     }
                 }
@@ -1738,7 +1801,6 @@ internal fun resolveCurrentLineIndex(
     }?.index ?: -1
 }
 
-
 @Composable
 private fun LyricsTrackInfo(
     song: Song?,
@@ -1769,11 +1831,13 @@ private fun LyricsTrackInfo(
     
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            // Spin forever
+            // Spin forever. 8s per revolution halves the effective per-second animation work
+            // vs the original 4s cadence — visually still clearly a rotating "vinyl", but
+            // drives fewer Compose invalidations during long listening sessions.
             while (true) {
                 currentRotation.animateTo(
                     targetValue = currentRotation.value + 360f,
-                    animationSpec = tween(4000, easing = LinearEasing)
+                    animationSpec = tween(8000, easing = LinearEasing)
                 )
             }
         } else {

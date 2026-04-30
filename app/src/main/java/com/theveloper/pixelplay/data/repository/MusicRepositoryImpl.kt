@@ -385,10 +385,11 @@ class MusicRepositoryImpl @Inject constructor(
             telegramDao.insertSongs(entities)
             telegramRepository.warmUpArtworkForSongs(entities)
         }
-        // Trigger sync to update main DB (and remove deleted songs)
-        androidx.work.WorkManager.getInstance(context).enqueue(
-            com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
-        )
+        // Sync into the unified `songs` table is triggered later by saveTelegramChannel().
+        // We deliberately do NOT enqueue here: the SyncWorker gates Telegram processing on
+        // an existing channel row (telegramDao.getAllChannels()), and on first add this
+        // function runs BEFORE the channel entity is persisted. Triggering here would race
+        // and skip the sync, leaving songs invisible until the next app launch.
     }
 
     /**
@@ -1019,6 +1020,12 @@ class MusicRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("MusicRepo", "Failed to update app playlist for Telegram channel ${channel.chatId}", e)
         }
+
+        // Trigger the unified-library sync now that the channel row exists. SyncWorker's
+        // Telegram phase is gated on telegramDao.getAllChannels() being non-empty, so this
+        // is the earliest moment the sync can succeed. KEEP (not REPLACE) ensures we never
+        // cancel a heavier full/rebuild that might be running under the same unique name.
+        requestTelegramUnifiedSync()
     }
 
     override fun getAllTelegramChannels(): Flow<List<TelegramChannelEntity>> {
@@ -1091,10 +1098,15 @@ class MusicRepositoryImpl @Inject constructor(
         // Create/update the per-topic app playlist
         telegramRepository.updateAppPlaylistForTopic(chatId, threadId, topicName, entities)
 
-        // Sync main music DB
-        androidx.work.WorkManager.getInstance(context).enqueue(
-            com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
-        )
+        // Best-effort sync trigger: if no worker is in flight yet, KEEP enqueues a fresh
+        // incremental run that will catch the rows being committed during the topic
+        // loop. This is the safety net for forum flows that fail mid-loop and never
+        // reach the final saveTelegramChannel() call (the dashboard's syncForumChannel
+        // path in particular — its only sync trigger is the end-of-flow channel save).
+        // Subsequent topic insertions are no-ops here because the existing worker is
+        // running; the calling VM's finally block ensures a follow-up sync runs
+        // afterwards to pick up rows added past the worker's Telegram phase.
+        requestTelegramUnifiedSync()
     }
 
     override suspend fun getSongIdsSorted(
@@ -1120,6 +1132,23 @@ class MusicRepositoryImpl @Inject constructor(
             applyDirectoryFilter = filter.applyFilter,
             sortOrder = sortOption.storageKey,
             filterMode = storageFilter.toFilterMode()
+        )
+    }
+
+    override suspend fun getSongIdByContentUri(contentUri: String): Long? =
+        withContext(Dispatchers.IO) {
+            musicDao.getSongIdByContentUri(contentUri)
+        }
+
+    override fun requestTelegramUnifiedSync() {
+        // KEEP — never disturb a full/rebuild sync that shares this unique work name.
+        // If no worker is queued or running, this enqueues a fresh incremental run.
+        // If one is already in flight, we let it complete; its Telegram phase reads
+        // telegram_songs at run time and will pick up rows committed before then.
+        androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+            com.theveloper.pixelplay.data.worker.SyncWorker.WORK_NAME,
+            androidx.work.ExistingWorkPolicy.KEEP,
+            com.theveloper.pixelplay.data.worker.SyncWorker.incrementalSyncWork()
         )
     }
 }

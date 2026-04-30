@@ -11,6 +11,8 @@
     <string name="presentation_batch_f_sync_phase_processing_tracks">Processing tracks</string>
     <string name="presentation_batch_f_sync_phase_saving_db">Saving to database</string>
     <string name="presentation_batch_f_sync_phase_scanning_lrc">Scanning lyrics files</string>
+    <string name="presentation_batch_f_sync_phase_cleaning_cache">Cleaning album art cache</string>
+    <string name="presentation_batch_f_sync_phase_syncing_cloud">Syncing cloud sources</string>
     <string name="presentation_batch_f_sync_phase_completing">Completing sync</string>
     <string name="presentation_batch_f_sync_progress_detailed">%1$s • %2$d%% (%3$d/%4$d)</string>
     <string name="presentation_batch_f_sync_progress_indeterminate">%1$s…</string>

@@ -45,6 +45,9 @@
     <string name="setcat_artists_subtitle">Análisis de varios artistas y organización.</string>
     <string name="setcat_filtering">Filtrado</string>
     <string name="setcat_min_song_duration">Duración mínima de canción</string>
+    <string name="setcat_min_tracks_per_album">Número mínimo de pistas por álbum</string>
+    <string name="setcat_album_art_cache_limit">Límite de caché de carátulas de álbum</string>
+    <string name="setcat_album_art_cache_limit_desc">Tamaño máximo de caché antes de que las imágenes más antiguas se eliminen automáticamente</string>
     <string name="setcat_sync_scanning">Sincronización y escaneo</string>
     <string name="setcat_sync_full_rescan_label">Reescaneo completo en curso</string>
     <string name="toast_library_sync_finished">Sincronización de la biblioteca terminada</string>
@@ -69,6 +72,8 @@
     <string name="setcat_language_spanish">Español</string>
     <string name="setcat_language_french">Francés</string>
     <string name="setcat_language_russian">Ruso</string>
+    <string name="setcat_language_chinese">Chino (simplificado)</string>
+    <string name="setcat_language_indonesian">Indonesio</string>
     <string name="setcat_app_theme_label">Tema de la app</string>
     <string name="setcat_app_theme_desc">Cambia entre claro, oscuro o seguir el sistema.</string>
     <string name="setcat_theme_light">Tema claro</string>

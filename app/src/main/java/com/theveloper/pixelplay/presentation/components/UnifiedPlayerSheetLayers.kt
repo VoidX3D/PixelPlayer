@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -43,7 +44,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     currentSong: Song?,
     miniPlayerScheme: ColorScheme?,
-    overallSheetTopCornerRadius: Dp,
+    overallSheetTopCornerRadiusProvider: () -> Dp,
     infrequentPlayerState: StablePlayerState,
     isCastConnecting: Boolean,
     isPreparingPlayback: Boolean,
@@ -51,6 +52,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     albumColorScheme: ColorScheme,
     bottomSheetOpenFraction: Float,
     fullPlayerVisualState: FullPlayerVisualState,
+    containerHeight: Dp,
     currentQueueSourceName: String,
     currentSheetContentState: PlayerSheetState,
     carouselStyle: String,
@@ -87,9 +89,14 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         }
                         .zIndex(miniPlayerZIndex)
                 ) {
+                    val miniAlbumCornerRadius by remember(overallSheetTopCornerRadiusProvider) {
+                        derivedStateOf {
+                            (overallSheetTopCornerRadiusProvider().value * 0.5f).dp
+                        }
+                    }
                     MiniPlayerContentInternal(
                         song = currentSongNonNull,
-                        cornerRadiusAlb = (overallSheetTopCornerRadius.value * 0.5).dp,
+                        cornerRadiusAlb = miniAlbumCornerRadius,
                         isPlaying = infrequentPlayerState.isPlaying,
                         isCastConnecting = isCastConnecting,
                         isPreparingPlayback = isPreparingPlayback,
@@ -136,6 +143,8 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
 
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .requiredHeight(containerHeight)
                         .graphicsLayer {
                             // Read from FullPlayerVisualState lazy getters in the draw phase;
                             // these read Animatable.value internally → re-draw only, no recomposition.

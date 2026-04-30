@@ -359,6 +359,11 @@ constructor(
                     }
 
                     // Clean orphaned album art cache files
+                    setProgress(
+                        workDataOf(
+                            PROGRESS_PHASE to SyncProgress.SyncPhase.CLEANING_CACHE.ordinal
+                        )
+                    )
                     val allSongIds = musicDao.getAllSongIds().toSet()
                     AlbumArtCacheManager.cleanOrphanedCacheFiles(applicationContext, allSongIds)
 
@@ -366,6 +371,18 @@ constructor(
                     // OPT #7: Guard each source to avoid opening Room transactions when
                     // the user hasn't configured that cloud provider.
                     val hasTelegramChannels = telegramDao.getAllChannels().first().isNotEmpty()
+                    val neteaseCount = neteaseDao.getNeteaseCount()
+                    val needsCloudSync = hasTelegramChannels ||
+                        neteaseCount > 0 ||
+                        navidromeRepository.isLoggedIn
+                    if (needsCloudSync) {
+                        setProgress(
+                            workDataOf(
+                                PROGRESS_PHASE to SyncProgress.SyncPhase.SYNCING_CLOUD.ordinal
+                            )
+                        )
+                    }
+
                     if (hasTelegramChannels) {
                         syncTelegramData()
                     } else {
@@ -374,7 +391,6 @@ constructor(
 
                     // syncNeteaseData already has an internal isEmpty guard; a lightweight
                     // count check here avoids even calling into the function.
-                    val neteaseCount = neteaseDao.getNeteaseCount()
                     if (neteaseCount > 0) {
                         syncNeteaseData()
                     } else {

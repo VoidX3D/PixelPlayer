@@ -195,9 +195,16 @@ class TelegramStreamProxy @Inject constructor(
                             var currentPos = start
                             val buffer = ByteArray(64 * 1024) // Increased to 64KB for smoother streaming
                             var noDataCount = 0
-                            
+                            // Exponential backoff while the reader is waiting for TDLib to
+                            // deliver more bytes. The previous fixed 50ms delay combined with
+                            // a per-iteration getFile() call kept the IO thread and TDLib
+                            // database churning during any stall, which showed up as sustained
+                            // CPU heat on weaker devices during cloud playback.
+                            var stallDelayMs = 50L
+                            val maxStallDelayMs = 400L
+
                             raf.seek(currentPos)
-                            
+
                             var cachedDownloadedPrefixSize = fileInfo?.local?.downloadedPrefixSize?.toLong() ?: 0L
 
                             while (true) {
@@ -218,14 +225,19 @@ class TelegramStreamProxy @Inject constructor(
                                             // If size is different than expected, we still stop because we can't get more.
                                             break
                                         }
-                                        
+
                                         // Verify cancellation/failure
                                         if (updatedInfo?.local?.isDownloadingCompleted == false && !updatedInfo.local.canBeDownloaded) {
                                              break // Failed/Cancelled
                                         }
-                                        
-                                        delay(50) // Wait for more data
+
+                                        delay(stallDelayMs)
+                                        stallDelayMs = (stallDelayMs * 2).coerceAtMost(maxStallDelayMs)
                                         continue
+                                    } else {
+                                        // New data arrived — reset the backoff so we stay
+                                        // responsive once the download catches up.
+                                        stallDelayMs = 50L
                                     }
                                 }
 
@@ -233,7 +245,7 @@ class TelegramStreamProxy @Inject constructor(
                                 // Read min of: buffer size, remaining in range, remaining valid bytes
                                 val remainingValid = cachedDownloadedPrefixSize - currentPos
                                 val toRead = min(buffer.size.toLong(), min(remaining, remainingValid)).toInt()
-                                
+
                                 val read = raf.read(buffer, 0, toRead)
                                 if (read > 0) {
                                     writeFully(buffer, 0, read)

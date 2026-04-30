@@ -58,6 +58,10 @@
     <string name="sync_complete">Sync complete</string>
     <string name="sync_pending">Waiting…</string>
     <string name="syncing_library">Syncing library…</string>
+    <string name="library_background_sync">Finishing in the background…</string>
+    <string name="library_background_sync_lyrics">Scanning lyrics…</string>
+    <string name="library_background_sync_cache">Cleaning album art cache…</string>
+    <string name="library_background_sync_cloud">Syncing cloud sources…</string>
     <string name="unknown_song_title">Unknown track</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_album">Unknown album</string>

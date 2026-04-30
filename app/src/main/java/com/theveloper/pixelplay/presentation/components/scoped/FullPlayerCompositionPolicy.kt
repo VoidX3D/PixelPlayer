@@ -30,7 +30,7 @@ internal fun rememberFullPlayerCompositionPolicy(
     currentSongId: String?,
     currentSheetState: PlayerSheetState,
     expansionFraction: Animatable<Float, AnimationVector1D>,
-    releaseDelayMs: Long = 450L
+    collapsedWarmDelayMs: Long = 650L
 ): FullPlayerCompositionPolicy {
     var keepFullPlayerComposed by remember(currentSongId) { mutableStateOf(false) }
 
@@ -43,10 +43,10 @@ internal fun rememberFullPlayerCompositionPolicy(
         if (currentSheetState == PlayerSheetState.EXPANDED) {
             keepFullPlayerComposed = true
         } else {
-            delay(releaseDelayMs)
-            if (currentSheetState == PlayerSheetState.COLLAPSED) {
-                keepFullPlayerComposed = false
-            }
+            // Warm the hidden full-player tree after the collapsed state settles.
+            // This moves the expensive first composition out of the expand animation.
+            delay(collapsedWarmDelayMs)
+            keepFullPlayerComposed = true
         }
     }
 

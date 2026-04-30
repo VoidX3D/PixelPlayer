@@ -1,7 +1,7 @@
 package com.theveloper.pixelplay.presentation.navigation
 
 import DelimiterConfigScreen
-import WordDelimiterConfigScreen
+import com.theveloper.pixelplay.presentation.screens.WordDelimiterConfigScreen
 import android.annotation.SuppressLint
 import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition

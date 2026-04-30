@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
@@ -15,6 +16,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -61,7 +63,6 @@ import com.theveloper.pixelplay.ui.glancewidget.PlayerInfoStateDefinition
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -69,6 +70,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import com.theveloper.pixelplay.data.equalizer.EqualizerManager
@@ -139,6 +141,11 @@ class MusicService : MediaLibraryService() {
     private var userSelectedVolume = 1f
     private var expectedReplayGainVolume: Float? = null
     private var pendingReplayGainVolume: Float? = null
+    // Last successfully applied RG volume — used to avoid a full-volume spike
+    // during the IO read for the next track (Repeat/Shuffle/Queue changes).
+    private var lastAppliedReplayGainVolume: Float? = null
+    // MediaId for which lastAppliedReplayGainVolume was computed.
+    private var lastReplayGainMediaId: String? = null
 
     private var favoriteSongIds = emptySet<String>()
     private var mediaSession: MediaLibraryService.MediaLibrarySession? = null
@@ -165,6 +172,7 @@ class MusicService : MediaLibraryService() {
     private var observedCastSession: CastSession? = null
     private var playbackSnapshotPersistJob: Job? = null
     private var isRestoringPlaybackSnapshot = false
+    private var isPlaybackUnloadInProgress = false
     private val audioManager by lazy {
         getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
@@ -180,7 +188,10 @@ class MusicService : MediaLibraryService() {
         const val ACTION_SLEEP_TIMER_EXPIRED = "com.theveloper.pixelplay.ACTION_SLEEP_TIMER_EXPIRED"
         const val EXTRA_FORCE_FOREGROUND_ON_START =
             "com.theveloper.pixelplay.extra.FORCE_FOREGROUND_ON_START"
-        private const val PLAYBACK_SNAPSHOT_DEBOUNCE_MS = 350L
+        // Queue/index/flags snapshot is only used for restore on process death. A full-queue
+        // JSON+DataStore rewrite on every Media3 event (track transition fires 3-4 listeners
+        // within ~200ms) is unnecessary work. 1500ms coalesces those without harming restore.
+        private const val PLAYBACK_SNAPSHOT_DEBOUNCE_MS = 1500L
         private const val FORCED_WIDGET_STATE_DEBOUNCE_MS = 90L
         private const val MEDIA_SESSION_BUTTON_DEBOUNCE_MS = 90L
         private val pendingMediaButtonForegroundStarts = AtomicInteger(0)
@@ -253,12 +264,24 @@ class MusicService : MediaLibraryService() {
             // isTransitionRunning() is true here, so applyReplayGain stores the result as
             // pendingReplayGainVolume. onTransitionFinished() applies it cleanly once the fade
             // loop ends, avoiding any volume jump on the incoming track.
-            applyReplayGain(newPlayer.currentMediaItem)
+            //
+            // Also try to set incomingTrackReplayGainVolume immediately from cache so the
+            // fade loop can use the correct final volume even before the IO coroutine finishes.
+            val incomingItem = newPlayer.currentMediaItem
+            val cachedVolume = getCachedReplayGainVolume(incomingItem)
+            if (cachedVolume != null) {
+                engine.incomingTrackReplayGainVolume = cachedVolume
+            }
+            applyReplayGain(incomingItem)
         }
     }
 
     private val transitionFinishedListener: () -> Unit = {
-        onTransitionFinished()
+        // Dispatch to Main so it runs after any pending playerSwapListener coroutine
+        // has completed — otherwise onTransitionFinished() may see stale state.
+        serviceScope.launch(Dispatchers.Main) {
+            onTransitionFinished()
+        }
     }
 
     override fun onCreate() {
@@ -280,15 +303,17 @@ class MusicService : MediaLibraryService() {
             }
         }
 
-        super.onCreate()
-
-        // A MEDIA_BUTTON broadcast starts the foreground-service timeout before
-        // MusicService reaches onStartCommand(). Promote as early as possible so
-        // cold-start initialization cannot consume the whole timeout window.
+        // A MEDIA_BUTTON broadcast starts the 5-second foreground-service timeout
+        // BEFORE MusicService is created. Promote to foreground before super.onCreate()
+        // — Hilt injection plus MediaLibraryService.onCreate() can otherwise consume
+        // most of the budget on a slow cold-start. The temporary notification only uses
+        // Context/resources, no injected fields, so it is safe before super.onCreate().
         temporaryForegroundStartedInOnCreate = consumePendingMediaButtonForegroundStart()
         if (temporaryForegroundStartedInOnCreate) {
             startTemporaryForegroundForCommand()
         }
+
+        super.onCreate()
         
         // Ensure engine is ready (re-initialize if service was restarted)
         engine.initialize()
@@ -862,8 +887,20 @@ class MusicService : MediaLibraryService() {
             .setSilent(true)
             .setOngoing(true)
             .build()
+        // Pass mediaPlayback explicitly. On API 34+ a missing/mismatched type can throw
+        // MissingForegroundServiceTypeException; ServiceCompat picks the right overload
+        // per API level and matches the manifest-declared foregroundServiceType.
         try {
-            startForeground(NOTIFICATION_ID, notification)
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                } else {
+                    0
+                }
+            )
         } catch (e: Exception) {
             Timber.tag(TAG).w(e, "Failed to promote service to foreground for external command")
         }
@@ -970,9 +1007,7 @@ class MusicService : MediaLibraryService() {
 
     private val playerListener = object : Player.Listener {
         override fun onVolumeChanged(volume: Float) {
-            if (engine.isTransitionRunning()) {
-                return
-            }
+            if (engine.isTransitionRunning()) return
             val expectedVolume = expectedReplayGainVolume
             if (expectedVolume != null && abs(expectedVolume - volume) < 0.001f) {
                 expectedReplayGainVolume = null
@@ -985,6 +1020,12 @@ class MusicService : MediaLibraryService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             val player = engine.masterPlayer
             Timber.tag(TAG).d("onIsPlayingChanged: $isPlaying. Duration: ${player.duration}, Seekable: ${player.isCurrentMediaItemSeekable}")
+            // Re-apply the last known RG volume immediately when resuming playback.
+            // After a pause, ExoPlayer may reset the audio track volume internally,
+            // causing a brief full-volume spike before the IO coroutine finishes.
+            if (isPlaying && !engine.isTransitionRunning()) {
+                lastAppliedReplayGainVolume?.let { setPlayerVolume(player, it) }
+            }
             // Push state immediately so the watch can foreground PixelPlay before
             // system media surfaces take over.
             requestWidgetFullUpdate(force = true)
@@ -1003,12 +1044,15 @@ class MusicService : MediaLibraryService() {
                 }
                 else -> clearHeadsetReconnectResume()
             }
+            requestWidgetFullUpdate(force = true)
+            mediaSession?.let { refreshMediaSessionUi(it) }
+            schedulePlaybackSnapshotPersist()
         }
-        
+
         override fun onAvailableCommandsChanged(availableCommands: Player.Commands) {
-             val canSeek = availableCommands.contains(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-             val player = engine.masterPlayer
-             Timber.tag(TAG).w("onAvailableCommandsChanged. Can Seek Command? $canSeek. IsSeekable? ${player.isCurrentMediaItemSeekable}. Duration: ${player.duration}")
+            val canSeek = availableCommands.contains(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+            val player = engine.masterPlayer
+            Timber.tag(TAG).w("onAvailableCommandsChanged. Can Seek Command? $canSeek. IsSeekable? ${player.isCurrentMediaItemSeekable}. Duration: ${player.duration}")
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -1023,9 +1067,39 @@ class MusicService : MediaLibraryService() {
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
             requestWidgetFullUpdate(force = true)
             schedulePlaybackSnapshotPersist(immediate = timeline.isEmpty)
+            // Pre-fetch RG for the next track so the cache is warm before playback starts
+            val player = engine.masterPlayer
+            val nextIndex = player.nextMediaItemIndex
+            if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
+                runCatching { prefetchReplayGain(player.getMediaItemAt(nextIndex)) }
+            }
         }
 
-        override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION ||
+                reason == Player.DISCONTINUITY_REASON_SEEK
+            ) {
+                val currentItem = mediaSession?.player?.currentMediaItem
+                val oldMediaId = oldPosition.mediaItem?.mediaId
+                val newMediaId = newPosition.mediaItem?.mediaId
+                if (oldMediaId != null && oldMediaId == newMediaId) {
+                    // Same track (e.g. repeat, seek) — no IO needed, apply last known RG volume
+                    // immediately to avoid a spike while the coroutine reads tags again.
+                    lastAppliedReplayGainVolume?.let {
+                        if (!engine.isTransitionRunning()) setPlayerVolume(engine.masterPlayer, it)
+                    }
+                } else {
+                    // Different track — full recompute needed
+                    applyReplayGain(currentItem)
+                }
+            }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             val eotTargetSongId = endOfTrackTimerSongId
             if (!eotTargetSongId.isNullOrBlank()) {
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
@@ -1042,14 +1116,20 @@ class MusicService : MediaLibraryService() {
                         engine.masterPlayer.pause()
                         Timber.tag(TAG).d("Paused playback at end of track from Wear timer")
                     }
-                } else if (item?.mediaId != eotTargetSongId) {
+                } else if (mediaItem?.mediaId != eotTargetSongId) {
                     endOfTrackTimerSongId = null
                     Timber.tag(TAG).d("Cleared end-of-track timer after manual track change")
                 }
             }
+            applyReplayGain(mediaSession?.player?.currentMediaItem)
+            // Pre-fetch RG for the track after this one so it's cached when needed
+            val player = engine.masterPlayer
+            val nextIndex = player.nextMediaItemIndex
+            if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
+                runCatching { prefetchReplayGain(player.getMediaItemAt(nextIndex)) }
+            }
             requestWidgetAndWearRefreshWithFollowUp()
             mediaSession?.let { refreshMediaSessionUiWithFollowUp(it) }
-            mediaSession?.let { refreshMediaSessionUi(it) }
             schedulePlaybackSnapshotPersist()
         }
 
@@ -1058,8 +1138,17 @@ class MusicService : MediaLibraryService() {
             // Force an immediate publish for real-time watch metadata.
             requestWidgetFullUpdate(force = true)
             mediaSession?.let { refreshMediaSessionUiWithFollowUp(it) }
-            // Apply ReplayGain volume adjustment for the new track
-            applyReplayGain(mediaSession?.player?.currentMediaItem)
+            // Only recompute RG if the track actually changed — onMediaMetadataChanged
+            // also fires on queue edits (add/remove) without a track change, which would
+            // launch a redundant IO coroutine and cause a brief volume spike.
+            val currentMediaId = mediaSession?.player?.currentMediaItem?.mediaId
+            if (currentMediaId != null && currentMediaId != lastReplayGainMediaId) {
+                applyReplayGain(mediaSession?.player?.currentMediaItem)
+            } else if (currentMediaId != null) {
+                lastAppliedReplayGainVolume?.let {
+                    if (!engine.isTransitionRunning()) setPlayerVolume(engine.masterPlayer, it)
+                }
+            }
         }
 
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -1086,7 +1175,6 @@ class MusicService : MediaLibraryService() {
      * Reads RG tags from the file and adjusts player.volume accordingly.
      */
     private fun applyReplayGain(mediaItem: MediaItem?) {
-        val player = engine.masterPlayer
         replayGainJob?.cancel()
         replayGainRequestToken += 1
         val requestToken = replayGainRequestToken
@@ -1098,7 +1186,7 @@ class MusicService : MediaLibraryService() {
         if (!replayGainEnabled) {
             pendingReplayGainVolume = null
             if (!engine.isTransitionRunning()) {
-                setPlayerVolume(player, userSelectedVolume)
+                setPlayerVolume(engine.masterPlayer, userSelectedVolume)
             }
             return
         }
@@ -1110,12 +1198,19 @@ class MusicService : MediaLibraryService() {
         if (filePath.isNullOrBlank()) {
             Timber.tag(TAG).d("ReplayGain: No file path for track, keeping user-selected volume")
             if (!engine.isTransitionRunning()) {
-                setPlayerVolume(player, userSelectedVolume)
+                setPlayerVolume(engine.masterPlayer, userSelectedVolume)
             }
             return
         }
 
         val useAlbumGain = replayGainUseAlbumGain
+
+        // Apply the last known RG volume immediately so there is no full-volume spike
+        // while the IO coroutine reads the tags for the new track.
+        if (!engine.isTransitionRunning()) {
+            lastAppliedReplayGainVolume?.let { setPlayerVolume(engine.masterPlayer, it) }
+        }
+
         // Read ReplayGain tags on IO thread to avoid blocking main
         replayGainJob = serviceScope.launch {
             val rgValues = withContext(Dispatchers.IO) {
@@ -1138,18 +1233,55 @@ class MusicService : MediaLibraryService() {
             )
 
             if (engine.isTransitionRunning()) {
-                // Store for application after transition completes
+                // Store for application after transition completes.
+                // Also pass to engine so the crossfade loop ends at the correct RG
+                // volume instead of hard-coding 1f, preventing the audible jump.
                 pendingReplayGainVolume = volume
-                Timber.tag(TAG).d("ReplayGain: Stored pending volume=%.2f for %s (transition running)",
+                engine.incomingTrackReplayGainVolume = volume
+                // Apply immediately to masterPlayer so volume is never lost if the
+                // transition is interrupted (e.g. user skips during crossfade).
+                setPlayerVolume(engine.masterPlayer, volume)
+                Timber.tag(TAG).d("ReplayGain: Applied + stored pending volume=%.2f for %s (transition running)",
                     volume, mediaItem.mediaMetadata.title
                 )
             } else {
                 pendingReplayGainVolume = null
-                setPlayerVolume(player, volume)
+                engine.incomingTrackReplayGainVolume = null
+                lastAppliedReplayGainVolume = volume
+                lastReplayGainMediaId = mediaId
+                setPlayerVolume(engine.masterPlayer, volume)
                 Timber.tag(TAG).d("ReplayGain: Applied volume=%.2f for %s",
                     volume, mediaItem.mediaMetadata.title
                 )
             }
+        }
+    }
+
+    /**
+     * Returns the cached ReplayGain volume for a media item if already computed, or null.
+     * Does NOT trigger an IO read — only reads from the in-memory cache.
+     */
+    private fun getCachedReplayGainVolume(mediaItem: MediaItem?): Float? {
+        if (!replayGainEnabled || mediaItem == null) return null
+        val filePath = mediaItem.mediaMetadata.extras
+            ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_FILE_PATH) ?: return null
+        if (filePath.isBlank()) return null
+        val cached = replayGainManager.getCachedReplayGain(filePath) ?: return null
+        return replayGainManager.getVolumeMultiplier(cached, useAlbumGain = replayGainUseAlbumGain)
+    }
+
+    /**
+     * Pre-fetches ReplayGain tags for a media item into the cache without applying the volume.
+     * Called on queue changes and track transitions so the cache is warm by the time
+     * applyReplayGain() runs, avoiding the 1-2s JNI read delay on playback start.
+     */
+    private fun prefetchReplayGain(mediaItem: MediaItem?) {
+        if (!replayGainEnabled || mediaItem == null) return
+        val filePath = mediaItem.mediaMetadata.extras
+            ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_FILE_PATH) ?: return
+        if (filePath.isBlank()) return
+        serviceScope.launch(Dispatchers.IO) {
+            replayGainManager.readReplayGain(filePath)
         }
     }
 
@@ -1171,8 +1303,15 @@ class MusicService : MediaLibraryService() {
         }
 
         if (pending != null) {
+            // pending was already applied to masterPlayer during the transition to ensure
+            // volume is never lost if the transition was interrupted (e.g. user skipped).
+            // Re-applying here is a no-op in volume terms but confirms the final state.
+            // Also update lastAppliedReplayGainVolume so any subsequent onPositionDiscontinuity
+            // (REASON_AUTO_TRANSITION fires right after crossfade ends) uses this value
+            // immediately instead of launching a new IO coroutine and causing a spike.
+            lastAppliedReplayGainVolume = pending
             setPlayerVolume(player, pending)
-            Timber.tag(TAG).d("ReplayGain: Transition finished, applied pending volume=%.2f", pending)
+            Timber.tag(TAG).d("ReplayGain: Transition finished, confirmed pending volume=%.2f", pending)
         } else {
             // No pending volume was computed during transition, trigger full computation
             applyReplayGain(mediaSession?.player?.currentMediaItem)
@@ -1404,6 +1543,9 @@ class MusicService : MediaLibraryService() {
     }
 
     private fun schedulePlaybackSnapshotPersist(immediate: Boolean = false) {
+        if (isPlaybackUnloadInProgress) {
+            return
+        }
         playbackSnapshotPersistJob?.cancel()
         playbackSnapshotPersistJob = serviceScope.launch {
             if (!immediate) {
@@ -1413,9 +1555,9 @@ class MusicService : MediaLibraryService() {
         }
     }
 
-    private suspend fun persistPlaybackSnapshot() {
+    private suspend fun persistPlaybackSnapshot(playWhenReadyOverride: Boolean? = null) {
         if (isRestoringPlaybackSnapshot) return
-        val snapshot = capturePlaybackSnapshot()
+        val snapshot = capturePlaybackSnapshot(playWhenReadyOverride)
         runCatching {
             userPreferencesRepository.setPlaybackQueueSnapshot(snapshot)
         }.onFailure { e ->
@@ -1423,74 +1565,80 @@ class MusicService : MediaLibraryService() {
         }
     }
 
-    private suspend fun capturePlaybackSnapshot(): PlaybackQueueSnapshot? =
+    private suspend fun capturePlaybackSnapshot(playWhenReadyOverride: Boolean? = null): PlaybackQueueSnapshot? =
         withContext(Dispatchers.Main.immediate) {
-            val player = engine.masterPlayer
-            val mediaItemCount = player.mediaItemCount
-            if (mediaItemCount <= 0) {
-                return@withContext null
+            capturePlaybackSnapshotFromPlayer(playWhenReadyOverride)
+        }
+
+    private fun capturePlaybackSnapshotFromPlayer(
+        playWhenReadyOverride: Boolean? = null
+    ): PlaybackQueueSnapshot? {
+        val player = engine.masterPlayer
+        val mediaItemCount = player.mediaItemCount
+        if (mediaItemCount <= 0) {
+            return null
+        }
+
+        val snapshotItems = ArrayList<PlaybackQueueItemSnapshot>(mediaItemCount)
+        for (index in 0 until mediaItemCount) {
+            val mediaItem = player.getMediaItemAt(index)
+            val metadata = mediaItem.mediaMetadata
+            val uri = mediaItem.localConfiguration?.uri?.toString()
+                ?: metadata.extras?.getString(MediaItemBuilder.EXTERNAL_EXTRA_CONTENT_URI)
+
+            if (mediaItem.mediaId.isBlank() || uri.isNullOrBlank()) {
+                continue
             }
 
-            val snapshotItems = ArrayList<PlaybackQueueItemSnapshot>(mediaItemCount)
-            for (index in 0 until mediaItemCount) {
-                val mediaItem = player.getMediaItemAt(index)
-                val metadata = mediaItem.mediaMetadata
-                val uri = mediaItem.localConfiguration?.uri?.toString()
-                    ?: metadata.extras?.getString(MediaItemBuilder.EXTERNAL_EXTRA_CONTENT_URI)
+            val durationMs = metadata.extras
+                ?.getLong(MediaItemBuilder.EXTERNAL_EXTRA_DURATION)
+                ?.takeIf { it > 0L }
 
-                if (mediaItem.mediaId.isBlank() || uri.isNullOrBlank()) {
-                    continue
-                }
-
-                val durationMs = metadata.extras
-                    ?.getLong(MediaItemBuilder.EXTERNAL_EXTRA_DURATION)
-                    ?.takeIf { it > 0L }
-
-                snapshotItems.add(
-                    PlaybackQueueItemSnapshot(
-                        mediaId = mediaItem.mediaId,
-                        uri = uri,
-                        title = metadata.title?.toString(),
-                        artist = metadata.artist?.toString(),
-                        albumTitle = metadata.albumTitle?.toString(),
-                        artworkUri = resolveStoredArtworkUriString(metadata),
-                        durationMs = durationMs,
-                    )
+            snapshotItems.add(
+                PlaybackQueueItemSnapshot(
+                    mediaId = mediaItem.mediaId,
+                    uri = uri,
+                    title = metadata.title?.toString(),
+                    artist = metadata.artist?.toString(),
+                    albumTitle = metadata.albumTitle?.toString(),
+                    artworkUri = resolveStoredArtworkUriString(metadata),
+                    durationMs = durationMs,
                 )
-            }
-
-            if (snapshotItems.isEmpty()) {
-                return@withContext null
-            }
-
-            val currentMediaId = player.currentMediaItem?.mediaId
-            val indexFromMediaId = currentMediaId
-                ?.let { id -> snapshotItems.indexOfFirst { it.mediaId == id } }
-                ?.takeIf { it >= 0 }
-
-            val safeCurrentIndex = when {
-                indexFromMediaId != null -> indexFromMediaId
-                player.currentMediaItemIndex in snapshotItems.indices -> player.currentMediaItemIndex
-                else -> 0
-            }
-
-            val safeRepeatMode = when (player.repeatMode) {
-                Player.REPEAT_MODE_OFF,
-                Player.REPEAT_MODE_ONE,
-                Player.REPEAT_MODE_ALL -> player.repeatMode
-                else -> Player.REPEAT_MODE_OFF
-            }
-
-            PlaybackQueueSnapshot(
-                items = snapshotItems,
-                currentMediaId = currentMediaId,
-                currentIndex = safeCurrentIndex,
-                currentPositionMs = player.currentPosition.coerceAtLeast(0L),
-                playWhenReady = player.playWhenReady,
-                repeatMode = safeRepeatMode,
-                shuffleEnabled = isManualShuffleEnabled,
             )
         }
+
+        if (snapshotItems.isEmpty()) {
+            return null
+        }
+
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val indexFromMediaId = currentMediaId
+            ?.let { id -> snapshotItems.indexOfFirst { it.mediaId == id } }
+            ?.takeIf { it >= 0 }
+
+        val safeCurrentIndex = when {
+            indexFromMediaId != null -> indexFromMediaId
+            player.currentMediaItemIndex in snapshotItems.indices -> player.currentMediaItemIndex
+            else -> 0
+        }
+
+        val safeRepeatMode = when (player.repeatMode) {
+            Player.REPEAT_MODE_OFF,
+            Player.REPEAT_MODE_ONE,
+            Player.REPEAT_MODE_ALL -> player.repeatMode
+            else -> Player.REPEAT_MODE_OFF
+        }
+
+        return PlaybackQueueSnapshot(
+            items = snapshotItems,
+            currentMediaId = currentMediaId,
+            currentIndex = safeCurrentIndex,
+            currentPositionMs = player.currentPosition.coerceAtLeast(0L),
+            playWhenReady = playWhenReadyOverride ?: player.playWhenReady,
+            repeatMode = safeRepeatMode,
+            shuffleEnabled = isManualShuffleEnabled,
+        )
+    }
 
     private suspend fun restorePlaybackQueueSnapshotIfNeeded() {
         val alreadyHasQueue = withContext(Dispatchers.Main.immediate) {
@@ -1505,6 +1653,11 @@ class MusicService : MediaLibraryService() {
         if (snapshot.items.isEmpty()) {
             return
         }
+
+        val allowBackgroundPlayback = runCatching {
+            userPreferencesRepository.keepPlayingInBackgroundFlow.first()
+        }.getOrDefault(keepPlayingInBackground)
+        val shouldRestorePlaying = snapshot.playWhenReady && allowBackgroundPlayback
 
         val restoredItems = snapshot.items.mapNotNull(::buildMediaItemFromSnapshot)
         if (restoredItems.isEmpty()) {
@@ -1555,8 +1708,10 @@ class MusicService : MediaLibraryService() {
                 player.repeatMode = safeRepeatMode
                 player.shuffleModeEnabled = false
                 isManualShuffleEnabled = snapshot.shuffleEnabled
-                if (snapshot.playWhenReady) {
+                if (shouldRestorePlaying) {
                     player.playWhenReady = true
+                } else {
+                    player.playWhenReady = false
                 }
             } finally {
                 isRestoringPlaybackSnapshot = false
@@ -1567,7 +1722,7 @@ class MusicService : MediaLibraryService() {
             "Restored playback snapshot: items=%d index=%d playWhenReady=%s",
             restoredItems.size,
             snapshot.currentIndex,
-            snapshot.playWhenReady
+            shouldRestorePlaying
         )
         schedulePlaybackSnapshotPersist(immediate = true)
     }
@@ -2450,17 +2605,20 @@ class MusicService : MediaLibraryService() {
 
     private fun closeNotificationPlayer() {
         stopPlaybackAndUnload(
-            reason = "notification_close_button"
+            reason = "notification_close_button",
+            preservePlaybackSnapshot = false
         )
     }
 
     private fun stopPlaybackAndUnload(
         reason: String,
+        preservePlaybackSnapshot: Boolean = true,
     ) {
         Timber.tag(TAG).d(
             "Stopping playback and unloading service. reason=%s",
             reason
         )
+        isPlaybackUnloadInProgress = true
         followUpMediaSessionUiRefreshJob?.cancel()
         mediaSessionButtonRefreshJob?.cancel()
         followUpWidgetUpdateJob?.cancel()
@@ -2474,7 +2632,11 @@ class MusicService : MediaLibraryService() {
         cancelDurationSleepTimerInternal()
         endOfTrackTimerSongId = null
 
-        persistPlaybackSnapshotImmediately()
+        if (preservePlaybackSnapshot) {
+            persistPlaybackSnapshotBlocking(playWhenReadyOverride = false)
+        } else {
+            clearPlaybackSnapshotBlocking()
+        }
 
         player.playWhenReady = false
         player.stop()
@@ -2486,10 +2648,22 @@ class MusicService : MediaLibraryService() {
         stopSelf()
     }
 
-    private fun persistPlaybackSnapshotImmediately() {
-        playbackSnapshotPersistJob?.cancel()
-        playbackSnapshotPersistJob = serviceScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            persistPlaybackSnapshot()
+    private fun persistPlaybackSnapshotBlocking(playWhenReadyOverride: Boolean? = null) {
+        val snapshot = capturePlaybackSnapshotFromPlayer(playWhenReadyOverride)
+        writePlaybackSnapshotBlocking(snapshot)
+    }
+
+    private fun clearPlaybackSnapshotBlocking() {
+        writePlaybackSnapshotBlocking(null)
+    }
+
+    private fun writePlaybackSnapshotBlocking(snapshot: PlaybackQueueSnapshot?) {
+        runCatching {
+            runBlocking(Dispatchers.IO) {
+                userPreferencesRepository.setPlaybackQueueSnapshot(snapshot)
+            }
+        }.onFailure { e ->
+            Timber.tag(TAG).w(e, "Failed to persist playback snapshot during unload")
         }
     }
 
@@ -2843,6 +3017,13 @@ class MusicService : MediaLibraryService() {
     /**
      * Bridges a suspend block into a [ListenableFuture] for Media3 callback methods.
      */
+    /**
+     * Bridges a suspend block into a [ListenableFuture] for Media3 callback methods.
+     */
+
+    /**
+     * Bridges a suspend block into a [ListenableFuture] for Media3 callback methods.
+     */
     private fun <T> CoroutineScope.future(block: suspend () -> T): ListenableFuture<T> {
         val future = SettableFuture.create<T>()
         launch(Dispatchers.IO) {
@@ -2854,5 +3035,4 @@ class MusicService : MediaLibraryService() {
         }
         return future
     }
-
 }

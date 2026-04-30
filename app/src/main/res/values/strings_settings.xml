@@ -45,6 +45,7 @@
     <string name="setcat_artists_subtitle">Multi-artist parsing and organization options.</string>
     <string name="setcat_filtering">Filtering</string>
     <string name="setcat_min_song_duration">Minimum Song Duration</string>
+    <string name="setcat_min_tracks_per_album">Minimum Tracks per Album</string>
     <string name="setcat_album_art_cache_limit">Album Art Cache Limit</string>
     <string name="setcat_album_art_cache_limit_desc">Max cache size before oldest images are auto-deleted</string>
     <string name="setcat_sync_scanning">Sync and Scanning</string>
@@ -71,6 +72,8 @@
     <string name="setcat_language_spanish">Español</string>
     <string name="setcat_language_french">Français</string>
     <string name="setcat_language_russian">Русский</string>
+    <string name="setcat_language_chinese">简体中文</string>
+    <string name="setcat_language_indonesian">Bahasa Indonesia</string>
     <string name="setcat_app_theme_label">App Theme</string>
     <string name="setcat_app_theme_desc">Switch between light, dark, or follow system appearance.</string>
     <string name="setcat_theme_light">Light Theme</string>

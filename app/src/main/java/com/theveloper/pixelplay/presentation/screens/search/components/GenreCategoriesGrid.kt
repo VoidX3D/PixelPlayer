@@ -169,6 +169,19 @@ private fun GenreCard(
     val backgroundColor = themeColor.container
     val onBackgroundColor = themeColor.onContainer
 
+    val shape = RoundedCornerShape(20.dp)
+
+//    val shape = AbsoluteSmoothCornerShape(
+//        cornerRadiusTR = 24.dp,
+//        smoothnessAsPercentTL = 70,
+//        cornerRadiusTL = 24.dp,
+//        smoothnessAsPercentTR = 70,
+//        cornerRadiusBR = 24.dp,
+//        smoothnessAsPercentBL = 70,
+//        cornerRadiusBL = 24.dp,
+//        smoothnessAsPercentBR = 70
+//    )
+
     // Layout Modifier Logic
     val cardModifier = if (isGridView) {
         Modifier.aspectRatio(1.2f)
@@ -178,34 +191,16 @@ private fun GenreCard(
 
     Card(
         modifier = cardModifier
-            .clip(AbsoluteSmoothCornerShape(
-                cornerRadiusTR = 24.dp,
-                smoothnessAsPercentTL = 70,
-                cornerRadiusTL = 24.dp,
-                smoothnessAsPercentTR = 70,
-                cornerRadiusBR = 24.dp,
-                smoothnessAsPercentBL = 70,
-                cornerRadiusBL = 24.dp,
-                smoothnessAsPercentBR = 70
-            ))
+            .clip(shape)
             .clickable(onClick = onClick),
-        shape = AbsoluteSmoothCornerShape(
-            cornerRadiusTR = 24.dp,
-            smoothnessAsPercentTL = 70,
-            cornerRadiusTL = 24.dp,
-            smoothnessAsPercentTR = 70,
-            cornerRadiusBR = 24.dp,
-            smoothnessAsPercentBL = 70,
-            cornerRadiusBL = 24.dp,
-            smoothnessAsPercentBR = 70
-        ),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(backgroundColor)
         ) {
             val textMeasurer = rememberTextMeasurer()

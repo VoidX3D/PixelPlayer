@@ -67,6 +67,16 @@ private const val SONG_LIST_PROJECTION = """
     telegram_file_id, artists_json, source_type
 """
 
+data class DeviceCapabilitySongRow(
+    val filePath: String,
+    val contentUriString: String,
+    val mimeType: String?,
+    val duration: Long,
+    val bitrate: Int?,
+    val sampleRate: Int?,
+    val sourceType: Int
+)
+
 @Dao
 interface MusicDao {
 
@@ -343,6 +353,15 @@ interface MusicDao {
     @Query("SELECT " + SONG_LIST_PROJECTION + " FROM songs WHERE id IN (:songIds)")
     suspend fun getSongsByIdsListSimple(songIds: List<Long>): List<SongEntity>
 
+    /**
+     * Resolves the unified-table song id for a given content URI. Used when the
+     * currently-playing song was loaded from a non-unified source (e.g. raw Telegram
+     * repository Songs whose ids are "chatId_messageId" strings) and we need the
+     * matching negative-Long id to position the song inside the library list.
+     */
+    @Query("SELECT id FROM songs WHERE content_uri_string = :contentUri LIMIT 1")
+    suspend fun getSongIdByContentUri(contentUri: String): Long?
+
     @Query(
         "SELECT " + SONG_DETAIL_PROJECTION + """
         FROM songs
@@ -441,6 +460,19 @@ interface MusicDao {
 
     @Query("SELECT COUNT(*) FROM songs")
     suspend fun getSongCountOnce(): Int
+
+    @Query("""
+        SELECT
+            file_path AS filePath,
+            content_uri_string AS contentUriString,
+            mime_type AS mimeType,
+            duration,
+            bitrate,
+            sample_rate AS sampleRate,
+            source_type AS sourceType
+        FROM songs
+    """)
+    suspend fun getDeviceCapabilitySongRows(): List<DeviceCapabilitySongRow>
 
     /**
      * Returns random songs for efficient shuffle without loading all songs into memory.

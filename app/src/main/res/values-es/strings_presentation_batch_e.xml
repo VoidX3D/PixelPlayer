@@ -36,6 +36,10 @@
         <item quantity="other">%d canciones seleccionadas</item>
     </plurals>
 
+    <!-- PlaylistContainer -->
+    <string name="presentation_batch_e_no_playlist_created">No se ha creado ninguna lista de reproducción.</string>
+    <string name="presentation_batch_e_new_playlist_hint">Toca el botón \'Nueva lista\' para empezar.</string>
+
     <!-- PlaylistCreationDialogs -->
     <string name="presentation_batch_e_create_playlist_title">Crear lista</string>
     <string name="presentation_batch_e_create_playlist_subtitle">Elige cómo quieres crearla.</string>

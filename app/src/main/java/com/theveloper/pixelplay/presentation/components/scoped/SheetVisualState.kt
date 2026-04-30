@@ -22,8 +22,8 @@ internal data class SheetVisualState(
     val playerContentAreaHeightPxProvider: () -> Float,
     /** Layout-phase provider: read inside .offset { } to avoid recomposition per drag frame. */
     val visualSheetTranslationYProvider: () -> Float,
-    val overallSheetTopCornerRadius: Dp,
-    val playerContentActualBottomRadius: Dp,
+    val overallSheetTopCornerRadiusProvider: () -> Dp,
+    val playerContentActualBottomRadiusProvider: () -> Dp,
     /** Draw-phase providers: read inside graphicsLayer to avoid layout relayout per frame. */
     val currentHorizontalPaddingStartPxProvider: () -> Float,
     val currentHorizontalPaddingEndPxProvider: () -> Float
@@ -97,7 +97,7 @@ internal fun rememberSheetVisualState(
         }
     }
 
-    val overallSheetTopCornerRadius by remember(
+    val overallSheetTopCornerRadiusProvider: () -> Dp = remember(
         showPlayerContentArea,
         playerContentExpansionFraction,
         predictiveBackCollapseProgress,
@@ -106,7 +106,7 @@ internal fun rememberSheetVisualState(
         navBarCornerRadiusDp,
         isNavBarHidden
     ) {
-        derivedStateOf {
+        {
             if (showPlayerContentArea) {
                 val collapsedCornerTarget = if (navBarStyle == NavBarStyle.FULL_WIDTH) {
                     32.dp
@@ -138,7 +138,7 @@ internal fun rememberSheetVisualState(
         }
     }
 
-    val playerContentActualBottomRadius by remember(
+    val playerContentActualBottomRadiusProvider: () -> Dp = remember(
         navBarStyle,
         showPlayerContentArea,
         playerContentExpansionFraction,
@@ -150,47 +150,47 @@ internal fun rememberSheetVisualState(
         isNavBarHidden,
         navBarCornerRadiusDp
     ) {
-        derivedStateOf {
+        {
             if (navBarStyle == NavBarStyle.FULL_WIDTH) {
                 val fraction = playerContentExpansionFraction.value
-                return@derivedStateOf lerp(32.dp, 0.dp, fraction)
-            }
-
-            val calculatedNormally =
-                if (predictiveBackCollapseProgress > 0f &&
-                    showPlayerContentArea &&
-                    currentSheetContentState == PlayerSheetState.EXPANDED
-                ) {
-                    val expandedRadius = 0.dp
-                    val collapsedRadiusTarget = if (isNavBarHidden) 60.dp else 12.dp
-                    lerp(expandedRadius, collapsedRadiusTarget, predictiveBackCollapseProgress)
-                } else {
-                    if (showPlayerContentArea) {
-                        val fraction = playerContentExpansionFraction.value
-                        val collapsedRadius = if (isNavBarHidden) 60.dp else 12.dp
-                        if (fraction < 0.2f) {
-                            lerp(collapsedRadius, 26.dp, (fraction / 0.2f).coerceIn(0f, 1f))
-                        } else {
-                            lerp(26.dp, 0.dp, ((fraction - 0.2f) / 0.8f).coerceIn(0f, 1f))
-                        }
+                lerp(32.dp, 0.dp, fraction)
+            } else {
+                val calculatedNormally =
+                    if (predictiveBackCollapseProgress > 0f &&
+                        showPlayerContentArea &&
+                        currentSheetContentState == PlayerSheetState.EXPANDED
+                    ) {
+                        val expandedRadius = 0.dp
+                        val collapsedRadiusTarget = if (isNavBarHidden) 60.dp else 12.dp
+                        lerp(expandedRadius, collapsedRadiusTarget, predictiveBackCollapseProgress)
                     } else {
-                        if (!isPlaying || !hasCurrentSong) {
-                            if (isNavBarHidden) 32.dp else navBarCornerRadiusDp
+                        if (showPlayerContentArea) {
+                            val fraction = playerContentExpansionFraction.value
+                            val collapsedRadius = if (isNavBarHidden) 60.dp else 12.dp
+                            if (fraction < 0.2f) {
+                                lerp(collapsedRadius, 26.dp, (fraction / 0.2f).coerceIn(0f, 1f))
+                            } else {
+                                lerp(26.dp, 0.dp, ((fraction - 0.2f) / 0.8f).coerceIn(0f, 1f))
+                            }
                         } else {
-                            if (isNavBarHidden) 32.dp else 12.dp
+                            if (!isPlaying || !hasCurrentSong) {
+                                if (isNavBarHidden) 32.dp else navBarCornerRadiusDp
+                            } else {
+                                if (isNavBarHidden) 32.dp else 12.dp
+                            }
                         }
                     }
-                }
 
-            if (currentSheetContentState == PlayerSheetState.COLLAPSED &&
-                swipeDismissProgress > 0f &&
-                showPlayerContentArea &&
-                playerContentExpansionFraction.value < 0.01f
-            ) {
-                val baseCollapsedRadius = if (isNavBarHidden) 32.dp else 12.dp
-                lerp(baseCollapsedRadius, navBarCornerRadiusDp, swipeDismissProgress)
-            } else {
-                calculatedNormally
+                if (currentSheetContentState == PlayerSheetState.COLLAPSED &&
+                    swipeDismissProgress > 0f &&
+                    showPlayerContentArea &&
+                    playerContentExpansionFraction.value < 0.01f
+                ) {
+                    val baseCollapsedRadius = if (isNavBarHidden) 32.dp else 12.dp
+                    lerp(baseCollapsedRadius, navBarCornerRadiusDp, swipeDismissProgress)
+                } else {
+                    calculatedNormally
+                }
             }
         }
     }
@@ -267,8 +267,8 @@ internal fun rememberSheetVisualState(
         currentBottomPadding = currentBottomPadding,
         playerContentAreaHeightPxProvider = playerContentAreaHeightPxProvider,
         visualSheetTranslationYProvider = visualSheetTranslationYProvider,
-        overallSheetTopCornerRadius = overallSheetTopCornerRadius,
-        playerContentActualBottomRadius = playerContentActualBottomRadius,
+        overallSheetTopCornerRadiusProvider = overallSheetTopCornerRadiusProvider,
+        playerContentActualBottomRadiusProvider = playerContentActualBottomRadiusProvider,
         currentHorizontalPaddingStartPxProvider = currentHorizontalPaddingStartPxProvider,
         currentHorizontalPaddingEndPxProvider = currentHorizontalPaddingEndPxProvider
     )

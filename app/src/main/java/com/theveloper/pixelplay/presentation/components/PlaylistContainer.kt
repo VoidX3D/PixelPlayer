@@ -153,12 +153,12 @@ fun PlaylistContainer(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "No playlist has been created.",
+                        stringResource(R.string.presentation_batch_e_no_playlist_created),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Touch the 'New Playlist' button to start.",
+                        stringResource(R.string.presentation_batch_e_new_playlist_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

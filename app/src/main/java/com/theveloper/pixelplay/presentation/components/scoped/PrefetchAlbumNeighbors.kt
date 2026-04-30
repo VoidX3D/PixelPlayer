@@ -12,6 +12,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.size.Size
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.presentation.components.albumArtMemoryCacheKey
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -33,10 +34,15 @@ fun PrefetchAlbumNeighborsImg(
             if (i == index) continue
             queue[i].albumArtUriString?.let { data ->
                 val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(data)) CachePolicy.DISABLED else CachePolicy.ENABLED
+                val memoryCacheKey = albumArtMemoryCacheKey(data, Size.ORIGINAL)
                 val req = coil.request.ImageRequest.Builder(context)
                     .data(data)
-                    .memoryCacheKey("album:$data")
-                    .diskCacheKey(if (diskPolicy == CachePolicy.DISABLED) null else "album:$data")
+                    .apply {
+                        if (memoryCacheKey != null) {
+                            memoryCacheKey(memoryCacheKey)
+                        }
+                    }
+                    .diskCacheKey(if (diskPolicy == CachePolicy.DISABLED) null else memoryCacheKey)
                     .diskCachePolicy(diskPolicy)
                     .size(coil.size.Size.ORIGINAL)
                     .build()
@@ -68,10 +74,16 @@ fun PrefetchAlbumNeighbors(
                 indices.forEach { idx ->
                     queue[idx].albumArtUriString?.let { uri ->
                         val diskPolicy = if (LocalArtworkUri.isLocalArtworkUri(uri)) coil.request.CachePolicy.DISABLED else coil.request.CachePolicy.ENABLED
+                        val memoryCacheKey = albumArtMemoryCacheKey(uri, targetSize)
                         val req = coil.request.ImageRequest.Builder(context)
                             .data(uri)
                             .size(targetSize)
                             .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                            .apply {
+                                if (memoryCacheKey != null) {
+                                    memoryCacheKey(memoryCacheKey)
+                                }
+                            }
                             .diskCachePolicy(diskPolicy)
                             .networkCachePolicy(coil.request.CachePolicy.ENABLED)
                             .allowHardware(true)

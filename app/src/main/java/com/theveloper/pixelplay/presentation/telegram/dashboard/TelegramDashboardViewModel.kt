@@ -67,6 +67,12 @@ class TelegramDashboardViewModel @Inject constructor(
             } catch (e: Exception) {
                 _statusMessage.value = "Sync failed: ${e.message}"
             } finally {
+                // Guarantee the unified-table sync runs even if a forum topic loop
+                // threw partway. Without this, topic songs already committed to
+                // telegram_songs would stay invisible until an unrelated later sync.
+                // KEEP policy means this is a no-op while another sync is still in
+                // flight (in particular, never disturbs a full/rebuild).
+                runCatching { musicRepository.requestTelegramUnifiedSync() }
                 _isRefreshing.value = null
             }
         }

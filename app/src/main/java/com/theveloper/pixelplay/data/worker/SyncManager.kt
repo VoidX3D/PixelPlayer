@@ -37,6 +37,8 @@ data class SyncProgress(
         PROCESSING_FILES,
         SAVING_TO_DATABASE,
         SCANNING_LRC,
+        CLEANING_CACHE,
+        SYNCING_CLOUD,
         COMPLETING
     }
 
@@ -125,6 +127,40 @@ class SyncManager @Inject constructor(
                 started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
                 replay = 1
             )
+
+    /**
+     * Emits `true` while the worker is in the early "library changes" phases —
+     * scanning MediaStore for added/removed/modified files and writing them to the
+     * unified DB. This is what powers the pull-to-refresh indicator: the UI only
+     * needs to confirm that local additions/deletions have landed.
+     */
+    val isFetchingChanges: Flow<Boolean> = syncProgress
+        .map { progress ->
+            progress.isRunning && progress.phase in CHANGE_PHASES
+        }
+        .distinctUntilChanged()
+        .shareIn(
+            scope = sharingScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            replay = 1
+        )
+
+    /**
+     * Emits `true` while the worker is performing background maintenance that does
+     * not gate the user's pull-to-refresh gesture: LRC scanning, album-art cache
+     * cleanup, and cloud-source synchronization. This drives the slim linear
+     * indicator under [LibraryActionRow].
+     */
+    val isPerformingMaintenance: Flow<Boolean> = syncProgress
+        .map { progress ->
+            progress.isRunning && progress.phase in MAINTENANCE_PHASES
+        }
+        .distinctUntilChanged()
+        .shareIn(
+            scope = sharingScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            replay = 1
+        )
 
     fun sync() {
         sharingScope.launch {
@@ -217,5 +253,19 @@ class SyncManager @Inject constructor(
     companion object {
         private const val TAG = "SyncManager"
         private const val MIN_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000L // 6 hours
+
+        private val CHANGE_PHASES = setOf(
+            SyncProgress.SyncPhase.IDLE,
+            SyncProgress.SyncPhase.FETCHING_MEDIASTORE,
+            SyncProgress.SyncPhase.PROCESSING_FILES,
+            SyncProgress.SyncPhase.SAVING_TO_DATABASE
+        )
+
+        private val MAINTENANCE_PHASES = setOf(
+            SyncProgress.SyncPhase.SCANNING_LRC,
+            SyncProgress.SyncPhase.CLEANING_CACHE,
+            SyncProgress.SyncPhase.SYNCING_CLOUD,
+            SyncProgress.SyncPhase.COMPLETING
+        )
     }
 }

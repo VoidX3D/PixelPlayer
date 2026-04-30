@@ -36,6 +36,10 @@
         <item quantity="other">已选择 %d 首歌曲</item>
     </plurals>
 
+    <!-- PlaylistContainer -->
+    <string name="presentation_batch_e_no_playlist_created">尚未创建任何播放列表。</string>
+    <string name="presentation_batch_e_new_playlist_hint">点击“新建播放列表”按钮开始创建。</string>
+
     <!-- PlaylistCreationDialogs: create flow -->
     <string name="presentation_batch_e_create_playlist_title">创建播放列表</string>
     <string name="presentation_batch_e_create_playlist_subtitle">选择创建方式。</string>
