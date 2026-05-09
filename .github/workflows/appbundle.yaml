@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Decode Keystore
+      - name: Decode Keystore (to match build.gradle.kts location)
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
@@ -29,19 +29,29 @@ jobs:
             echo "Error: RELEASE_KEYSTORE_BASE64 is empty. Please add it to GitHub Secrets."
             exit 1
           fi
-          echo $RELEASE_KEYSTORE_BASE64 | base64 -d > app/release-key.jks
+          # Decode to the exact filename expected in build.gradle.kts
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > vz-pixelplay.jks
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build Phone signed Split APKs
+      - name: Create keystore.properties (used by build.gradle.kts)
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          # Write the properties file that your Gradle signing config reads
+          cat > keystore.properties <<EOF
+          storePassword=$RELEASE_KEYSTORE_PASSWORD
+          keyAlias=$RELEASE_KEY_ALIAS
+          keyPassword=$RELEASE_KEY_PASSWORD
+          EOF
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Phone signed APK (with splits)
         run: ./gradlew :app:assembleRelease -PenableSplits=true
 
-      - name: Upload Phone Split APKs
+      - name: Upload Phone APK(s)
         uses: actions/upload-artifact@v4
         with:
           name: PixelPlay-phone-release-split-APKs
