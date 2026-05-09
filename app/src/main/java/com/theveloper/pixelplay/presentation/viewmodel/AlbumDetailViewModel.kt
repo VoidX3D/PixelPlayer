@@ -61,7 +61,11 @@ class AlbumDetailViewModel @Inject constructor(
                     if (album != null) {
                         AlbumDetailUiState(
                             album = album,
-                            songs = songs.sortedWith(compareBy({ it.discNumber }, { it.trackNumber })),
+                            songs = songs.sortedWith(
+                                compareBy<Song> { it.discNumber ?: 1 }
+                                    .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }
+                                    .thenBy { it.title.lowercase() }
+                            ),
                             isLoading = false
                         )
                     } else {

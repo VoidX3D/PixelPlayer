@@ -92,7 +92,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.pager.HorizontalPager
 import androidx.wear.compose.foundation.pager.rememberPagerState
@@ -111,6 +111,7 @@ import com.google.android.horologist.audio.ui.volumeRotaryBehavior
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.WearLifecycleState
 import com.theveloper.pixelplay.presentation.components.AlwaysOnScalingPositionIndicator
 import com.theveloper.pixelplay.presentation.components.CurvedVolumeIndicator
 import com.theveloper.pixelplay.presentation.components.outputRouteIcon
@@ -187,7 +188,10 @@ private fun PlayerContent(
     onQueueClick: () -> Unit,
 ) {
     val palette = LocalWearPalette.current
-    val background = palette.radialBackgroundBrush()
+    // Memoize: radialGradient allocates Shader inputs on every call. PlayerContent
+    // recomposes whenever the play-button ring animation ticks, so without this
+    // we'd churn the GC for nothing.
+    val background = remember(palette) { palette.radialBackgroundBrush() }
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     var mainPageQueueReveal by remember { mutableFloatStateOf(0f) }
@@ -508,10 +512,11 @@ private fun AlbumArtPage(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
+            val fallbackBrush = remember(palette) { palette.radialBackgroundBrush() }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(palette.radialBackgroundBrush()),
+                    .background(fallbackBrush),
             )
         }
 
@@ -622,8 +627,11 @@ private fun LargeAlbumClockText(
     val displayTime by produceState(initialValue = "--:--") {
         val formatter = DateTimeFormatter.ofPattern("H:mm")
         while (true) {
-            value = LocalTime.now().format(formatter)
-            delay(1000L)
+            val now = LocalTime.now()
+            value = now.format(formatter)
+            // Sleep until the next minute boundary so we never recompose mid-minute.
+            val secondsToNextMinute = (60 - now.second).coerceAtLeast(1)
+            delay(secondsToNextMinute * 1000L)
         }
     }
     val gSansFlex = remember {
@@ -1407,20 +1415,22 @@ private fun CenterPlayButton(
         label = "playStarCurve",
     )
     val rotation = remember { Animatable(0f) }
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            while (true) {
-                val current = rotation.value
-                rotation.animateTo(
-                    targetValue = current + 360f,
-                    animationSpec = tween(
-                        durationMillis = 13800,
-                        easing = LinearEasing,
-                    ),
-                )
-                if (rotation.value >= 3600f) {
-                    rotation.snapTo(rotation.value % 360f)
-                }
+    val isInteractive by WearLifecycleState.isInteractive.collectAsState(
+        initial = WearLifecycleState.isInteractiveNow,
+    )
+    LaunchedEffect(isPlaying, isInteractive) {
+        if (!isPlaying || !isInteractive) return@LaunchedEffect
+        while (true) {
+            val current = rotation.value
+            rotation.animateTo(
+                targetValue = current + 360f,
+                animationSpec = tween(
+                    durationMillis = 13800,
+                    easing = LinearEasing,
+                ),
+            )
+            if (rotation.value >= 3600f) {
+                rotation.snapTo(rotation.value % 360f)
             }
         }
     }

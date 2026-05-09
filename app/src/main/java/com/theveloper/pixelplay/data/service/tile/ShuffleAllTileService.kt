@@ -29,6 +29,7 @@ class ShuffleAllTileService : TileService() {
 
     override fun onClick() {
         val intent = Intent(this, MainActivity::class.java).apply {
+            setPackage(packageName)
             action = MainActivityIntentContract.ACTION_SHUFFLE_ALL
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }

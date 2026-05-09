@@ -5,31 +5,38 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.fragment.app.FragmentActivity
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.wear.ambient.AmbientModeSupport
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.wear.ambient.AmbientLifecycleObserver
+import com.theveloper.pixelplay.data.WearLifecycleState
 import com.theveloper.pixelplay.presentation.theme.WearPixelPlayTheme
 import com.theveloper.pixelplay.presentation.viewmodel.WearPlayerViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class WearMainActivity : FragmentActivity(), AmbientModeSupport.AmbientCallbackProvider {
+class WearMainActivity : FragmentActivity() {
 
     companion object {
-        @Volatile
-        var isForeground: Boolean = false
-            private set
+        val isForeground: Boolean
+            get() = WearLifecycleState.isForeground.value
     }
 
-    private lateinit var ambientController: AmbientModeSupport.AmbientController
-    private val ambientCallback = object : AmbientModeSupport.AmbientCallback() {}
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            WearLifecycleState.setAmbient(true)
+        }
 
-    override fun getAmbientCallback(): AmbientModeSupport.AmbientCallback = ambientCallback
+        override fun onExitAmbient() {
+            WearLifecycleState.setAmbient(false)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ambientController = AmbientModeSupport.attach(this).also {
-            it.setAutoResumeEnabled(true)
+
+        AmbientLifecycleObserver(this, ambientCallback).also {
+            lifecycle.addObserver(it)
         }
+
         setContent {
             val playerViewModel: WearPlayerViewModel = hiltViewModel()
             val albumArt by playerViewModel.albumArt.collectAsState()
@@ -48,11 +55,11 @@ class WearMainActivity : FragmentActivity(), AmbientModeSupport.AmbientCallbackP
 
     override fun onStart() {
         super.onStart()
-        isForeground = true
+        WearLifecycleState.setForeground(true)
     }
 
     override fun onStop() {
-        isForeground = false
+        WearLifecycleState.setForeground(false)
         super.onStop()
     }
 }

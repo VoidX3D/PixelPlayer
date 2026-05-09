@@ -81,6 +81,7 @@
     <string name="pause_playback">Pause playback</string>
     <string name="play_playback">Play</string>
     <string name="playlist_not_found">Playlist not found.</string>
+    <string name="disc_number_header">Disc %d</string>
 
     <string name="ai_error_api_key">Please configure a valid API key for the selected AI provider in Settings.</string>
     <string name="ai_error_generic">AI Error: %s</string>

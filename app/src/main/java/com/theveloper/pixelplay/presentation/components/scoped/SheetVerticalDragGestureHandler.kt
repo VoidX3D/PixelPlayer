@@ -13,7 +13,9 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -45,9 +47,13 @@ internal class SheetVerticalDragGestureHandler(
     private var initialFractionOnDragStart = 0f
     private var initialYOnDragStart = 0f
     private var accumulatedDragYSinceStart = 0f
+    private var dragSnapJob: Job? = null
 
     fun onDragStart() {
-        scope.launch { sheetMotionController.stop() }
+        dragSnapJob?.cancel()
+        dragSnapJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            sheetMotionController.stop()
+        }
         onDraggingChange(true)
         onDraggingPlayerAreaChange(true)
         velocityTracker.resetTracking()
@@ -62,16 +68,17 @@ internal class SheetVerticalDragGestureHandler(
         dragAmount: Float
     ) {
         accumulatedDragYSinceStart += dragAmount
-        scope.launch {
-            val dragFrame = computeSheetVerticalDragFrame(
-                currentTranslationY = currentSheetTranslationY.value,
-                dragAmount = dragAmount,
-                expandedY = expandedYProvider(),
-                collapsedY = collapsedYProvider(),
-                miniHeightPx = miniHeightPxProvider(),
-                initialFractionOnDragStart = initialFractionOnDragStart,
-                initialYOnDragStart = initialYOnDragStart
-            )
+        val dragFrame = computeSheetVerticalDragFrame(
+            currentTranslationY = currentSheetTranslationY.value,
+            dragAmount = dragAmount,
+            expandedY = expandedYProvider(),
+            collapsedY = collapsedYProvider(),
+            miniHeightPx = miniHeightPxProvider(),
+            initialFractionOnDragStart = initialFractionOnDragStart,
+            initialYOnDragStart = initialYOnDragStart
+        )
+        dragSnapJob?.cancel()
+        dragSnapJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             sheetMotionController.snapTo(
                 translationYValue = dragFrame.translationY,
                 expansionFractionValue = dragFrame.expansionFraction
@@ -81,6 +88,8 @@ internal class SheetVerticalDragGestureHandler(
     }
 
     fun onDragEnd() {
+        dragSnapJob?.cancel()
+        dragSnapJob = null
         onDraggingChange(false)
         onDraggingPlayerAreaChange(false)
 

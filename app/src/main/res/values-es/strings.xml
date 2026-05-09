@@ -80,6 +80,7 @@
     <string name="pause_playback">Pausar reproducción</string>
     <string name="play_playback">Reproducir</string>
     <string name="playlist_not_found">Lista de reproducción no encontrada.</string>
+    <string name="disc_number_header">Disco %d</string>
 
     <!-- AI Playlist -->
     <string name="ai_error_api_key">Por favor, configura una clave de API válida para el proveedor de IA seleccionado en Ajustes.</string>

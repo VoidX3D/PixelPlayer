@@ -856,6 +856,7 @@ constructor(
                 }
 
         if (rawDataList.isEmpty()) {
+            Log.i(TAG, "MediaStore cursor produced 0 raw songs after directory filtering")
             Trace.endSection()
             return emptyList()
         }
@@ -863,8 +864,9 @@ constructor(
         // Phase 2: Identify changed songs and merge with existing data in chunks
         val artistDelimiters = userPreferencesRepository.artistDelimitersFlow.first()
         val artistWordDelimiters = userPreferencesRepository.artistWordDelimitersFlow.first()
+        val rawSongCount = rawDataList.size
         val songsToProcess = if (isRebuild) {
-             rawDataList
+             rawDataList.toList()
         } else {
             // Find existing data for these songs to avoid unnecessary reprocessing
             // and to preserve user edits.
@@ -886,10 +888,13 @@ constructor(
 
         // rawDataList is no longer needed — release its memory before the processing phase,
         // which may allocate large existingMap objects and metadata ByteArrays.
-        @Suppress("UNUSED_VALUE")
         rawDataList.clear()
 
         val totalCount = songsToProcess.size
+        Log.i(
+            TAG,
+            "MediaStore raw=$rawSongCount, songsToProcess=$totalCount, isRebuild=$isRebuild"
+        )
         if (totalCount == 0) {
             Trace.endSection()
             return emptyList()

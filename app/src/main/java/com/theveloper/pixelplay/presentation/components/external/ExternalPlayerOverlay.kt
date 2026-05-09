@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
+import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.components.OptimizedAlbumArt
 import com.theveloper.pixelplay.presentation.components.WavyMusicSlider
@@ -221,7 +222,8 @@ fun ExternalPlayerOverlay(
                                     title = currentSong.title,
                                     modifier = Modifier
                                         .size(96.dp)
-                                        .clip(RoundedCornerShape(18.dp))
+                                        .clip(RoundedCornerShape(18.dp)),
+                                    targetSize = Size(192, 192)
                                 )
                             }
 

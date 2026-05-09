@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Library list errors -->
+    <string name="library_error_loading_songs">Fehler beim Laden der Songs</string>
+    <string name="library_error_loading_albums">Fehler beim Laden der Alben</string>
+    <string name="library_error_loading_artists">Fehler beim Laden der Interpreten</string>
+    <string name="library_retry">Wiederholen</string>
+
+    <!-- Library empty (paginated) -->
+    <string name="library_no_songs_in_library_message">Keine Songs in Ihrer Bibliothek gefunden.</string>
+    <string name="library_no_songs_rescan_hint">Versuchen Sie, Ihre Bibliothek in den Einstellungen neu zu scannen, wenn Sie Musik auf Ihrem Gerät haben.</string>
+    <string name="cd_no_songs_in_library">Keine Songs gefunden</string>
+
+    <!-- Library action row -->
+    <string name="library_action_new">Neu</string>
+    <string name="cd_create_new_playlist">Neue Playlist erstellen</string>
+    <string name="cd_import_m3u_playlist">M3U-Playlist importieren</string>
+    <string name="cd_locate_current_song">Aktuellen Song lokalisieren</string>
+    <string name="library_storage_filter_all_songs">Alle Songs</string>
+    <string name="library_storage_filter_online">Online</string>
+    <string name="library_storage_filter_offline">Offline</string>
+    <string name="cd_sort_options">Sortieroptionen</string>
+
+    <!-- Fetch lyrics (manual search fields) -->
+    <string name="lyrics_synced_badge">SYNCHRONISIERT</string>
+    <string name="song_field_artist_optional">Interpret (optional)</string>
+
+    <!-- Song picker -->
+    <string name="song_picker_title">Songs hinzufügen</string>
+    <string name="cd_confirm_add_songs">Ausgewählte Songs hinzufügen</string>
+    <string name="song_picker_action_add">Hinzufügen</string>
+    <string name="song_picker_search_label">Nach Songs suchen…</string>
+    <string name="song_picker_error_load_failed">Fehler beim Laden der Songs</string>
+    <string name="song_picker_load_more">Mehr laden</string>
+
+    <!-- AI playlist sheet -->
+    <string name="cd_ai">KI</string>
+    <string name="ai_playlist_headline_perfect">Perfekt kuratiert</string>
+    <string name="ai_playlist_headline_daily_mix">Daily Mix</string>
+    <string name="ai_playlist_subtitle_journey_ready">Ihre klangliche Reise ist bereit</string>
+    <string name="ai_playlist_subtitle_generator">KI-Playlist-Generator</string>
+    <string name="ai_playlist_description">Beschreiben Sie den Vibe, die Stimmung oder die Aktivität und lassen Sie die KI die perfekte Playlist aus Ihrer Bibliothek zusammenstellen.</string>
+    <string name="ai_playlist_section_size">Playlist-Größe</string>
+    <string name="ai_playlist_min_songs">Min. Songs</string>
+    <string name="ai_playlist_max_songs">Max. Songs</string>
+    <string name="ai_playlist_prompt_placeholder">z. B. entspannte Abendstimmung, motivierende Workout-Energie…</string>
+    <string name="ai_playlist_tap_to_retry">Zum Wiederholen tippen</string>
+    <string name="ai_playlist_status_default">Klangliche Reise synthetisiert!</string>
+    <string name="ai_playlist_generating">Generiere…</string>
+    <string name="ai_playlist_ready_to_play">Bereit zum Abspielen</string>
+    <string name="ai_playlist_generate">Playlist generieren</string>
+    
+    <!-- Library Empty State -->
+    <string name="lib_empty_songs_all_title">Noch keine Songs</string>
+    <string name="lib_empty_songs_all_subtitle">Fügen Sie Musik zu Ihrem Gerät hinzu oder synchronisieren Sie eine Cloud-Quelle, um mit dem Hören zu beginnen.</string>
+    <string name="lib_empty_songs_offline_title">Keine lokalen Songs gefunden</string>
+    <string name="lib_empty_songs_offline_subtitle">Versuchen Sie einen anderen Quellenfilter oder scannen Sie Ihre Gerätebibliothek neu.</string>
+    <string name="lib_empty_songs_online_title">Keine Cloud-Songs gefunden</string>
+    <string name="lib_empty_songs_online_subtitle">Synchronisieren Sie Telegram- oder Netease-Songs oder wechseln Sie zur lokalen Quelle.</string>
+    <string name="lib_empty_albums_all_title">Keine Alben verfügbar</string>
+    <string name="lib_empty_albums_all_subtitle">Alben werden hier angezeigt, sobald Ihre Bibliothek gruppierte Titel enthält.</string>
+    <string name="lib_empty_albums_offline_title">Keine lokalen Alben gefunden</string>
+    <string name="lib_empty_albums_offline_subtitle">Lokale Songs sind erforderlich, um lokale Albumgruppen zu erstellen.</string>
+    <string name="lib_empty_albums_online_title">Keine Cloud-Alben gefunden</string>
+    <string name="lib_empty_albums_online_subtitle">Cloud-Songs mit Albumdaten werden hier nach der Synchronisation angezeigt.</string>
+    <string name="lib_empty_artists_all_title">Keine Interpreten verfügbar</string>
+    <string name="lib_empty_artists_all_subtitle">Interpreten werden angezeigt, nachdem Songs aus einer beliebigen Quelle indiziert wurden.</string>
+    <string name="lib_empty_artists_offline_title">Keine lokalen Interpreten gefunden</string>
+    <string name="lib_empty_artists_offline_subtitle">Derzeit sind keine Interpreten-Metadaten für lokale Songs verfügbar.</string>
+    <string name="lib_empty_artists_online_title">Keine Cloud-Interpreten gefunden</string>
+    <string name="lib_empty_artists_online_subtitle">Einträge von Cloud-Interpreten erscheinen, wenn Remote-Songs synchronisiert werden.</string>
+    <string name="lib_empty_liked_all_title">Noch keine gelikten Songs</string>
+    <string name="lib_empty_liked_all_subtitle">Tippen Sie während der Wiedergabe eines Songs auf das Herz-Symbol, um ihn hier zu speichern.</string>
+    <string name="lib_empty_liked_offline_title">Keine gelikten lokalen Songs</string>
+    <string name="lib_empty_liked_offline_subtitle">Wechseln Sie den Quellenfilter oder liken Sie Songs von Ihrem Gerät.</string>
+    <string name="lib_empty_liked_online_title">Keine gelikten Cloud-Songs</string>
+    <string name="lib_empty_liked_online_subtitle">Liken Sie Telegram- oder Netease-Titel, um sie in dieser Ansicht zu sehen.</string>
+    <string name="lib_empty_folders_title">Keine Ordner gefunden</string>
+    <string name="lib_empty_folders_subtitle">Ordner im internen Speicher mit Musik werden hier angezeigt.</string>
+    <string name="lib_empty_playlists_title">Noch keine Playlists</string>
+    <string name="lib_empty_playlists_subtitle">Erstellen Sie Ihre erste Playlist, um Ihre Bibliothek zu organisieren.</string>
+</resources>

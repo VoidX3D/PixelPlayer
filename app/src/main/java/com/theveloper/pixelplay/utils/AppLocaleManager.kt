@@ -17,7 +17,7 @@ object AppLocaleManager {
         AppLanguage.normalize(
             context
                 .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-                .getString(KEY_LANGUAGE_TAG, AppLanguage.SYSTEM)
+                .getString(KEY_LANGUAGE_TAG, AppLanguage.SYSTEM.tag)
                 .orEmpty()
         )
 
@@ -29,18 +29,15 @@ object AppLocaleManager {
             .putString(KEY_LANGUAGE_TAG, normalized)
             .apply()
 
-        val locales =
-            if (normalized.isBlank()) {
-                LocaleListCompat.getEmptyLocaleList()
-            } else {
-                LocaleListCompat.forLanguageTags(normalized)
-            }
-
-        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() == locales.toLanguageTags()) {
-            return
+        val locales = if (normalized.isBlank()) {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(normalized)
         }
 
-        AppCompatDelegate.setApplicationLocales(locales)
+        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != locales.toLanguageTags()) {
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
     }
 
     fun wrapContext(base: Context): Context {

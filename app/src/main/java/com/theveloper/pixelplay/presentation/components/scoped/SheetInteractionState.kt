@@ -6,7 +6,9 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
@@ -131,7 +133,21 @@ private class PlayerSheetDynamicShape(
     ): Outline {
         val topRadius = topRadiusProvider().nonNegative()
         val bottomRadius = bottomRadiusProvider().nonNegative()
-        val shape = if (useSmoothShapeProvider()) {
+        if (!useSmoothShapeProvider()) {
+            val topRadiusPx = with(density) { topRadius.toPx() }
+            val bottomRadiusPx = with(density) { bottomRadius.toPx() }
+            return Outline.Rounded(
+                RoundRect(
+                    rect = Rect(0f, 0f, size.width, size.height),
+                    topLeft = CornerRadius(topRadiusPx, topRadiusPx),
+                    topRight = CornerRadius(topRadiusPx, topRadiusPx),
+                    bottomRight = CornerRadius(bottomRadiusPx, bottomRadiusPx),
+                    bottomLeft = CornerRadius(bottomRadiusPx, bottomRadiusPx)
+                )
+            )
+        }
+
+        val shape =
             AbsoluteSmoothCornerShape(
                 cornerRadiusTL = topRadius,
                 smoothnessAsPercentBL = 60,
@@ -142,14 +158,6 @@ private class PlayerSheetDynamicShape(
                 cornerRadiusBL = bottomRadius,
                 smoothnessAsPercentTR = 60
             )
-        } else {
-            RoundedCornerShape(
-                topStart = topRadius,
-                topEnd = topRadius,
-                bottomStart = bottomRadius,
-                bottomEnd = bottomRadius
-            )
-        }
         return shape.createOutline(size, layoutDirection, density)
     }
 }

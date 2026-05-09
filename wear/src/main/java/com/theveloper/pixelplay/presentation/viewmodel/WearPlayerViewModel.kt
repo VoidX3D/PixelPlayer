@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.WearAudioOutputRoute
 import com.theveloper.pixelplay.data.WearFavoriteSyncRepository
+import com.theveloper.pixelplay.data.WearLifecycleState
 import com.theveloper.pixelplay.data.WearLocalQueueState
 import com.theveloper.pixelplay.data.WearLocalPlayerRepository
 import com.theveloper.pixelplay.data.WearOutputTarget
@@ -52,7 +53,11 @@ class WearPlayerViewModel @Inject constructor(
     companion object {
         private const val PHONE_SYNC_BOOTSTRAP_ATTEMPTS = 3
         private const val PHONE_SYNC_BOOTSTRAP_RETRY_DELAY_MS = 1200L
-        private const val PHONE_ROUTE_REFRESH_INTERVAL_MS = 5000L
+        // The route callback already pushes updates reactively; this is a slow safety
+        // net for cases where a system event was missed (e.g. headset just paired).
+        // Wear batteries are tiny, so we keep it infrequent and pause it whenever the
+        // screen is off / ambient.
+        private const val PHONE_ROUTE_REFRESH_INTERVAL_MS = 30_000L
     }
 
     private val _sleepTimerUiState = MutableStateFlow(WearSleepTimerUiState())
@@ -201,13 +206,16 @@ class WearPlayerViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            while (true) {
-                if (isWatchOutputSelected.value) {
-                    volumeRepository.refreshWatchVolumeState()
-                } else if (isPhoneConnected.value) {
-                    playbackController.requestPhoneVolumeState()
+            WearLifecycleState.isInteractive.collect { interactive ->
+                if (!interactive) return@collect
+                while (WearLifecycleState.isInteractiveNow) {
+                    if (isWatchOutputSelected.value) {
+                        volumeRepository.refreshWatchVolumeState()
+                    } else if (isPhoneConnected.value) {
+                        playbackController.requestPhoneVolumeState()
+                    }
+                    delay(PHONE_ROUTE_REFRESH_INTERVAL_MS)
                 }
-                delay(PHONE_ROUTE_REFRESH_INTERVAL_MS)
             }
         }
         viewModelScope.launch {

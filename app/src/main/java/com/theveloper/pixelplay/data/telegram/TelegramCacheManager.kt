@@ -189,8 +189,13 @@ class TelegramCacheManager @Inject constructor(
                     return@launch // Within limits
                 }
                 
-                // Sort by last modified (oldest first) for LRU eviction
-                embeddedArtFiles.sortBy { it.lastModified() }
+                // Sort by last modified (oldest first) for LRU eviction.
+                // Snapshot timestamps before sorting — reading lastModified() inside the
+                // comparator on every pairwise call lets another coroutine's setLastModified()
+                // change the value mid-sort, violating TimSort's comparator contract and
+                // throwing "Comparison method violates its general contract!".
+                val snapshots = embeddedArtFiles.associateWith { it.lastModified() }
+                embeddedArtFiles.sortWith(compareBy { snapshots[it] })
                 
                 var deletedCount = 0
                 for (file in embeddedArtFiles) {

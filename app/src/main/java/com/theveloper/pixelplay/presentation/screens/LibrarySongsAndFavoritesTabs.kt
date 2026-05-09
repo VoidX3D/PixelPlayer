@@ -115,14 +115,26 @@ fun LibraryFavoritesTab(
             items.indexOfFirst { it?.id == currentSongId }
         }
     }
-    val locateCurrentSongAction: (() -> Unit)? = remember(currentSongListIndex, listState) {
-        if (currentSongListIndex < 0) {
+    // New action just triggers the ViewModel request
+    val locateCurrentSongAction: (() -> Unit)? = remember(currentSongId) {
+        if (currentSongId == null) {
             null
         } else {
             {
-                coroutineScope.launch {
-                    listState.animateScrollToItem(currentSongListIndex)
-                }
+                playerViewModel.requestLocateCurrentSong()
+            }
+        }
+    }
+    // Scroll Handler from ViewModel
+    LaunchedEffect(Unit) {
+        playerViewModel.scrollToIndexEvent.collect { index ->
+            if (index >= 0) {
+                 val firstVisible = listState.firstVisibleItemIndex
+                 if (Math.abs(index - firstVisible) > 20) {
+                     listState.scrollToItem(index)
+                 } else {
+                     listState.animateScrollToItem(index)
+                 }
             }
         }
     }
@@ -151,10 +163,15 @@ fun LibraryFavoritesTab(
         pendingFavoriteSortScrollReset = false
     }
 
-    LaunchedEffect(currentSongListIndex, favoriteSongs.itemCount, listState) {
-        if (currentSongListIndex < 0 || favoriteSongs.itemCount == 0) {
+    LaunchedEffect(currentSongListIndex, favoriteSongs.itemCount, listState, currentSongId) {
+        if (currentSongId == null || favoriteSongs.itemCount == 0) {
             visibilityCallback(false)
             return@LaunchedEffect
+        }
+
+        if (currentSongListIndex == -1) {
+             visibilityCallback(true)
+             return@LaunchedEffect
         }
 
         snapshotFlow {

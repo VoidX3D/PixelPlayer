@@ -494,6 +494,52 @@ class NavidromeApiService @Inject constructor(
         }
     }
 
+    // ─── Playback API ────────────────────────────────────────────────────
+
+    /**
+     * Reports playback timeline state for a song.
+     * OpenSubsonic extension: playbackReport
+     */
+    suspend fun reportPlayback(
+        mediaId: String,
+        mediaType: String = "song",
+        positionMs: Long,
+        state: String,
+        playbackRate: Float = 1.0f,
+        ignoreScrobble: Boolean = false
+    ): Result<Unit> {
+        val params = mutableMapOf<String, String>()
+        params["mediaId"] = mediaId
+        params["mediaType"] = mediaType
+        params["positionMs"] = positionMs.toString()
+        params["state"] = state
+        params["playbackRate"] = playbackRate.toString()
+        params["ignoreScrobble"] = ignoreScrobble.toString()
+        return requestAndParse("reportPlayback", params).map { Unit }
+    }
+
+    /**
+     * Standard Subsonic scrobble API.
+     * Used as fallback for now playing and marking as played.
+     */
+    suspend fun scrobble(id: String, submission: Boolean = true): Result<Unit> {
+        val params = mutableMapOf<String, String>()
+        params["id"] = id
+        params["submission"] = submission.toString()
+        
+        Timber.d("$TAG: Calling scrobble API: id=$id, submission=$submission")
+        return requestAndParse("scrobble", params).fold(
+            onSuccess = {
+                Timber.d("$TAG: scrobble API success")
+                Result.success(Unit)
+            },
+            onFailure = {
+                Timber.e(it, "$TAG: scrobble API failed")
+                Result.failure(it)
+            }
+        )
+    }
+
     // ─── Star/Favorite API ───────────────────────────────────────────────
 
     /**

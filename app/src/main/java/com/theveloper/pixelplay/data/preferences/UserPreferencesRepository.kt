@@ -1554,9 +1554,9 @@ constructor(
             preferences[PreferencesKeys.ALBUM_ART_QUALITY]
                 ?.let {
                     try { AlbumArtQuality.valueOf(it) }
-                    catch (e: Exception) { AlbumArtQuality.ORIGINAL }
+                    catch (e: Exception) { AlbumArtQuality.MEDIUM }
                 }
-                ?: AlbumArtQuality.ORIGINAL
+                ?: AlbumArtQuality.MEDIUM
         }
 
     suspend fun setAlbumArtQuality(quality: AlbumArtQuality) {

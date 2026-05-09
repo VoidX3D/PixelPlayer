@@ -7,8 +7,8 @@ object LogUtils {
     private const val MAX_TAG_LENGTH = 23
 
     private fun getTag(instance: Any): String {
-        val className = if (instance is String) instance else instance.javaClass.simpleName
-        return if (className.length > MAX_TAG_LENGTH) className.substring(0, MAX_TAG_LENGTH) else className
+        val className = (instance as? String) ?: instance.javaClass.simpleName
+        return className.take(MAX_TAG_LENGTH)
     }
 
     private fun buildLogMessage(message: String): String {

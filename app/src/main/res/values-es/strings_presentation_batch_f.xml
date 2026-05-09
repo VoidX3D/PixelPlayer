@@ -149,7 +149,7 @@
     <string name="presentation_batch_f_percent">%1$d%%</string>
     <string name="presentation_batch_f_status_bullet_step">%1$s • %2$s</string>
     <string name="presentation_batch_f_dot_space_suffix"> · %1$s</string>
-    <string name="presentation_batch_f_unknown_short">?</string>
+    <string name="presentation_batch_f_unknown_short">\?</string>
 
     <string name="presentation_batch_f_telegram_login_title">Inicio de sesión en Telegram</string>
     <string name="presentation_batch_f_telegram_edit_number_chip">Estás editando tu número. Enviar el código de nuevo reemplazará el anterior.</string>

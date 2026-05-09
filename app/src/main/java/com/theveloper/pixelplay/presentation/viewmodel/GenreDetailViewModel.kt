@@ -282,7 +282,11 @@ class GenreDetailViewModel @Inject constructor(
                 val grouped = sorted.groupBy { it.artist ?: "Unknown Artist" }
                 grouped.map { (artist, artistSongs) ->
                     val albums = artistSongs.groupBy { it.album ?: "Unknown Album" }.map { (albumName, albumSongs) ->
-                        val sortedAlbumSongs = albumSongs.sortedWith(compareBy({ it.discNumber }, { it.trackNumber }))
+                        val sortedAlbumSongs = albumSongs.sortedWith(
+                            compareBy<Song> { it.discNumber ?: 1 }
+                                .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }
+                                .thenBy { it.title.lowercase() }
+                        )
                         AlbumData(albumName, sortedAlbumSongs.firstOrNull()?.albumArtUriString, sortedAlbumSongs)
                     }
                     SectionData.ArtistSection("artist_$artist", artist, albums)
@@ -292,7 +296,11 @@ class GenreDetailViewModel @Inject constructor(
                 val sorted = songs.sortedBy { it.album ?: "Unknown Album" }
                 val grouped = sorted.groupBy { it.album ?: "Unknown Album" }
                 grouped.map { (album, albumSongs) ->
-                    val sortedAlbumSongs = albumSongs.sortedWith(compareBy({ it.discNumber }, { it.trackNumber }))
+                    val sortedAlbumSongs = albumSongs.sortedWith(
+                        compareBy<Song> { it.discNumber ?: 1 }
+                            .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }
+                            .thenBy { it.title.lowercase() }
+                    )
                     SectionData.AlbumSection(
                         "album_$album",
                         AlbumData(album, sortedAlbumSongs.firstOrNull()?.albumArtUriString, sortedAlbumSongs)

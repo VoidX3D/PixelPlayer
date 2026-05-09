@@ -547,7 +547,7 @@ class JellyfinRepository @Inject constructor(
                     dateAdded = jellyfinSong.dateAdded.takeIf { it > 0 }
                         ?: System.currentTimeMillis(),
                     mimeType = jellyfinSong.mimeType,
-                    bitrate = jellyfinSong.bitRate,
+                    bitrate = jellyfinSong.bitRate?.let { it * 1000 },
                     sampleRate = null,
                     telegramChatId = null,
                     telegramFileId = null,
@@ -649,7 +649,7 @@ class JellyfinRepository @Inject constructor(
             duration = duration,
             genre = genre,
             mimeType = resolvedMimeType,
-            bitrate = bitRate,
+            bitrate = bitRate?.let { it * 1000 },
             sampleRate = null,
             year = year,
             trackNumber = trackNumber,

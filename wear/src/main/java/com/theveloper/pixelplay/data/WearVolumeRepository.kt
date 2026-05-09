@@ -231,8 +231,8 @@ private fun MediaRouter.RouteInfo.toWearAudioOutputRoute(
 ): WearAudioOutputRoute {
     val routeType = when {
         isBluetooth -> resolveBluetoothRouteType(
-            audioDevice = audioManager.findMatchingBluetoothOutput(name.toString()),
-            deviceName = name.toString(),
+            audioDevice = audioManager.findMatchingBluetoothOutput(name),
+            deviceName = name,
         )
         else -> WearVolumeState.ROUTE_TYPE_WATCH
     }
@@ -279,9 +279,9 @@ private fun List<MediaRouter.RouteInfo>.findMatchingBluetoothRoute(
     deviceName: String,
 ): MediaRouter.RouteInfo? {
     return filter { it.isBluetooth }
-        .firstOrNull { route -> namesLikelyReferToSameDevice(route.name.toString(), deviceName) }
+        .firstOrNull { route -> namesLikelyReferToSameDevice(route.name, deviceName) }
         ?: firstOrNull { route ->
-            val routeName = route.name.toString()
+            val routeName = route.name
             routeName.isNotBlank() && (
                 routeName.contains(deviceName, ignoreCase = true) ||
                     deviceName.contains(routeName, ignoreCase = true)

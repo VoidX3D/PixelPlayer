@@ -87,7 +87,7 @@
     <string name="presentation_batch_g_stats_avg_plays_per_track">Rata-rata putaran/trek</string>
     <string name="presentation_batch_g_stats_unique_tracks">Trek unik</string>
     <string name="presentation_batch_g_stats_top_three_share_label">Top 3 share</string>
-    <string name="presentation_batch_g_stats_avatar_placeholder">?</string>
+    <string name="presentation_batch_g_stats_avatar_placeholder">\?</string>
     <string name="presentation_batch_g_device_info_title">Info Perangkat</string>
     <string name="presentation_batch_g_device_supported_codecs_title">Codec Audio yang Didukung</string>
     <string name="presentation_batch_g_device_section_audio_output">Output Audio</string>

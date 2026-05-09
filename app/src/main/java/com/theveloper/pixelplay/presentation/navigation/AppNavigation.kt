@@ -628,13 +628,6 @@ private fun mainRootDirection(
     return if (toIndex > fromIndex) MainRootDirection.FORWARD else MainRootDirection.BACKWARD
 }
 
-private fun mainRootRouteIndex(route: String?): Int? = when (route) {
-    Screen.Home.route -> 0
-    Screen.Search.route -> 1
-    Screen.Library.route -> 2
-    else -> null
-}
-
 private fun mainRootEnterTransition(
     fromRoute: String?,
     toRoute: String?,

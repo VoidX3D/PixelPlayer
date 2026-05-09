@@ -2,8 +2,8 @@ package com.theveloper.pixelplay.utils
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.core.graphics.scale
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -46,10 +46,10 @@ object ArtworkTransportSanitizer {
         BitmapFactory.decodeByteArray(source, 0, source.size, bounds)
         val srcWidth = bounds.outWidth
         val srcHeight = bounds.outHeight
-        if (srcWidth <= 0 || srcHeight <= 0) return null
+        if ((srcWidth <= 0) || (srcHeight <= 0)) return null
 
         val srcMax = max(srcWidth, srcHeight)
-        if (srcMax <= config.maxDimensionPx && source.size <= config.maxBytes) {
+        if ((srcMax <= config.maxDimensionPx) && (source.size <= config.maxBytes)) {
             return source
         }
 
@@ -58,51 +58,6 @@ object ArtworkTransportSanitizer {
             encodeBitmap(decoded, config)
         } finally {
             decoded.recycle()
-        }
-    }
-
-    fun sanitizeStream(
-        openStream: () -> InputStream?,
-        config: Config,
-    ): ByteArray? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openStream()?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, bounds)
-        } ?: return null
-
-        val srcWidth = bounds.outWidth
-        val srcHeight = bounds.outHeight
-        if (srcWidth <= 0 || srcHeight <= 0) return null
-
-        var sampleSize = 1
-        while (
-            (srcWidth / sampleSize) > config.maxDimensionPx * 2 ||
-            (srcHeight / sampleSize) > config.maxDimensionPx * 2
-        ) {
-            sampleSize *= 2
-        }
-
-        val decoded = openStream()?.use { stream ->
-            BitmapFactory.decodeStream(
-                stream,
-                null,
-                BitmapFactory.Options().apply {
-                    inSampleSize = sampleSize
-                    inPreferredConfig = Bitmap.Config.ARGB_8888
-                    inMutable = false
-                }
-            )
-        } ?: return null
-
-        val bounded = scaleBitmapIfNeeded(decoded, config.maxDimensionPx)
-        if (bounded !== decoded) {
-            decoded.recycle()
-        }
-
-        return try {
-            encodeBitmap(bounded, config)
-        } finally {
-            bounded.recycle()
         }
     }
 
@@ -129,7 +84,7 @@ object ArtworkTransportSanitizer {
                 inSampleSize = sampleSize
                 inPreferredConfig = Bitmap.Config.ARGB_8888
                 inMutable = false
-            }
+            },
         ) ?: return null
 
         val bounded = scaleBitmapIfNeeded(decoded, maxDimensionPx)
@@ -148,7 +103,7 @@ object ArtworkTransportSanitizer {
         val scale = maxDimensionPx.toFloat() / currentMax.toFloat()
         val targetWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
         val targetHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        return bitmap.scale(targetWidth, targetHeight, filter = true)
     }
 
     private fun encodeBitmap(bitmap: Bitmap, config: Config): ByteArray? {
@@ -158,7 +113,7 @@ object ArtworkTransportSanitizer {
             val output = ByteArrayOutputStream()
             val encoded = runCatching {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
-            }.getOrDefault(false)
+            }.getOrDefault(defaultValue = false)
             if (encoded) {
                 val bytes = output.toByteArray()
                 if (bytes.isNotEmpty()) {

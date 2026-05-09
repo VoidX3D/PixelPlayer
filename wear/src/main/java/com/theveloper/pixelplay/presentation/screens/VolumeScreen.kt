@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,7 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.requestFocusOnHierarchyActive
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
@@ -49,6 +50,7 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.google.android.horologist.audio.ui.VolumeUiState
 import com.google.android.horologist.audio.ui.volumeRotaryBehavior
+import com.theveloper.pixelplay.data.WearLifecycleState
 import com.theveloper.pixelplay.presentation.components.CurvedVolumeIndicator
 import com.theveloper.pixelplay.presentation.components.WearTopTimeText
 import com.theveloper.pixelplay.presentation.theme.LocalWearPalette
@@ -67,10 +69,23 @@ fun VolumeScreen(
     val volumePercent by viewModel.activeVolumePercent.collectAsState()
     val activeDeviceName by viewModel.activeVolumeDeviceName.collectAsState()
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            viewModel.refreshActiveVolumeState()
-            delay(350L)
+    // Enable MediaRouter discovery while this screen is visible so the
+    // route-callback path in WearVolumeRepository pushes updates reactively.
+    DisposableEffect(viewModel) {
+        viewModel.setWatchRouteDiscoveryEnabled(true)
+        viewModel.refreshActiveVolumeState()
+        onDispose { viewModel.setWatchRouteDiscoveryEnabled(false) }
+    }
+    // Slow safety-net poll for volume changes that the route callback might miss
+    // (e.g. system-wide hard-key presses on some Wear builds). 1.5s is plenty
+    // for a UI knob; it pauses immediately when the screen turns off.
+    LaunchedEffect(viewModel) {
+        WearLifecycleState.isInteractive.collect { interactive ->
+            if (!interactive) return@collect
+            while (WearLifecycleState.isInteractiveNow) {
+                viewModel.refreshActiveVolumeState()
+                delay(1_500L)
+            }
         }
     }
     val progressTarget = if (volumeState.max > 0) {

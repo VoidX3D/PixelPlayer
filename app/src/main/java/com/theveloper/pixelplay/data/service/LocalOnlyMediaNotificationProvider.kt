@@ -52,5 +52,8 @@ class LocalOnlyMediaNotificationProvider(
         action: String,
         extras: Bundle,
     ): Boolean = delegate.handleCustomCommand(session, action, extras)
+
+    override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo =
+        delegate.getNotificationChannelInfo()
 }
 

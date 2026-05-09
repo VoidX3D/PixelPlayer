@@ -77,6 +77,7 @@
     <string name="pause_playback">Pause</string>
     <string name="play_playback">Lecture</string>
     <string name="playlist_not_found">Liste de lecture non trouvée.</string>
+    <string name="disc_number_header">Disque %d</string>
 
     <string name="ai_error_api_key">Veuillez configurer une clé API valide pour le fournisseur d\'IA sélectionné dans les Paramètres.</string>
     <string name="ai_error_generic">Erreur IA : %s</string>

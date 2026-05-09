@@ -27,13 +27,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.theveloper.pixelplay.data.WearAudioOutputRoute
+import com.theveloper.pixelplay.data.WearLifecycleState
 import com.theveloper.pixelplay.R
 import com.google.android.horologist.compose.layout.ScalingLazyColumn
 import com.google.android.horologist.compose.layout.rememberResponsiveColumnState
@@ -74,10 +75,16 @@ fun OutputScreen(
             viewModel.setWatchRouteDiscoveryEnabled(false)
         }
     }
+    // The MediaRouter callback in WearVolumeRepository pushes route/volume changes
+    // reactively while discovery is on (DisposableEffect above). This loop is just a
+    // slow safety net and pauses whenever the screen turns off.
     LaunchedEffect(viewModel) {
-        while (true) {
-            viewModel.refreshWatchAudioState()
-            delay(700L)
+        WearLifecycleState.isInteractive.collect { interactive ->
+            if (!interactive) return@collect
+            while (WearLifecycleState.isInteractiveNow) {
+                viewModel.refreshWatchAudioState()
+                delay(2_500L)
+            }
         }
     }
 

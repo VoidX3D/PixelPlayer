@@ -60,7 +60,7 @@ object AudioMetadataReader {
                 // Get audio properties for duration
                 val audioProperties = TagLib.getAudioProperties(fd.dup().detachFd())
                 val durationMs = audioProperties?.length?.takeIf { it > 0 }?.let { it * 1000L }
-                val bitrate = audioProperties?.bitrate?.takeIf { it > 0 }
+                val bitrate = audioProperties?.bitrate?.takeIf { it > 0 }?.let { it * 1000 }
                 val sampleRate = audioProperties?.sampleRate?.takeIf { it > 0 }
 
                 // Get metadata
@@ -175,7 +175,7 @@ object AudioMetadataReader {
                 ?.take(4)?.toIntOrNull()
 
             val durationMs = header?.trackLength?.takeIf { it > 0 }?.let { it * 1000L }
-            val bitrate = header?.bitRateAsNumber?.takeIf { it > 0 }?.toInt()
+            val bitrate = header?.bitRateAsNumber?.takeIf { it > 0 }?.toInt()?.let { it * 1000 }
             val sampleRate = header?.sampleRateAsNumber?.takeIf { it > 0 }
 
             // Try to get artwork from JAudioTagger

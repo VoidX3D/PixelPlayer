@@ -64,46 +64,12 @@ data class ChangelogVersion(
 @Composable
 private fun changelogVersions(): List<ChangelogVersion> = listOf(
     ChangelogVersion(
-        version = "0.6.0-beta",
-        date = "2026-03-05",
+        version = "0.7.0-beta",
+        date = "2026-05-08",
         sections = listOf(
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_whats_new, R.array.presentation_batch_g_changelog_060_whats_new),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_improvements, R.array.presentation_batch_g_changelog_060_improvements),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_fixes, R.array.presentation_batch_g_changelog_060_fixes)
-        )
-    ),
-    ChangelogVersion(
-        version = "0.5.0-beta",
-        date = "2026-01-14",
-        sections = listOf(
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_highlights, R.array.presentation_batch_g_changelog_050_highlights),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_improvements, R.array.presentation_batch_g_changelog_050_improvements),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_fixes, R.array.presentation_batch_g_changelog_050_fixes)
-        )
-    ),
-    ChangelogVersion(
-        version = "0.4.0-beta",
-        date = "2025-12-15",
-        sections = listOf(
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_highlights, R.array.presentation_batch_g_changelog_040_highlights)
-        )
-    ),
-    ChangelogVersion(
-        version = "0.3.0-beta",
-        date = "2025-10-28",
-        sections = listOf(
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_whats_new_lower, R.array.presentation_batch_g_changelog_030_whats_new),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_improvements, R.array.presentation_batch_g_changelog_030_improvements),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_fixes, R.array.presentation_batch_g_changelog_030_fixes)
-        )
-    ),
-    ChangelogVersion(
-        version = "0.2.0-beta",
-        date = "2024-09-15",
-        sections = listOf(
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_added, R.array.presentation_batch_g_changelog_020_added),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_changed, R.array.presentation_batch_g_changelog_020_changed),
-            ChangelogSection(R.string.presentation_batch_g_changelog_sec_fixed, R.array.presentation_batch_g_changelog_020_fixed)
+            ChangelogSection(R.string.presentation_batch_g_changelog_sec_highlights, R.array.presentation_batch_g_changelog_070_highlights),
+            ChangelogSection(R.string.presentation_batch_g_changelog_sec_improvements, R.array.presentation_batch_g_changelog_070_improvements),
+            ChangelogSection(R.string.presentation_batch_g_changelog_sec_fixes, R.array.presentation_batch_g_changelog_070_fixes)
         )
     )
 )

@@ -87,7 +87,7 @@
     <string name="presentation_batch_g_stats_avg_plays_per_track">Moy. lectures/titre</string>
     <string name="presentation_batch_g_stats_unique_tracks">Titres uniques</string>
     <string name="presentation_batch_g_stats_top_three_share_label">Part top 3</string>
-    <string name="presentation_batch_g_stats_avatar_placeholder">?</string>
+    <string name="presentation_batch_g_stats_avatar_placeholder">\?</string>
     <string name="presentation_batch_g_device_info_title">Infos appareil</string>
     <string name="presentation_batch_g_device_supported_codecs_title">Codecs audio pris en charge</string>
     <string name="presentation_batch_g_device_section_audio_output">Sortie audio</string>
@@ -182,7 +182,7 @@
     <string name="presentation_batch_g_artist_group_by_album_artist">Grouper par artiste de l\'album</string>
     <string name="presentation_batch_g_artist_group_by_album_artist_sub">Afficher les albums de collaboration sous l\'artiste principal</string>
     <string name="presentation_batch_g_artist_info_title">À propos de l\'analyse multi-artistes</string>
-    <string name="presentation_batch_g_artist_info_body">PixelPlay sépare les tags d\'artistes en utilisant des délimiteurs de caractères (/, ;, &amp;) et des délimiteurs de mots (feat., ft., vs., x). Les délimiteurs de mots sont reconnus sans distinction de casse.\n\n\"Extraire les artistes du titre\" détecte les motifs comme (feat. Artiste) dans les titres de chansons.\n\nL\'antislash (\\) peut être utilisé pour échapper les délimiteurs de caractères.</string>
+    <string name="presentation_batch_g_artist_info_body">PixelPlayer sépare les tags d\'artistes en utilisant des délimiteurs de caractères (/, ;, &amp;) et des délimiteurs de mots (feat., ft., vs., x). Les délimiteurs de mots sont reconnus sans distinction de casse.\n\n\"Extraire les artistes du titre\" détecte les motifs comme (feat. Artiste) dans les titres de chansons.\n\nL\'antislash (\\) peut être utilisé pour échapper les délimiteurs de caractères.</string>
     <string name="presentation_batch_g_artist_example_arrow"> → </string>
     <string name="presentation_batch_g_artist_examples_title">Exemples</string>
     <string name="presentation_batch_g_artist_ex_1_in">\"Artiste1/Artiste2\"</string>
@@ -262,9 +262,9 @@
     <string name="presentation_batch_g_playstore_open">Ouvrir le Play Store</string>
     <string name="presentation_batch_g_playstore_continue_beta">Continuer la bêta</string>
     <string name="presentation_batch_g_playstore_link_pending">Le lien Play Store sera activé depuis la config GitHub.</string>
-    <string name="presentation_batch_g_playstore_title">PixelPlay est maintenant disponible sur Google Play</string>
+    <string name="presentation_batch_g_playstore_title">PixelPlayer est maintenant disponible sur Google Play</string>
     <string name="presentation_batch_g_playstore_body">Utilisez le canal stable sur Google Play pour les mises à jour de release tout en gardant les builds bêta actives.</string>
-    <string name="presentation_batch_g_playstore_app_name">PixelPlay</string>
+    <string name="presentation_batch_g_playstore_app_name">PixelPlayer</string>
     <string name="presentation_batch_g_playstore_release_announcement">Annonce de sortie</string>
     <string name="presentation_batch_g_playstore_coming_soon">Bientôt disponible</string>
     <string name="presentation_batch_g_genre_sort_title">Trier &amp; Lire</string>
@@ -306,7 +306,7 @@
     <string name="presentation_batch_g_album_sel_queue_hint">File d\'attente + lecture respecte l\'ordre de votre sélection.</string>
     <string name="presentation_batch_g_album_sel_limit">Limite : %1$d albums par sélection.</string>
     <string name="presentation_batch_g_album_sel_add_queue_play">Ajouter à la file d\'attente &amp; Lire</string>
-    <string name="presentation_batch_g_app_name">PixelPlay</string>
+    <string name="presentation_batch_g_app_name">PixelPlayer</string>
     <string name="presentation_batch_g_app_tagline">Lecteur de musique</string>
     <string name="presentation_batch_g_brick_high">MEILLEUR %1$d</string>
     <string name="presentation_batch_g_brick_cd_close">Fermer</string>

@@ -1,24 +1,25 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.jetbrains.kotlin.android)
     kotlin("plugin.serialization")
 }
 
 android {
     namespace = "com.theveloper.pixelplay.shared"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 29 // Must match app module's minSdk; shared code is pure DTOs with no platform APIs
+        minSdk = 30 // Must match app module's minSdk; shared code is pure DTOs with no platform APIs
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "11"
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 

@@ -28,7 +28,7 @@
     <string name="presentation_batch_e_more_options_for_song">Plus d\'options pour %1$s</string>
 
     <plurals name="presentation_batch_e_queue_tracks_lined_up">
-        <item quantity="one">1 piste en attente.</item>
+        <item quantity="one">%d piste en attente.</item>
         <item quantity="other">%d pistes en attente.</item>
     </plurals>
     <plurals name="presentation_batch_e_n_songs_selected">

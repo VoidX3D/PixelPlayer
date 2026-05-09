@@ -45,6 +45,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -563,6 +565,14 @@ fun UnifiedPlayerSheetV2(
 
     if (!actuallyShowSheetContent) return
 
+    val playerSheetSemanticsDescription = remember(
+        currentSheetContentState,
+        infrequentPlayerState.currentSong?.title
+    ) {
+        "PixelPlay player sheet ${currentSheetContentState.name.lowercase()} " +
+            (infrequentPlayerState.currentSong?.title ?: "")
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -632,6 +642,9 @@ fun UnifiedPlayerSheetV2(
                                 shape = sheetInteractionState.playerShadowShape
                             )
                             .clipToBounds()
+                            .semantics {
+                                contentDescription = playerSheetSemanticsDescription
+                            }
                             .playerSheetVerticalDragGesture(
                                 enabled = sheetInteractionState.canDragSheet,
                                 handler = sheetInteractionState.sheetVerticalDragGestureHandler

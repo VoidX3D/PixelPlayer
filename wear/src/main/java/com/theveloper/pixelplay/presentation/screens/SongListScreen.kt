@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.CircularProgressIndicator
@@ -387,7 +387,7 @@ private fun SongChip(
     val isTransferring = transfer != null &&
         transfer.status == WearTransferProgress.STATUS_TRANSFERRING
     val secondaryText = when {
-        isTransferring -> "${(transfer!!.progress * 100).toInt()}%"
+        isTransferring -> "${(transfer.progress * 100).toInt()}%"
         isCurrentSong -> {
             val stateLabel = context.getString(
                 if (isPlayingSong) R.string.wear_status_playing else R.string.wear_status_current

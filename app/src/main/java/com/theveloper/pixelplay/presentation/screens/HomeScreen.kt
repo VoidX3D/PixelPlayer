@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
+import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeExtendedFloatingActionButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -37,6 +39,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,6 +55,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -72,6 +76,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CollagePattern
+import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
 import com.theveloper.pixelplay.presentation.components.BetaInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.Beta05CleanInstallDisclaimerDialog
@@ -226,6 +231,13 @@ fun HomeScreen(
 
     val weeklyStats by statsViewModel.weeklyOverview.collectAsStateWithLifecycle()
 
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    val scrollThresholdPx = remember(density) { with(density) { 180.dp.toPx() } }
+    val isScrolledPastThreshold = remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > scrollThresholdPx }
+    }
+
     // Drawer state for sidebar
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val shouldShowCleanInstallDisclaimer =
@@ -253,12 +265,13 @@ fun HomeScreen(
                     },
                     onMenuClick = {
                         // onOpenSidebar() // Disabled
-                    }
+                    },
+                    isScrolled = isScrolledPastThreshold.value
                 )
             }
         ) { innerPadding ->
             LazyColumn(
-                state = rememberLazyListState(),
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
@@ -269,16 +282,22 @@ fun HomeScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Your Mix
-                item(
-                    key = "your_mix_header",
-                    contentType = "your_mix_header"
-                ) {
-                    YourMixHeader(
-                        song = yourMixSong,
-                        isShuffleEnabled = isShuffleEnabled,
-                        onPlayShuffled = {
-                            if (yourMixSongs.isNotEmpty()) {
+                if (yourMixSongs.isEmpty()) {
+                    item(
+                        key = "your_mix_loading_placeholder",
+                        contentType = "your_mix_loading_placeholder"
+                    ) {
+                        YourMixLoadingPlaceholder()
+                    }
+                } else {
+                    item(
+                        key = "your_mix_header",
+                        contentType = "your_mix_header"
+                    ) {
+                        YourMixHeader(
+                            song = yourMixSong,
+                            isShuffleEnabled = isShuffleEnabled,
+                            onPlayShuffled = {
                                 if (usesFallbackHomeMix) {
                                     playerViewModel.shuffleAllSongs(queueName = "Your Mix")
                                 } else {
@@ -289,8 +308,8 @@ fun HomeScreen(
                                     )
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
 
                 // Collage
@@ -342,10 +361,16 @@ fun HomeScreen(
                                 navController.navigateSafely(Screen.DailyMixScreen.route)
                             },
                             onNavigateToAlbum = { song ->
-                                navController.navigateSafely(Screen.AlbumDetail.createRoute(song.albumId))
+                                navController.navigateSafelyReplacing(
+                                    route = Screen.AlbumDetail.createRoute(song.albumId),
+                                    patternToPop = Screen.AlbumDetail.route
+                                )
                             },
                             onNavigateToArtist = { song ->
-                                navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
+                                navController.navigateSafelyReplacing(
+                                    route = Screen.ArtistDetail.createRoute(song.artistId),
+                                    patternToPop = Screen.ArtistDetail.route
+                                )
                             },
                             onNavigateToGenre = { song ->
                                 song.genre?.let {
@@ -382,14 +407,16 @@ fun HomeScreen(
                     }
                 }
 
-                item(
-                    key = "listening_stats_preview",
-                    contentType = "listening_stats_preview"
-                ) {
-                    StatsOverviewCard(
-                        summary = weeklyStats,
-                        onClick = { navController.navigateSafely(Screen.Stats.route) }
-                    )
+                if (weeklyStats.hasListeningActivity()) {
+                    item(
+                        key = "listening_stats_preview",
+                        contentType = "listening_stats_preview"
+                    ) {
+                        StatsOverviewCard(
+                            summary = weeklyStats,
+                            onClick = { navController.navigateSafely(Screen.Stats.route) }
+                        )
+                    }
                 }
             }
         }
@@ -481,6 +508,23 @@ fun HomeScreen(
                     settingsViewModel.setBeta05CleanInstallDisclaimerDismissed(true)
                 }
             }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun YourMixLoadingPlaceholder() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(256.dp)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        LoadingIndicator(
+            modifier = Modifier.size(128.dp),
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -681,4 +725,13 @@ private fun rememberYourMixTitleStyle(): TextStyle {
             lineHeight = 62.sp
         )
     }
+}
+
+private fun PlaybackStatsRepository.PlaybackStatsSummary?.hasListeningActivity(): Boolean {
+    val summary = this ?: return false
+    return summary.totalDurationMs > 0L ||
+        summary.totalPlayCount > 0 ||
+        summary.uniqueSongs > 0 ||
+        summary.activeDays > 0 ||
+        summary.totalSessions > 0
 }

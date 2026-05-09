@@ -35,16 +35,22 @@ import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 
+internal const val MaxSafeAlbumArtDimensionPx = 2048
+internal val SafeOriginalAlbumArtSize = Size(MaxSafeAlbumArtDimensionPx, MaxSafeAlbumArtDimensionPx)
+
 @OptIn(ExperimentalCoilApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun OptimizedAlbumArt(
     uri: Any?,
     title: String,
     modifier: Modifier = Modifier,
-    targetSize: Size = Size.ORIGINAL,
+    targetSize: Size = SafeOriginalAlbumArtSize,
     placeholderModel: Any? = null
 ) {
     val context = LocalContext.current
+    val requestTargetSize = remember(targetSize) {
+        safeAlbumArtTargetSize(targetSize)
+    }
     val isStableLocalArtwork = remember(uri) {
         when (uri) {
             is String -> LocalArtworkUri.isLocalArtworkUri(uri)
@@ -67,8 +73,8 @@ fun OptimizedAlbumArt(
         return
     }
 
-    val memoryCacheKey = remember(uri, targetSize) {
-        albumArtMemoryCacheKey(uri, targetSize)
+    val memoryCacheKey = remember(uri, requestTargetSize) {
+        albumArtMemoryCacheKey(uri, requestTargetSize)
     }
     val placeholderMemoryCacheKey = remember(memoryCacheKey, uri) {
         when (uri) {
@@ -78,9 +84,10 @@ fun OptimizedAlbumArt(
             else -> memoryCacheKey?.let { MemoryCache.Key(it) }
         }
     }
-    val requestModel = remember(context, uri, targetSize) {
+    val requestModel = remember(context, uri, requestTargetSize) {
         when (uri) {
             is ImageRequest -> uri.newBuilder(context).apply {
+                size(requestTargetSize)
                 if (uri.memoryCacheKey == null) {
                     memoryCacheKey(memoryCacheKey)
                 }
@@ -90,7 +97,7 @@ fun OptimizedAlbumArt(
                 .data(uri)
                 .crossfade(350) // Use Coil's native crossfade
                 .error(R.drawable.ic_music_placeholder)
-                .size(targetSize)
+                .size(requestTargetSize)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(if (isStableLocalArtwork) CachePolicy.DISABLED else CachePolicy.ENABLED)
                 .apply {
@@ -212,6 +219,14 @@ private fun renderDirectAlbumArt(
             true
         }
         else -> false
+    }
+}
+
+internal fun safeAlbumArtTargetSize(targetSize: Size): Size {
+    return if (targetSize == Size.ORIGINAL) {
+        SafeOriginalAlbumArtSize
+    } else {
+        targetSize
     }
 }
 

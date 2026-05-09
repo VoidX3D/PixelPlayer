@@ -49,7 +49,7 @@ fun JellyfinSongEntity.toSong(): Song {
         duration = duration,
         genre = genre,
         mimeType = mimeType,
-        bitrate = bitRate,
+        bitrate = bitRate?.let { it * 1000 },
         sampleRate = null,
         year = year,
         trackNumber = trackNumber,

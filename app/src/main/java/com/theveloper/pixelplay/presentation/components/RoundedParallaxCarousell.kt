@@ -133,6 +133,7 @@ fun RoundedHorizontalMultiBrowseCarousel(
     suppressNoPeekSettleCorrection: Boolean = false,
     carouselStyle: String,
     carouselWidth: Dp,
+    itemKey: ((itemIndex: Int) -> Any)? = null,
     content: @Composable CarouselItemScope.(itemIndex: Int) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -224,6 +225,7 @@ fun RoundedHorizontalMultiBrowseCarousel(
         userScrollEnabled = true, // Always allow user scrolling
         itemCornerRadius = itemCornerRadius,
         carouselStyle = carouselStyle, // Pass style down
+        itemKey = itemKey,
         content = content
     )
 }
@@ -246,6 +248,7 @@ private fun RoundedCarousel(
     userScrollEnabled: Boolean,
     itemCornerRadius: Dp,
     carouselStyle: String,
+    itemKey: ((itemIndex: Int) -> Any)? = null,
     content: @Composable CarouselItemScope.(itemIndex: Int) -> Unit,
 ) {
     val beforeContentPadding = contentPadding.calculateBeforeContentPadding(orientation)
@@ -267,6 +270,7 @@ private fun RoundedCarousel(
         snapPosition = snapPosition,
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
+        key = itemKey,
         modifier = modifier.semantics { role = Role.Carousel }
     ) { page ->
         val carouselItemInfo = remember { CarouselItemDrawInfoImpl() }

@@ -5,8 +5,11 @@ import com.theveloper.pixelplay.data.stream.CloudStreamSecurity
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
-import io.ktor.server.engine.*
-import io.ktor.server.cio.*
+import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.routing.routing
+import io.ktor.server.cio.CIO
+import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.header
@@ -19,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -47,12 +51,34 @@ class GDriveStreamProxy @Inject constructor(
         )
     }
 
-    private var server: ApplicationEngine? = null
+    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
     private var actualPort: Int = 0
     private val proxyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var startJob: Job? = null
 
     fun isReady(): Boolean = actualPort > 0
+
+    fun startIfNeeded() {
+        if (isReady() || startJob?.isActive == true) return
+        start()
+    }
+
+    suspend fun awaitReady(timeoutMs: Long = 10_000L): Boolean {
+        if (isReady()) return true
+        val stepMs = 50L
+        var elapsed = 0L
+        while (elapsed < timeoutMs) {
+            if (isReady()) return true
+            delay(stepMs)
+            elapsed += stepMs
+        }
+        return false
+    }
+
+    suspend fun ensureReady(timeoutMs: Long = 10_000L): Boolean {
+        startIfNeeded()
+        return awaitReady(timeoutMs)
+    }
 
     fun getProxyUrl(fileId: String): String {
         if (actualPort == 0) {
@@ -106,16 +132,8 @@ class GDriveStreamProxy @Inject constructor(
         Timber.d("GDriveStreamProxy stopped")
     }
 
-    private fun createServer(port: Int): ApplicationEngine {
-        return embeddedServer(
-            CIO,
-            host = "127.0.0.1",
-            port = port,
-            configure = {
-                // Keep behavior consistent with the other local proxies during quick restarts.
-                reuseAddress = true
-            }
-        ) {
+    private fun createServer(port: Int): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
+        return embeddedServer(CIO, port = port, host = "127.0.0.1") {
             routing {
                 get("/gdrive/{fileId}") {
                     val fileId = call.parameters["fileId"]

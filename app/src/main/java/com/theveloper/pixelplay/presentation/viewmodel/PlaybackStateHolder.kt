@@ -156,7 +156,17 @@ class PlaybackStateHolder @Inject constructor(
     }
     
     fun updateStablePlayerState(update: (StablePlayerState) -> StablePlayerState) {
-        _stablePlayerState.update(update)
+        _stablePlayerState.update { current ->
+            val updated = update(current)
+            // Auto-populate index from MediaController if not explicitly set by the update
+            if (updated.currentMediaItemIndex == -1) {
+                mediaController?.let { controller ->
+                    updated.copy(currentMediaItemIndex = controller.currentMediaItemIndex)
+                } ?: updated
+            } else {
+                updated
+            }
+        }
     }
 
     fun setCurrentPosition(positionMs: Long) {

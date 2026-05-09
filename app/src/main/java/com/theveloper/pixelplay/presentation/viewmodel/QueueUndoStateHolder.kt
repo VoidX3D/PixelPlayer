@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
 import androidx.media3.session.MediaController
+import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.utils.MediaItemBuilder
 import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
@@ -18,14 +19,25 @@ class QueueUndoStateHolder @Inject constructor() {
         mediaController: MediaController?,
         songId: String,
         getUiState: () -> PlayerUiState,
-        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit)
+        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit),
     ) {
         val controller = mediaController ?: return
-        val currentQueue = getUiState().currentPlaybackQueue
-        val indexToRemove = currentQueue.indexOfFirst { it.id == songId }
+        
+        // Find index in CONTROLLER to ensure we remove the correct item,
+        // even if the UI state is slightly out of sync with the player.
+        var indexToRemove = -1
+        for (i in 0 until controller.mediaItemCount) {
+            if (controller.getMediaItemAt(i).mediaId == songId) {
+                indexToRemove = i
+                break
+            }
+        }
+        
         if (indexToRemove == -1) return
 
-        val removedSong = currentQueue[indexToRemove]
+        val currentQueue = getUiState().currentPlaybackQueue
+        val removedSong = currentQueue.find { it.id == songId } ?: return
+
         controller.removeMediaItem(indexToRemove)
 
         updateUiState {
@@ -54,7 +66,7 @@ class QueueUndoStateHolder @Inject constructor() {
     fun undoRemoveSongFromQueue(
         mediaController: MediaController?,
         getUiState: () -> PlayerUiState,
-        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit)
+        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit),
     ) {
         val uiState = getUiState()
         val song = uiState.lastRemovedQueueSong ?: return
@@ -71,7 +83,7 @@ class QueueUndoStateHolder @Inject constructor() {
     }
 
     fun hideQueueItemUndoBar(
-        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit)
+        updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit),
     ) {
         queueItemUndoTimerJob?.cancel()
         updateUiState {

@@ -63,7 +63,7 @@ internal fun PlayerArtistPickerBottomSheet(
         val primaryArtist = song.primaryArtist
         val computedItems = artists.mapIndexed { index, artist ->
             val isPrimary = when {
-                primaryArtist.id > 0L -> artist.id == primaryArtist.id
+                primaryArtist.id != 0L && primaryArtist.id != -1L -> artist.id == primaryArtist.id
                 primaryArtist.name.isNotBlank() -> artist.name.equals(primaryArtist.name, ignoreCase = true)
                 else -> index == 0
             }

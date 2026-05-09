@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -87,13 +88,15 @@ internal fun rememberSheetVisualState(
     // Lambda provider: read inside .offset { } block (layout phase) — avoids recomposition
     // at ~60fps during drag gestures. The lambda captures Animatable refs and reads them at
     // layout time, same pattern as the horizontal padding providers above.
+    val predictiveBackCollapseProgressState = rememberUpdatedState(predictiveBackCollapseProgress)
     val visualSheetTranslationYProvider: () -> Float = remember(
         currentSheetTranslationY,
         sheetCollapsedTargetY
     ) {
         {
-            currentSheetTranslationY.value * (1f - predictiveBackCollapseProgress) +
-                (sheetCollapsedTargetY * predictiveBackCollapseProgress)
+            val progress = predictiveBackCollapseProgressState.value
+            currentSheetTranslationY.value * (1f - progress) +
+                (sheetCollapsedTargetY * progress)
         }
     }
 

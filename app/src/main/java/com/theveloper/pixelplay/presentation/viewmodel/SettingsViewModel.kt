@@ -54,7 +54,7 @@ import java.io.File
 
 data class SettingsUiState(
     val isLoadingDirectories: Boolean = false,
-    val appLanguageTag: String = AppLanguage.SYSTEM,
+    val appLanguageTag: String = AppLanguage.SYSTEM.tag,
     val appThemeMode: String = AppThemeMode.FOLLOW_SYSTEM,
     val playerThemePreference: String = ThemePreference.ALBUM_ART,
     val albumArtPaletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.default,

@@ -49,6 +49,37 @@ class DeckController(
                     )
                     .build()
             }
+
+            override fun buildVideoRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                mediaCodecSelector: androidx.media3.exoplayer.mediacodec.MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                eventHandler: android.os.Handler,
+                eventListener: androidx.media3.exoplayer.video.VideoRendererEventListener,
+                allowedVideoJoiningTimeMs: Long,
+                out: ArrayList<androidx.media3.exoplayer.Renderer>
+            ) {
+                // Audio-only player
+            }
+
+            override fun buildTextRenderers(
+                context: Context,
+                eventListener: androidx.media3.exoplayer.text.TextOutput,
+                outputLooper: android.os.Looper,
+                extensionRendererMode: Int,
+                out: ArrayList<androidx.media3.exoplayer.Renderer>
+            ) {
+                // Audio-only player
+            }
+
+            override fun buildCameraMotionRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                out: ArrayList<androidx.media3.exoplayer.Renderer>
+            ) {
+                // Audio-only player
+            }
         }.setEnableAudioFloatOutput(false)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 

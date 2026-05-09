@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavHostController
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.navigation.Screen
+import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -82,7 +83,10 @@ internal fun rememberSheetActionHandlers(
             queueSheetControllerState.value.animate(false)
             sheetModalOverlayControllerState.value.updateSelectedSongForInfo(null)
             if (song.albumId != -1L) {
-                navController.navigateSafely(Screen.AlbumDetail.createRoute(song.albumId))
+                navController.navigateSafelyReplacing(
+                    route = Screen.AlbumDetail.createRoute(song.albumId),
+                    patternToPop = Screen.AlbumDetail.route
+                )
             }
         }
     }
@@ -95,7 +99,10 @@ internal fun rememberSheetActionHandlers(
             queueSheetControllerState.value.animate(false)
             sheetModalOverlayControllerState.value.updateSelectedSongForInfo(null)
             if (song.artistId != -1L) {
-                navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
+                navController.navigateSafelyReplacing(
+                    route = Screen.ArtistDetail.createRoute(song.artistId),
+                    patternToPop = Screen.ArtistDetail.route
+                )
             }
         }
     }
@@ -109,7 +116,10 @@ internal fun rememberSheetActionHandlers(
             sheetModalOverlayControllerState.value.updateSelectedSongForInfo(null)
             if (!song.genre.isNullOrEmpty()) {
                 val encodedGenre = java.net.URLEncoder.encode(song.genre, "UTF-8")
-                navController.navigateSafely(Screen.GenreDetail.createRoute(encodedGenre))
+                navController.navigateSafelyReplacing(
+                    route = Screen.GenreDetail.createRoute(encodedGenre),
+                    patternToPop = Screen.GenreDetail.route
+                )
             }
         }
     }

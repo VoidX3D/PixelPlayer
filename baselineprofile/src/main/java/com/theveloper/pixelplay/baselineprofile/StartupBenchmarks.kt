@@ -35,14 +35,24 @@ class StartupBenchmarks {
         )
     )
 
-    private fun startup(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
-        packageName = "com.theveloper.pixelplay",
-        metrics = listOf(StartupTimingMetric()),
-        compilationMode = compilationMode,
-        iterations = 5, // Reducido a 5 para acelerar la validación
-        startupMode = StartupMode.COLD
-    ) {
-        pressHome()
-        startActivityAndWait()
+    private fun startup(compilationMode: CompilationMode) {
+        val packageName = benchmarkTargetPackageName()
+
+        benchmarkRule.measureRepeated(
+            packageName = packageName,
+            metrics = listOf(StartupTimingMetric()),
+            compilationMode = compilationMode,
+            iterations = 7,
+            startupMode = StartupMode.COLD,
+            setupBlock = {
+                setupBenchmarkPermissions(packageName)
+                pressHome()
+            }
+        ) {
+            startActivityAndWait { intent ->
+                intent.putExtra(BENCHMARK_EXTRA, true)
+            }
+            waitForAppForeground("Startup benchmark measure block", packageName)
+        }
     }
 }

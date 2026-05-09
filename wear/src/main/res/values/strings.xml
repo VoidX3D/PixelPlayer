@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PixelPlay</string>
+    <string name="app_name">PixelPlayer</string>
     <string name="not_playing">Not Playing</string>
     <string name="open_on_phone">Open on phone</string>
     <string name="connecting">Connecting…</string>

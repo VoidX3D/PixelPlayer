@@ -103,7 +103,7 @@ fun EnhancedSongListItem(
     onMoreOptionsClick: (Song) -> Unit,
     onClick: () -> Unit
 ) {
-    val albumArtTargetSizePx = with(LocalDensity.current) { albumArtSize.roundToPx() * 3 }
+    val albumArtTargetSizePx = with(LocalDensity.current) { albumArtSize.roundToPx() }
     val isHighlighted = isCurrentSong && !isLoading
     val transition = updateTransition(
         targetState = EnhancedSongAnimationTarget(

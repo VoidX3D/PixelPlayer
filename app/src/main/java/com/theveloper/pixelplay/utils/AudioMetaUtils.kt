@@ -118,6 +118,15 @@ object AudioMetaUtils {
                 normalized == "audio/amr-wb" ||
                 normalized == "audio/3gpp" -> "amr"
 
+            normalized == "audio/evrc" ||
+                normalized == "audio/x-evrc" -> "evrc"
+
+            normalized == "audio/qcelp" ||
+                normalized == "audio/x-qcelp" -> "qcelp"
+
+            normalized == "audio/x-ima-adpcm" ||
+                normalized == "audio/ima-adpcm" -> "ima"
+
             normalized == "audio/alac" ||
                 normalized == "audio/x-alac" -> "alac"
 

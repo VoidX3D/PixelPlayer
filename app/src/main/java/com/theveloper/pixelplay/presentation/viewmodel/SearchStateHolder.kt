@@ -1,6 +1,5 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
-import android.util.Log
 import com.theveloper.pixelplay.data.model.SearchFilterType
 import com.theveloper.pixelplay.data.model.SearchHistoryItem
 import com.theveloper.pixelplay.data.model.SearchResultItem
@@ -18,12 +17,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.FlowPreview
 
 /**
  * Manages search state and operations.
@@ -36,7 +36,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class SearchStateHolder @Inject constructor(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
 ) {
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
@@ -44,7 +44,7 @@ class SearchStateHolder @Inject constructor(
 
     private data class SearchRequest(
         val query: String,
-        val requestId: Long
+        val requestId: Long,
     )
 
     // Search State
@@ -74,6 +74,7 @@ class SearchStateHolder @Inject constructor(
         observeSearchRequests()
     }
 
+    @OptIn(FlowPreview::class)
     private fun observeSearchRequests() {
         searchJob?.cancel()
         searchJob = scope?.launch {
@@ -91,23 +92,33 @@ class SearchStateHolder @Inject constructor(
 
                     try {
                         val currentFilter = _selectedSearchFilter.value
-                        val resultsList = withContext(Dispatchers.IO) {
-                            musicRepository.searchAll(normalizedQuery, currentFilter).first()
-                        }
+                        musicRepository.searchAll(normalizedQuery, currentFilter).collect { resultsList ->
+                            // Sort: prioritize Song/Album matches over Artist/Playlist matches
+                            val sortedResults = resultsList.sortedWith(
+                                compareBy { result ->
+                                    when (result) {
+                                        is SearchResultItem.SongItem -> 0
+                                        is SearchResultItem.AlbumItem -> 1
+                                        is SearchResultItem.ArtistItem -> 2
+                                        is SearchResultItem.PlaylistItem -> 3
+                                    }
+                                }
+                            )
 
-                        if (request.requestId != latestSearchRequestId.get()) {
-                            return@collectLatest
-                        }
+                            if (request.requestId != latestSearchRequestId.get()) {
+                                return@collect
+                            }
 
-                        val immutableResults = resultsList.toImmutableList()
-                        if (_searchResults.value != immutableResults) {
-                            _searchResults.value = immutableResults
+                            val immutableResults = sortedResults.toImmutableList()
+                            if (_searchResults.value != immutableResults) {
+                                _searchResults.value = immutableResults
+                            }
                         }
                     } catch (_: CancellationException) {
                         // Superseded by a newer query; ignore.
                     } catch (e: Exception) {
                         if (request.requestId == latestSearchRequestId.get()) {
-                            Log.e("SearchStateHolder", "Error performing search for query: $normalizedQuery", e)
+                            Timber.e(e, "Error performing search for query: $normalizedQuery")
                             _searchResults.value = persistentListOf()
                         }
                     }
@@ -127,7 +138,7 @@ class SearchStateHolder @Inject constructor(
                 }
                 _searchHistory.value = history.toImmutableList()
             } catch (e: Exception) {
-                Log.e("SearchStateHolder", "Error loading search history", e)
+                Timber.e(e, "Error loading search history")
             }
         }
     }
@@ -141,7 +152,7 @@ class SearchStateHolder @Inject constructor(
                     }
                     loadSearchHistory()
                 } catch (e: Exception) {
-                    Log.e("SearchStateHolder", "Error adding search history item", e)
+                    Timber.e(e, "Error adding search history item")
                 }
             }
         }
@@ -169,7 +180,7 @@ class SearchStateHolder @Inject constructor(
                 }
                 loadSearchHistory()
             } catch (e: Exception) {
-                Log.e("SearchStateHolder", "Error deleting search history item", e)
+                Timber.e(e, "Error deleting search history item")
             }
         }
     }
@@ -182,7 +193,7 @@ class SearchStateHolder @Inject constructor(
                 }
                 _searchHistory.value = persistentListOf()
             } catch (e: Exception) {
-                Log.e("SearchStateHolder", "Error clearing search history", e)
+                Timber.e(e, "Error clearing search history")
             }
         }
     }

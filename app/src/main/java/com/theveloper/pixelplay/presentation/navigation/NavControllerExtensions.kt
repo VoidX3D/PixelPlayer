@@ -6,7 +6,9 @@ import androidx.navigation.NavOptionsBuilder
 
 private fun NavController.isReadyForNavigation(): Boolean {
     return runCatching {
-        currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED
+        // We allow navigation if the current entry is at least STARTED.
+        // This is safer than strictly RESUMED as transitions can sometimes delay RESUMED state.
+        currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true
     }.getOrDefault(false)
 }
 
@@ -25,6 +27,22 @@ fun NavController.navigateSafely(
     if (!isReadyForNavigation()) return false
     navigate(route) {
         launchSingleTop = true
+        builder()
+    }
+    return true
+}
+
+fun NavController.navigateSafelyReplacing(
+    route: String,
+    patternToPop: String,
+    builder: NavOptionsBuilder.() -> Unit = {}
+): Boolean {
+    if (!isReadyForNavigation()) return false
+    navigate(route) {
+        launchSingleTop = false
+        popUpTo(patternToPop) {
+            inclusive = true
+        }
         builder()
     }
     return true

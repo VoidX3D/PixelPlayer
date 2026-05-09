@@ -29,6 +29,15 @@ internal class SheetMotionController(
         val targetY = if (targetExpanded) expandedY else collapsedY
         val velocityScale = (collapsedY - expandedY).coerceAtLeast(1f)
 
+        if (
+            translationY.value == targetY &&
+            expansionFraction.value == targetFraction &&
+            !translationY.isRunning &&
+            !expansionFraction.isRunning
+        ) {
+            return
+        }
+
         mutex.mutate {
             coroutineScope {
                 launch {
@@ -70,6 +79,7 @@ internal class SheetMotionController(
 
     suspend fun syncToExpansion(collapsedY: Float) {
         val adjustedY = collapsedY + (expandedY - collapsedY) * expansionFraction.value
+        if (translationY.value == adjustedY && !translationY.isRunning) return
         mutex.mutate {
             translationY.snapTo(adjustedY)
         }

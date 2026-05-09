@@ -3,6 +3,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
+import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -185,6 +186,9 @@ fun AlbumDetailScreen(
             uiState.album != null -> {
                 val album = uiState.album!!
                 val songs = uiState.songs
+                val songsByDisc = remember(songs) {
+                    songs.groupBy { it.discNumber ?: 1 }
+                }
                 val lazyListState = rememberLazyListState()
 
                 val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -305,22 +309,36 @@ fun AlbumDetailScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(
-                            items = songs,
-                            key = { song -> "album_song_${song.id}" },
-                            contentType = { "album_song" }
-                        ) { song ->
-                            EnhancedSongListItem(
-                                song = song,
-                                isCurrentSong = stablePlayerState.currentSong?.id == song.id,
-                                isPlaying = stablePlayerState.isPlaying,
-                                showAlbumArt = false,
-                                onMoreOptionsClick = {
-                                    playerViewModel.selectSongForInfo(song)
-                                    showSongInfoBottomSheet = true
-                                },
-                                onClick = { playerViewModel.showAndPlaySong(song, songs) }
-                            )
+                        songsByDisc.forEach { (discNumber, discSongs) ->
+                            if (songsByDisc.size > 1) {
+                                item(key = "disc_header_$discNumber") {
+                                    Text(
+                                        text = stringResource(R.string.disc_number_header, discNumber),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .padding(top = 16.dp, bottom = 8.dp, start = 8.dp)
+                                    )
+                                }
+                            }
+                            items(
+                                items = discSongs,
+                                key = { song -> "album_song_${song.id}" },
+                                contentType = { "album_song" }
+                            ) { song ->
+                                EnhancedSongListItem(
+                                    song = song,
+                                    isCurrentSong = stablePlayerState.currentSong?.id == song.id,
+                                    isPlaying = stablePlayerState.isPlaying,
+                                    showAlbumArt = false,
+                                    onMoreOptionsClick = {
+                                        playerViewModel.selectSongForInfo(song)
+                                        showSongInfoBottomSheet = true
+                                    },
+                                    onClick = { playerViewModel.showAndPlaySong(song, songs) }
+                                )
+                            }
                         }
                     }
 
@@ -416,16 +434,25 @@ fun AlbumDetailScreen(
                     },
                     onDeleteFromDevice = playerViewModel::deleteFromDevice,
                     onNavigateToAlbum = {
-                        navController.navigateSafely(Screen.AlbumDetail.createRoute(currentSong.albumId))
+                        navController.navigateSafelyReplacing(
+                            route = Screen.AlbumDetail.createRoute(currentSong.albumId),
+                            patternToPop = Screen.AlbumDetail.route
+                        )
                         showSongInfoBottomSheet = false
                     },
                     onNavigateToArtist = {
-                        navController.navigateSafely(Screen.ArtistDetail.createRoute(currentSong.artistId))
+                        navController.navigateSafelyReplacing(
+                            route = Screen.ArtistDetail.createRoute(currentSong.artistId),
+                            patternToPop = Screen.ArtistDetail.route
+                        )
                         showSongInfoBottomSheet = false
                     },
                     onNavigateToGenre = {
                         currentSong.genre?.let {
-                            navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
+                            navController.navigateSafelyReplacing(
+                                route = Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")),
+                                patternToPop = Screen.GenreDetail.route
+                            )
                         }
                         showSongInfoBottomSheet = false
                     },

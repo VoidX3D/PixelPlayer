@@ -1,6 +1,6 @@
 package com.theveloper.pixelplay.presentation.components.scoped
 
-import com.theveloper.pixelplay.presentation.navigation.navigateSafely
+import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,17 +24,10 @@ internal fun PlayerArtistNavigationEffect(
             sheetMotionController.snapCollapsed(latestSheetCollapsedTargetY)
             playerViewModel.collapsePlayerSheet()
 
-            navController.navigateSafely(Screen.ArtistDetail.createRoute(artistId)) {
-                // Allow navigating from one artist detail to another by replacing
-                // the current instance instead of blocking with launchSingleTop.
-                launchSingleTop = false
-                // Pop the existing ArtistDetail (if any) so screens don't stack.
-                navController.currentBackStackEntry?.destination?.route?.let { currentRoute ->
-                    if (currentRoute == Screen.ArtistDetail.route) {
-                        popUpTo(Screen.ArtistDetail.route) { inclusive = true }
-                    }
-                }
-            }
+            navController.navigateSafelyReplacing(
+                route = Screen.ArtistDetail.createRoute(artistId),
+                patternToPop = Screen.ArtistDetail.route
+            )
         }
     }
 }

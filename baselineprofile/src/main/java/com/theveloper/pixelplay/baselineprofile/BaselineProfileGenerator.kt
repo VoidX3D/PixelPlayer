@@ -1,14 +1,14 @@
 package com.theveloper.pixelplay.baselineprofile
 
+import android.util.Log
+import android.view.KeyEvent
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
-import android.util.Log
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,346 +22,444 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun generate() {
-        val packageName = InstrumentationRegistry.getArguments().getString("targetAppId")
-            ?: "com.theveloper.pixelplay"
+    fun generateStartupProfile() {
+        val packageName = benchmarkTargetPackageName()
 
         rule.collect(
             packageName = packageName,
             includeInStartupProfile = true,
-            maxIterations = 2
+            maxIterations = 5,
+            stableIterations = 3
         ) {
             try {
-                // 1. SETUP & STARTUP
-                setupResilientPermissions(packageName)
-                pressHome()
+                setupBenchmarkPermissions(packageName)
+                runStep("Startup", requireAppBefore = false) { startBenchmarkActivity(packageName) }
 
-                Log.d("BaselineProfileGenerator", "--- INICIANDO PIXELPLAY ---")
-
-                device.executeShellCommand("am force-stop $packageName")
-                Thread.sleep(800)
-                device.executeShellCommand("am start -W -n $packageName/.MainActivity --ez is_benchmark true")
-                device.wait(Until.hasObject(By.pkg(packageName)), 15000)
-                Thread.sleep(6000) // Tiempo extra para carga inicial
-
-                handlePermissionDialogs()
-                handleOnboarding()
-
-                // =================================================================================
-                // 1.1. HOME SCREEN EXTENDED FLOW (Daily Mix & Stats)
-                // =================================================================================
-                runStep("Home Screen Extended Flow") {
-                    clickTab("Home|Inicio")
-                    Thread.sleep(1000)
-
-                    // Scroll to bottom
-                    scrollToListBottom()
-                    Thread.sleep(1000)
-
-                    // Daily Mix
-                    val dailyMixPattern = Pattern.compile(".*(Daily Mix|Mix Diario).*", Pattern.CASE_INSENSITIVE)
-                    val dailyMix = device.wait(Until.findObject(By.text(dailyMixPattern)), 3000)
-                        ?: device.wait(Until.findObject(By.desc(dailyMixPattern)), 1000)
-
-                    if (dailyMix != null) {
-                        dailyMix.click()
-                        Thread.sleep(2500)
-                        blindScroll() // Scroll inside Daily Mix
-                        device.pressBack()
-                        Thread.sleep(1500)
-                    } else {
-                        Log.w("BaselineProfileGenerator", "Daily Mix element not found")
-                    }
-
-                    // Stats
-                    val statsPattern = Pattern.compile(".*(Stats|Estadísticas).*", Pattern.CASE_INSENSITIVE)
-                    val stats = device.wait(Until.findObject(By.text(statsPattern)), 3000)
-                        ?: device.wait(Until.findObject(By.desc(statsPattern)), 1000)
-
-                    if (stats != null) {
-                        stats.click()
-                        Thread.sleep(2500)
-                        blindScroll() // Scroll inside Stats
-                        device.pressBack()
-                        Thread.sleep(1500)
-                    }
-
-                    scrollToTop() // Regresar arriba para continuar flujo
-                    Thread.sleep(1000)
-                }
-
-                // =================================================================================
-                // 2. AJUSTES (Ya funcionando)
-                // =================================================================================
-                runStep("Settings & Scroll") {
-                    val settingsPattern = Pattern.compile(".*(Settings|Configuraci|Ajustes).*", Pattern.CASE_INSENSITIVE)
-                    val settingsBtn = device.findObject(By.desc(settingsPattern)) ?: device.findObject(By.text(settingsPattern))
-                    settingsBtn?.let {
-                        device.click(it.visibleCenter.x, it.visibleCenter.y)
-                        Thread.sleep(2000)
-                        blindScroll()
-                        device.pressBack()
-                        Thread.sleep(2000) // Espera vital tras volver
-                    }
-                }
-
-                // =================================================================================
-                // 3. LIBRARY INTERACTION & PLAY (Modified)
-                // =================================================================================
-                runStep("Library Interaction & Play") {
-                    clickTab("Library|Biblioteca")
-                    Thread.sleep(1500)
-
-                    // 3-dot Menu Interaction
-                    val moreOptionsPattern = Pattern.compile(".*(More options|Más opciones).*", Pattern.CASE_INSENSITIVE)
-                    val moreOptions = device.wait(Until.findObject(By.desc(moreOptionsPattern)), 3000)
-
-                    if (moreOptions != null) {
-                        moreOptions.click()
-                        Thread.sleep(1500)
-                        scrollBottomSheetContent() // Scroll SongInfoBottomSheet UP only
-                        Thread.sleep(800)
-                        device.pressBack() // Close Sheet
-                        Thread.sleep(1500) // Wait for sheet to close fully
-                    } else {
-                        Log.w("BaselineProfileGenerator", "More options menu not found")
-                    }
-
-                    // Clic en la primera canción de la lista (Force Play)
-                    val midX = device.displayWidth / 2
-                    val firstItemY = (device.displayHeight * 0.35).toInt()
-
-                    // Wait safely to ensure we are back on the list
-                    Thread.sleep(1000)
-                    device.click(midX, firstItemY)
-                    Thread.sleep(2500)
-                }
-
-                // =================================================================================
-                // 4. SEARCH & GENRE FLOW (Modified)
-                // =================================================================================
-                runStep("Search & Genre Flow") {
-                    clickTab("Search|Buscar")
-                    Thread.sleep(1500)
-
-                    val unknownPattern = Pattern.compile(".*(Unknown|Desconocido).*", Pattern.CASE_INSENSITIVE)
-                    val genreCard = device.wait(Until.findObject(By.text(unknownPattern)), 3000)
-                        ?: device.wait(Until.findObject(By.desc(unknownPattern)), 1000)
-
-                    if (genreCard != null) {
-                        genreCard.click()
-                        Thread.sleep(2000)
-                        blindScroll() // Scroll GenreDetail
-                        device.pressBack()
-                        Thread.sleep(1000)
-                    } else {
-                        Log.w("BaselineProfileGenerator", "Unknown Genre Card not found")
-                    }
-
-                    // Volvemos a Home para tener el miniplayer a la vista
-                    clickTab("Home|Inicio")
-                    Thread.sleep(1500)
-                }
-
-                // =================================================================================
-                // 5. LIBRARY PAGER (Ya funcionando excelente)
-                // =================================================================================
-                runStep("Library Pager") {
-                    clickTab("Library|Biblioteca")
-                    Thread.sleep(1000)
-                    runLibraryPagerSwipeFlow()
-                }
-
-                // =================================================================================
-                // 6. PLAYER SHEET EXTENDED (Modified)
-                // =================================================================================
-                runStep("Unified Player Sheet Extended") {
-                    // Volver a Home para asegurar visibilidad
-                    clickTab("Home|Inicio")
-                    Thread.sleep(1500)
-
-                    val playerPattern = Pattern.compile(".*(Player|Reproductor|Mini|Carátula|Cover|Album Art).*", Pattern.CASE_INSENSITIVE)
-                    var miniPlayer = device.wait(Until.findObject(By.desc(playerPattern)), 3000)
-                        ?: device.wait(Until.findObject(By.text(playerPattern)), 1000)
-
-                    if (miniPlayer == null) {
-                        Log.w("BaselineProfileGenerator", "MiniPlayer no detectado por texto, usando clic por zona física.")
-                        // Clic en el área central inferior, justo encima de las pestañas
-                        device.click(device.displayWidth / 2, (device.displayHeight * 0.88).toInt())
-                    } else {
-                        device.click(miniPlayer.visibleCenter.x, miniPlayer.visibleCenter.y)
-                    }
-                    Thread.sleep(3500) // Espera a expansión completa
-
-                    // 2. Playback Controls & Wavy Slider Targeting
-                    val playPausePattern = Pattern.compile(".*(Play|Pause|Reproducir|Pausar).*", Pattern.CASE_INSENSITIVE)
-                    val nextPattern = Pattern.compile(".*(Next|Siguiente).*", Pattern.CASE_INSENSITIVE)
-                    val prevPattern = Pattern.compile(".*(Previous|Anterior).*", Pattern.CASE_INSENSITIVE)
-                    val playerOpened = device.hasObject(By.desc(playPausePattern))
-                        || device.hasObject(By.desc(nextPattern))
-                        || device.hasObject(By.desc(prevPattern))
-
-                    // 1. Carousel Swipe
-                    val carouselY = (device.displayHeight * 0.45).toInt()
-                    val leftX = (device.displayWidth * 0.2).toInt()
-                    val rightX = (device.displayWidth * 0.8).toInt()
-                    repeat(2) {
-                        device.swipe(rightX, carouselY, leftX, carouselY, 30)
-                        Thread.sleep(800)
-                        device.swipe(leftX, carouselY, rightX, carouselY, 30)
-                        Thread.sleep(800)
-                    }
-
-                    // Find controls to anchor slider swipe
-                    var playButton = device.wait(Until.findObject(By.desc(playPausePattern)), 2000)
-
-                    // Wavy Slider Interaction
-                    if (playButton != null) {
-                        // Slider is typically above the controls.
-                        val sliderY = playButton.visibleBounds.top - (device.displayHeight * 0.12).toInt()
-                        device.swipe(leftX, sliderY, rightX, sliderY, 80)
-                        Thread.sleep(1000)
-                        device.swipe(rightX, sliderY, leftX, sliderY, 80)
-                        Thread.sleep(1500)
-                    } else {
-                        Log.w("BaselineProfileGenerator", "Play/Pause button not found, skipping slider interaction")
-                    }
-
-                    // Toggle Controls
-                    device.findObject(By.desc(prevPattern))?.click()
-                    Thread.sleep(1000)
-                    device.findObject(By.desc(nextPattern))?.click()
-                    Thread.sleep(1000)
-
-                    // Play/Pause Interaction
-                    playButton = device.wait(Until.findObject(By.desc(playPausePattern)), 1000)
-                    if (playButton != null) {
-                        playButton.click() // Pause
-                        Thread.sleep(1200)
-                        playButton = device.wait(Until.findObject(By.desc(playPausePattern)), 1000)
-                        playButton?.click() // Resume
-                        Thread.sleep(1000)
-                    }
-
-                    // 4. Queue BottomSheet (Fling Up as requested)
-                    val startX = device.displayWidth / 2
-                    val startY = (device.displayHeight * 0.92).toInt() // Near bottom
-                    val endY = (device.displayHeight * 0.5).toInt()
-
-                    device.swipe(startX, startY, startX, endY, 10) // Fast swipe (fling speed)
-                    Thread.sleep(2500) // Wait for sheet to animate
-
-                    // Verify Queue is open
-                    val nextUpPattern = Pattern.compile(".*(Next Up|A continuación).*", Pattern.CASE_INSENSITIVE)
-                    if (device.wait(Until.hasObject(By.text(nextUpPattern)), 1000)) {
-                        repeat(3) {
-                            scrollBottomSheetContent()
-                            Thread.sleep(600)
-                        }
-                        device.pressBack() // Close Queue
-                        Thread.sleep(1500)
-                    }
-
-                    if (playerOpened) {
-                        device.pressBack() // Colapsar Player
-                        Thread.sleep(1000)
-                    }
-                }
-
-                Log.d("BaselineProfileGenerator", "--- FLUJO FINALIZADO ---")
-                pressHome()
-
+                Log.d(TAG, "--- STARTUP FLOW FINISHED ---")
             } catch (e: Exception) {
-                Log.e("BaselineProfileGenerator", "Error fatal: ${e.toString()}")
+                Log.e(TAG, "Fatal error: ${e}")
                 e.printStackTrace()
+                throw e
+            } finally {
+                pressHome()
             }
         }
     }
 
-    private fun runStep(name: String, block: () -> Unit) {
-        try {
-            Log.d("BaselineProfileGenerator", ">> PASO: $name")
-            block()
-            Log.d("BaselineProfileGenerator", ">> OK")
-        } catch (e: Exception) {
-            Log.e("BaselineProfileGenerator", ">> FALLÓ $name: ${e.toString()}")
-            e.printStackTrace()
+    @Test
+    fun generateBaselineProfile() {
+        val packageName = benchmarkTargetPackageName()
+
+        rule.collect(
+            packageName = packageName,
+            includeInStartupProfile = false,
+            maxIterations = 5,
+            stableIterations = 3
+        ) {
+            try {
+                setupBenchmarkPermissions(packageName)
+                runStep("Startup", requireAppBefore = false) { startBenchmarkActivity(packageName) }
+                runStep("Library Refresh") { primeLibraryForPlayback() }
+                runStep("Home, Daily Mix, Stats") { runHomeFlow() }
+                runStep("Settings Surfaces") { runSettingsSurfacesFlow() }
+                runStep("Library, Tabs, Playback") { runLibraryPlaybackFlow() }
+                runStep("Search, Results, Genres") { runSearchFlow() }
+                runStep("Player Sheet, Queue, Controls") { runPlayerSheetFlow() }
+
+                Log.d(TAG, "--- FLOW FINISHED ---")
+            } catch (e: Exception) {
+                Log.e(TAG, "Fatal error: ${e}")
+                e.printStackTrace()
+                throw e
+            } finally {
+                pressHome()
+            }
         }
     }
 
-    private fun MacrobenchmarkScope.setupResilientPermissions(packageName: String) {
-        val permissions = listOf(
-            "android.permission.POST_NOTIFICATIONS",
-            "android.permission.READ_MEDIA_AUDIO",
-            "android.permission.READ_EXTERNAL_STORAGE",
-            "android.permission.WRITE_EXTERNAL_STORAGE"
-        )
-        permissions.forEach {
-            try { device.executeShellCommand("pm grant $packageName $it") } catch (ignore: Exception) {}
+    private fun MacrobenchmarkScope.runStep(
+        name: String,
+        requireAppBefore: Boolean = true,
+        block: MacrobenchmarkScope.() -> Unit
+    ) {
+        try {
+            Log.d(TAG, ">> STEP: $name")
+            if (requireAppBefore) {
+                assertAppForeground("Before Baseline Profile step '$name'")
+            }
+            block()
+            assertAppForeground("After Baseline Profile step '$name'")
+            Log.d(TAG, ">> OK")
+        } catch (e: Exception) {
+            Log.e(TAG, ">> FAILED $name: ${e}")
+            e.printStackTrace()
+            throw IllegalStateException("Baseline Profile step failed: $name", e)
         }
-        device.executeShellCommand("appops set $packageName MANAGE_EXTERNAL_STORAGE allow")
+    }
+
+    private fun MacrobenchmarkScope.startBenchmarkActivity(packageName: String) {
+        pressHome()
+        killProcess()
+        startActivityAndWait { intent ->
+            intent.putExtra(BENCHMARK_EXTRA, true)
+        }
+        waitForTargetPackageVisible(packageName, APP_START_TIMEOUT_MS)
+        waitForAppForeground("After starting benchmark activity", packageName, APP_START_TIMEOUT_MS)
+        waitForUi()
+        handlePermissionDialogs()
+        handleOnboarding()
+    }
+
+    private fun MacrobenchmarkScope.primeLibraryForPlayback() {
+        if (openSettingsFromHome()) {
+            if (clickOptional(pattern("Music Management|Administraci[oó]n de m[uú]sica|Library|Biblioteca"), timeoutMs = SHORT_WAIT_MS)) {
+                waitForUi(EXTRA_UI_WAIT_MS)
+            }
+            if (!clickOptional(pattern("Full Rescan|Rescan|Re-scan|Reescan|Reescaneo|Escanear"), timeoutMs = SHORT_WAIT_MS)) {
+                scrollToListBottom(repetitions = 1)
+                clickOptional(pattern("Full Rescan|Rescan|Re-scan|Reescan|Reescaneo|Escanear"), timeoutMs = SHORT_WAIT_MS)
+            }
+            waitForLibraryRefresh()
+            pressBackAndWait()
+            tap(
+                (device.displayWidth * 0.82).toInt(),
+                (device.displayHeight * 0.94).toInt(),
+                "open Library tab after refresh"
+            )
+        }
+
+        clickTab("Library|Biblioteca")
+        waitForLibraryContent()
+    }
+
+    private fun MacrobenchmarkScope.runHomeFlow() {
+        clickTab("Home|Inicio")
+        waitForUi()
+        scrollToListBottom(repetitions = 3)
+        openOptionalSurface("Daily Mix|Mix Diario") {
+            scrollDownAndUp()
+        }
+        openOptionalSurface("Recently Played|Reci[eé]n reproducido|Reproducidos recientemente") {
+            scrollDownAndUp()
+        }
+        openOptionalSurface("Stats|Estad[ií]sticas") {
+            scrollDownAndUp()
+        }
+        scrollToTop(repetitions = 3)
+    }
+
+    private fun MacrobenchmarkScope.runSettingsSurfacesFlow() {
+        val settingsDestinations = listOf(
+            "Music Management|Administraci[oó]n de m[uú]sica|Biblioteca|Library",
+            "Appearance|Apariencia",
+            "Playback|Reproducci[oó]n",
+            "Behavior|Comportamiento",
+            "AI Integration|Integraci[oó]n",
+            "Backup|Restore|Copia|Restaurar",
+            "Developer Options|Opciones de desarrollador",
+            "Device Capabilities|Capacidades",
+            "Equalizer|Ecualizador",
+            "Accounts|Cuentas",
+            "About|Acerca"
+        )
+
+        if (!openSettingsFromHome()) return
+        settingsDestinations.forEach { label ->
+            if (!ensureSettingsScreen()) return@forEach
+            if (!clickOptional(pattern(label), timeoutMs = SHORT_WAIT_MS)) {
+                scrollToListBottom(repetitions = 1)
+                clickOptional(pattern(label), timeoutMs = SHORT_WAIT_MS)
+            }
+            waitForUi()
+            if (!isSettingsScreen()) {
+                scrollDownAndUp()
+                pressBackAndWait()
+            }
+        }
+        pressBackAndWait()
+    }
+
+    private fun MacrobenchmarkScope.runLibraryPlaybackFlow() {
+        clickTab("Library|Biblioteca")
+        waitForUi(EXTRA_UI_WAIT_MS)
+
+        if (clickOptional(pattern("Sort options|Ordenar|Opciones de orden"), timeoutMs = SHORT_WAIT_MS)) {
+            waitForUi()
+            scrollBottomSheetContent()
+            pressBackAndWait()
+        }
+
+        if (clickOptional(pattern("More options|M[aá]s opciones"), timeoutMs = SHORT_WAIT_MS)) {
+            waitForUi()
+            scrollBottomSheetContent()
+            pressBackAndWait()
+        }
+
+        clickFirstContentRow()
+        waitForUi(EXTRA_UI_WAIT_MS)
+
+        runLibraryPagerSwipeFlow()
+
+        listOf(
+            "Albums|[AÁ]lbumes",
+            "Artists|Artistas",
+            "Playlists|Listas",
+            "Folders|Carpetas",
+            "Liked|Favorit"
+        ).forEach { tabPattern ->
+            selectLibraryTab(tabPattern)
+            scrollDownAndUp()
+            openFirstDetailCardAndReturn()
+        }
+
+        clickTab("Library|Biblioteca")
+        waitForUi()
+    }
+
+    private fun MacrobenchmarkScope.runSearchFlow() {
+        clickTab("Search|Buscar")
+        waitForUi()
+
+        tap(device.displayWidth / 2, (device.displayHeight * 0.12).toInt(), "focus search field")
+        waitForUi(TINY_WAIT_MS)
+        enterText("love")
+        waitForUi(EXTRA_UI_WAIT_MS)
+        pressKey(KeyEvent.KEYCODE_ENTER, "submit search")
+        waitForUi()
+        scrollDownAndUp()
+
+        listOf(
+            "Songs|Canciones",
+            "Albums|[AÁ]lbumes",
+            "Artists|Artistas",
+            "Playlists|Listas"
+        ).forEach { filter ->
+            clickOptional(pattern(filter), timeoutMs = TINY_WAIT_MS)
+            waitForUi()
+        }
+
+        clickOptional(pattern("Clear search|Borrar b[uú]squeda|Limpiar"), timeoutMs = TINY_WAIT_MS)
+        waitForUi()
+
+        openOptionalSurface("Unknown|Desconocido|Rock|Pop|Metal") {
+            scrollDownAndUp()
+        }
+        clickTab("Home|Inicio")
+    }
+
+    private fun MacrobenchmarkScope.runPlayerSheetFlow() {
+        clickTab("Home|Inicio")
+        waitForUi()
+
+        if (!hasTextOrDescription(pattern("Player|Reproductor|Mini|Car[aá]tula|Cover|Album Art|Play|Pause|Reproducir|Pausar"))) {
+            clickTab("Library|Biblioteca")
+            waitForLibraryContent()
+            clickFirstContentRow()
+            waitForUi(EXTRA_UI_WAIT_MS)
+            clickTab("Home|Inicio")
+            waitForUi()
+        }
+
+        val playerPattern = pattern("Player|Reproductor|Mini|Car[aá]tula|Cover|Album Art")
+        val miniPlayer = findByTextOrDescription(playerPattern, SHORT_WAIT_MS)
+        if (miniPlayer != null) {
+            click(miniPlayer)
+        } else {
+            Log.w(TAG, "Mini player not found by semantics; tapping the collapsed-player area.")
+            tap(device.displayWidth / 2, (device.displayHeight * 0.86).toInt(), "open mini player fallback")
+        }
+        waitForUi(EXTRA_UI_WAIT_MS)
+
+        val playPausePattern = pattern("Play|Pause|Reproducir|Pausar")
+        val nextPattern = pattern("Next|Siguiente")
+        val prevPattern = pattern("Previous|Anterior")
+        val playerOpened = hasTextOrDescription(playPausePattern) ||
+            hasTextOrDescription(nextPattern) ||
+            hasTextOrDescription(prevPattern)
+
+        val carouselY = (device.displayHeight * 0.45).toInt()
+        val leftX = (device.displayWidth * 0.2).toInt()
+        val rightX = (device.displayWidth * 0.8).toInt()
+        repeat(2) {
+            swipe(rightX, carouselY, leftX, carouselY, 30, "swipe player carousel left")
+            waitForUi(TINY_WAIT_MS)
+            swipe(leftX, carouselY, rightX, carouselY, 30, "swipe player carousel right")
+            waitForUi(TINY_WAIT_MS)
+        }
+
+        findByDescription(playPausePattern, SHORT_WAIT_MS)?.let { playButton ->
+            val sliderY = (playButton.visibleBounds.top - (device.displayHeight * 0.12).toInt())
+                .coerceIn((device.displayHeight * 0.18).toInt(), (device.displayHeight * 0.8).toInt())
+            swipe(leftX, sliderY, rightX, sliderY, 80, "seek forward")
+            waitForUi()
+            swipe(rightX, sliderY, leftX, sliderY, 80, "seek backward")
+            waitForUi()
+        }
+
+        findByDescription(prevPattern, TINY_WAIT_MS)?.let { click(it) }
+        waitForUi()
+        findByDescription(nextPattern, TINY_WAIT_MS)?.let { click(it) }
+        waitForUi()
+        findByDescription(playPausePattern, TINY_WAIT_MS)?.let { click(it) }
+        waitForUi()
+        findByDescription(playPausePattern, TINY_WAIT_MS)?.let { click(it) }
+        waitForUi()
+
+        if (clickOptional(pattern("Queue|Cola"), timeoutMs = SHORT_WAIT_MS)) {
+            waitForUi(EXTRA_UI_WAIT_MS)
+        } else {
+            val startX = device.displayWidth / 2
+            val startY = (device.displayHeight * 0.92).toInt()
+            val endY = (device.displayHeight * 0.5).toInt()
+            swipe(startX, startY, startX, endY, 10, "open queue by swipe")
+            waitForUi(EXTRA_UI_WAIT_MS)
+        }
+
+        if (hasTextOrDescription(pattern("Next Up|A continuaci[oó]n|Queue"))) {
+            repeat(2) {
+                scrollBottomSheetContent()
+                waitForUi(TINY_WAIT_MS)
+            }
+            pressBackAndWait()
+        }
+
+        if (playerOpened) {
+            pressBackAndWait()
+        }
     }
 
     private fun MacrobenchmarkScope.handlePermissionDialogs() {
-        val pattern = Pattern.compile("Allow|Permitir|Aceptar|While using|Mientras", Pattern.CASE_INSENSITIVE)
-        repeat(3) {
-            device.findObject(By.text(pattern))?.click()
-            Thread.sleep(500)
+        val allowPattern = pattern("Allow", "Permitir", "Aceptar", "While using", "Mientras")
+        var attemptsRemaining = 5
+        while (attemptsRemaining > 0) {
+            attemptsRemaining--
+            val button = findPermissionAllowButton(allowPattern) ?: break
+            clickSystemDialog(button)
+            waitForUi(TINY_WAIT_MS, requireApp = false)
         }
+        waitForAppForeground("After permission dialogs")
     }
 
     private fun MacrobenchmarkScope.handleOnboarding() {
-        val pattern = Pattern.compile("Next|Continue|Skip|Done|Siguiente|Omitir|Empezar", Pattern.CASE_INSENSITIVE)
+        val continuePattern = pattern("Next", "Continue", "Skip", "Done", "Siguiente", "Omitir", "Empezar", "Finish")
         repeat(4) {
-            device.findObject(By.text(pattern))?.click()
-            Thread.sleep(1000)
+            val button = findByTextOrDescription(continuePattern, TINY_WAIT_MS) ?: return
+            click(button)
+            waitForUi()
         }
     }
 
     private fun MacrobenchmarkScope.clickTab(tabNamePattern: String) {
-        val pattern = Pattern.compile(tabNamePattern, Pattern.CASE_INSENSITIVE)
-        val tab = device.findObject(By.desc(pattern)) ?: device.findObject(By.text(pattern))
-        tab?.let {
-            device.click(it.visibleCenter.x, it.visibleCenter.y)
-            Thread.sleep(1500)
+        val tab = findByTextOrDescription(pattern(tabNamePattern), SHORT_WAIT_MS)
+        if (tab != null) {
+            click(tab)
+            waitForUi()
+            return
+        }
+
+        when {
+            tabNamePattern.contains("Home", ignoreCase = true) ->
+                tap((device.displayWidth * 0.18).toInt(), (device.displayHeight * 0.94).toInt(), "open Home tab fallback")
+            tabNamePattern.contains("Search", ignoreCase = true) ->
+                tap((device.displayWidth * 0.5).toInt(), (device.displayHeight * 0.94).toInt(), "open Search tab fallback")
+            tabNamePattern.contains("Library", ignoreCase = true) ->
+                tap((device.displayWidth * 0.82).toInt(), (device.displayHeight * 0.94).toInt(), "open Library tab fallback")
+        }
+        waitForUi()
+    }
+
+    private fun MacrobenchmarkScope.openOptionalSurface(labelPattern: String, body: MacrobenchmarkScope.() -> Unit) {
+        if (!clickOptional(pattern(labelPattern), timeoutMs = SHORT_WAIT_MS)) {
+            Log.w(TAG, "Optional surface not found: $labelPattern")
+            return
+        }
+        waitForUi(EXTRA_UI_WAIT_MS)
+        val openedBackStackSurface = hasTextOrDescription(pattern(BACK_NAV_ALTERNATIVES))
+        body()
+        if (openedBackStackSurface || hasTextOrDescription(pattern(BACK_NAV_ALTERNATIVES))) {
+            pressBackAndWait()
+        } else {
+            Log.d(TAG, "Optional surface '$labelPattern' did not navigate; staying on current app surface.")
         }
     }
 
-    private fun MacrobenchmarkScope.blindScroll() {
+    private fun MacrobenchmarkScope.openSettingsFromHome(): Boolean {
+        clickTab("Home|Inicio")
+        val opened = clickOptional(pattern("Settings|Configuraci[oó]n|Ajustes"), timeoutMs = SHORT_WAIT_MS)
+        if (opened) waitForUi()
+        return opened
+    }
+
+    private fun MacrobenchmarkScope.ensureSettingsScreen(): Boolean {
+        if (isSettingsScreen()) return true
+        return openSettingsFromHome() && isSettingsScreen()
+    }
+
+    private fun MacrobenchmarkScope.isSettingsScreen(): Boolean =
+        hasTextOrDescription(pattern("Settings|Configuraci[oó]n|Ajustes"))
+
+    private fun MacrobenchmarkScope.selectLibraryTab(tabNamePattern: String): Boolean {
+        if (clickOptional(pattern(tabNamePattern), timeoutMs = SHORT_WAIT_MS)) {
+            waitForUi()
+            return true
+        }
+        if (clickOptional(pattern("Expand menu|Expandir men[uú]"), timeoutMs = SHORT_WAIT_MS)) {
+            waitForUi()
+            val selected = clickOptional(pattern(tabNamePattern), timeoutMs = SHORT_WAIT_MS)
+            waitForUi()
+            return selected
+        }
+        return false
+    }
+
+    private fun MacrobenchmarkScope.openFirstDetailCardAndReturn() {
+        val beforeOpened = device.hasObject(By.pkg(benchmarkTargetPackageName()))
+        tap(device.displayWidth / 2, (device.displayHeight * 0.38).toInt(), "open first detail card")
+        waitForUi(EXTRA_UI_WAIT_MS)
+        if (beforeOpened && !hasTextOrDescription(pattern("Library|Biblioteca"))) {
+            pressBackAndWait()
+        }
+    }
+
+    private fun MacrobenchmarkScope.clickFirstContentRow() {
+        tap(device.displayWidth / 2, (device.displayHeight * 0.36).toInt(), "open first content row")
+    }
+
+    private fun MacrobenchmarkScope.scrollDownAndUp() {
         val midX = device.displayWidth / 2
         val bottomY = (device.displayHeight * 0.75).toInt()
         val topY = (device.displayHeight * 0.25).toInt()
-        device.swipe(midX, bottomY, midX, topY, 45)
-        Thread.sleep(1200)
-        device.swipe(midX, topY, midX, bottomY, 45)
-        Thread.sleep(1200)
+        swipe(midX, bottomY, midX, topY, 45, "scroll down")
+        waitForUi()
+        swipe(midX, topY, midX, bottomY, 45, "scroll up")
+        waitForUi()
     }
 
     private fun MacrobenchmarkScope.scrollBottomSheetContent() {
         val midX = device.displayWidth / 2
         val bottomY = (device.displayHeight * 0.75).toInt()
         val topY = (device.displayHeight * 0.25).toInt()
-        device.swipe(midX, bottomY, midX, topY, 45)
-        Thread.sleep(1200)
+        swipe(midX, bottomY, midX, topY, 45, "scroll bottom sheet")
+        waitForUi()
     }
 
-    private fun MacrobenchmarkScope.scrollToListBottom() {
+    private fun MacrobenchmarkScope.scrollToListBottom(repetitions: Int = 4) {
         val midX = device.displayWidth / 2
         val bottomY = (device.displayHeight * 0.75).toInt()
         val topY = (device.displayHeight * 0.25).toInt()
-        repeat(4) {
-            device.swipe(midX, bottomY, midX, topY, 45)
-            Thread.sleep(800)
+        repeat(repetitions) {
+            swipe(midX, bottomY, midX, topY, 45, "scroll list toward bottom")
+            waitForUi(TINY_WAIT_MS)
         }
     }
 
-    private fun MacrobenchmarkScope.scrollToTop() {
+    private fun MacrobenchmarkScope.scrollToTop(repetitions: Int = 4) {
         val midX = device.displayWidth / 2
         val bottomY = (device.displayHeight * 0.75).toInt()
         val topY = (device.displayHeight * 0.25).toInt()
-        repeat(4) {
-            device.swipe(midX, topY, midX, bottomY, 45)
-            Thread.sleep(800)
+        repeat(repetitions) {
+            swipe(midX, topY, midX, bottomY, 45, "scroll list toward top")
+            waitForUi(TINY_WAIT_MS)
         }
     }
 
@@ -369,10 +467,156 @@ class BaselineProfileGenerator {
         val startX = (device.displayWidth * 0.85).toInt()
         val endX = (device.displayWidth * 0.15).toInt()
         val centerY = (device.displayHeight * 0.5).toInt()
-        repeat(4) {
-            device.swipe(startX, centerY, endX, centerY, 35)
-            Thread.sleep(1500)
-            blindScroll()
+        repeat(5) {
+            swipe(startX, centerY, endX, centerY, 35, "swipe library pager")
+            waitForUi()
+            scrollDownAndUp()
         }
+    }
+
+    private fun MacrobenchmarkScope.waitForLibraryRefresh() {
+        val syncingPattern = pattern(
+            "Running full rescan|Full rescan started|Reading MediaStore|Scanning music files|" +
+                "Sincronizando|Escaneando|Leyendo MediaStore"
+        )
+        waitForUi(LIBRARY_SYNC_MIN_WAIT_MS)
+        repeat(45) {
+            waitForUi(1_000L)
+            if (!hasTextOrDescription(syncingPattern)) return
+        }
+    }
+
+    private fun MacrobenchmarkScope.waitForLibraryContent() {
+        val emptyPattern = pattern("No songs|No valid songs|Sin canciones|No se encontraron canciones|Empty")
+        repeat(12) {
+            waitForUi(1_000L)
+            if (!hasTextOrDescription(emptyPattern)) return
+            scrollDownAndUp()
+        }
+    }
+
+    private fun MacrobenchmarkScope.clickOptional(pattern: Pattern, timeoutMs: Long): Boolean {
+        val target = findByTextOrDescription(pattern, timeoutMs) ?: return false
+        click(target)
+        return true
+    }
+
+    private fun MacrobenchmarkScope.findByTextOrDescription(pattern: Pattern, timeoutMs: Long): UiObject2? {
+        assertAppForeground("Before finding UI object '$pattern'")
+        val target = device.wait(Until.findObject(By.desc(pattern)), timeoutMs)
+            ?: device.wait(Until.findObject(By.text(pattern)), timeoutMs)
+        assertAppForeground("After finding UI object '$pattern'")
+        return target
+    }
+
+    private fun MacrobenchmarkScope.findByDescription(pattern: Pattern, timeoutMs: Long): UiObject2? {
+        assertAppForeground("Before finding description '$pattern'")
+        val target = device.wait(Until.findObject(By.desc(pattern)), timeoutMs)
+        assertAppForeground("After finding description '$pattern'")
+        return target
+    }
+
+    private fun MacrobenchmarkScope.hasTextOrDescription(pattern: Pattern): Boolean {
+        assertAppForeground("Before checking UI object '$pattern'")
+        return device.hasObject(By.desc(pattern)) || device.hasObject(By.text(pattern))
+    }
+
+    private fun MacrobenchmarkScope.click(target: UiObject2) {
+        assertAppForeground("Before clicking '${target.text ?: target.contentDescription ?: target.resourceName.orEmpty()}'")
+        val objectPackage = target.applicationPackage.orEmpty()
+        if (objectPackage.isNotBlank() && objectPackage != benchmarkTargetPackageName()) {
+            throw IllegalStateException(
+                "Refusing to click object from package $objectPackage while profiling ${benchmarkTargetPackageName()}"
+            )
+        }
+        val center = target.visibleCenter
+        tap(center.x, center.y, "click app UI object")
+    }
+
+    private fun MacrobenchmarkScope.tap(x: Int, y: Int, context: String) {
+        assertAppForeground("Before $context")
+        device.click(x, y)
+        assertAppForeground("After $context")
+    }
+
+    private fun MacrobenchmarkScope.swipe(
+        startX: Int,
+        startY: Int,
+        endX: Int,
+        endY: Int,
+        steps: Int,
+        context: String
+    ) {
+        assertAppForeground("Before $context")
+        device.swipe(startX, startY, endX, endY, steps)
+        assertAppForeground("After $context")
+    }
+
+    private fun MacrobenchmarkScope.enterText(text: String) {
+        assertAppForeground("Before entering text")
+        device.executeShellCommand("input text ${text.replace(" ", "%s")}")
+        assertAppForeground("After entering text")
+    }
+
+    private fun MacrobenchmarkScope.pressKey(keyCode: Int, context: String) {
+        assertAppForeground("Before $context")
+        device.pressKeyCode(keyCode)
+        assertAppForeground("After $context")
+    }
+
+    private fun MacrobenchmarkScope.pressBackAndWait() {
+        assertAppForeground("Before pressing back")
+        device.pressBack()
+        waitForUi(requireApp = false)
+        if (device.hasObject(By.pkg(benchmarkTargetPackageName()))) {
+            return
+        }
+
+        Log.w(TAG, "Back left the target app; relaunching benchmark activity.")
+        startActivityAndWait { intent ->
+            intent.putExtra(BENCHMARK_EXTRA, true)
+        }
+        waitForTargetPackageVisible(benchmarkTargetPackageName(), APP_START_TIMEOUT_MS)
+        waitForAppForeground("After relaunching from Back fallback")
+        waitForUi()
+    }
+
+    private fun MacrobenchmarkScope.waitForUi(delayMs: Long = DEFAULT_UI_WAIT_MS, requireApp: Boolean = true) {
+        device.waitForIdle(IDLE_WAIT_MS)
+        Thread.sleep(delayMs)
+        if (requireApp) {
+            assertAppForeground("After waiting for app UI")
+        }
+    }
+
+    private fun MacrobenchmarkScope.findPermissionAllowButton(pattern: Pattern): UiObject2? =
+        device.findObject(By.res("com.android.permissioncontroller:id/permission_allow_button"))
+            ?: device.findObject(By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button"))
+            ?: device.findObject(By.res("com.google.android.permissioncontroller:id/permission_allow_button"))
+            ?: device.findObject(By.res("com.google.android.permissioncontroller:id/permission_allow_foreground_only_button"))
+            ?: device.wait(Until.findObject(By.text(pattern)), TINY_WAIT_MS)
+            ?: device.wait(Until.findObject(By.desc(pattern)), TINY_WAIT_MS)
+
+    private fun MacrobenchmarkScope.clickSystemDialog(target: UiObject2) {
+        val center = target.visibleCenter
+        device.click(center.x, center.y)
+    }
+
+    private fun pattern(vararg alternatives: String): Pattern =
+        pattern(alternatives.joinToString("|"))
+
+    private fun pattern(alternatives: String): Pattern =
+        Pattern.compile(".*($alternatives).*", Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE)
+
+    private companion object {
+        private const val TAG = "BaselineProfileGenerator"
+        private const val BACK_NAV_ALTERNATIVES = "Back|Navigate up|Atr[aá]s|Volver"
+        private const val APP_START_TIMEOUT_MS = 15_000L
+        private const val IDLE_WAIT_MS = 3_000L
+        private const val TINY_WAIT_MS = 500L
+        private const val SHORT_WAIT_MS = 1_500L
+        private const val DEFAULT_UI_WAIT_MS = 900L
+        private const val EXTRA_UI_WAIT_MS = 1_800L
+        private const val LIBRARY_SYNC_MIN_WAIT_MS = 12_000L
     }
 }

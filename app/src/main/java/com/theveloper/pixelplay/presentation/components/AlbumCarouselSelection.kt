@@ -39,6 +39,7 @@ fun AlbumCarouselSection(
     currentSong: Song?,
     queue: ImmutableList<Song>,
     expansionFraction: Float,
+    currentMediaItemIndex: Int = -1,
     requestedScrollIndex: Int? = null,
     onSongSelected: (Song) -> Unit,
     onAlbumClick: (Song) -> Unit = {},
@@ -50,13 +51,12 @@ fun AlbumCarouselSection(
     if (queue.isEmpty()) return
 
     // Mantiene compatibilidad con tu llamada actual
-    val initialIndex = remember(currentSong?.id, queue) {
-        val songId = currentSong?.id ?: return@remember 0
-        queue.indexOfFirst { it.id == songId }
-            .takeIf { it >= 0 }
-            ?: queue.indexOf(currentSong)
-                .takeIf { it >= 0 }
-                ?: 0
+    val initialIndex = remember(currentSong?.id, currentMediaItemIndex, queue) {
+        resolveCurrentQueueIndex(
+            currentSong = currentSong,
+            currentMediaItemIndex = currentMediaItemIndex,
+            queue = queue
+        )
     }
 
     val carouselState = rememberRoundedParallaxCarouselState(
@@ -66,8 +66,24 @@ fun AlbumCarouselSection(
 
     // Calculate target size based on quality
     val targetSize = remember(albumArtQuality) {
-        if (albumArtQuality.maxSize == 0) Size.ORIGINAL
+        if (albumArtQuality.maxSize == 0) SafeOriginalAlbumArtSize
         else Size(albumArtQuality.maxSize, albumArtQuality.maxSize)
+    }
+
+    // Player -> Carousel
+    val currentSongIndex = remember(currentSong?.id, currentMediaItemIndex, queue) {
+        resolveCurrentQueueIndex(
+            currentSong = currentSong,
+            currentMediaItemIndex = currentMediaItemIndex,
+            queue = queue
+        )
+    }
+    val requestedTargetIndex = remember(requestedScrollIndex, queue) {
+        requestedScrollIndex?.takeIf { it in queue.indices }
+    }
+    val effectiveTargetIndex = requestedTargetIndex ?: currentSongIndex
+    val carouselItemKeys = remember(queue) {
+        buildQueueOccurrenceKeys(queue)
     }
 
     PrefetchAlbumNeighbors(
@@ -75,38 +91,39 @@ fun AlbumCarouselSection(
         pagerState = carouselState.pagerState,
         queue = queue,
         radius = 1,
-        targetSize = targetSize
+        targetSize = targetSize,
+        anchorIndex = effectiveTargetIndex
     )
-
-    // Player -> Carousel
-    val currentSongIndex = remember(currentSong?.id, queue) {
-        val songId = currentSong?.id ?: return@remember 0
-        queue.indexOfFirst { it.id == songId }
-            .takeIf { it >= 0 }
-            ?: queue.indexOf(currentSong)
-                .takeIf { it >= 0 }
-                ?: 0
-    }
-    val requestedTargetIndex = remember(requestedScrollIndex, queue) {
-        requestedScrollIndex?.takeIf { it in queue.indices }
-    }
-    val effectiveTargetIndex = requestedTargetIndex ?: currentSongIndex
     var ignoreNextSettledSelectionForPage by remember { mutableStateOf<Int?>(null) }
     var programmaticScrollInProgress by remember { mutableStateOf(false) }
+    var lastSettledSongId by remember { mutableStateOf(currentSong?.id) }
     LaunchedEffect(effectiveTargetIndex, requestedTargetIndex, queue) {
         snapshotFlow { carouselState.pagerState.isScrollInProgress }
             .first { !it }
-        if (carouselState.pagerState.currentPage != effectiveTargetIndex) {
-            if (requestedTargetIndex != null) {
-                ignoreNextSettledSelectionForPage = effectiveTargetIndex
-            }
-            programmaticScrollInProgress = true
-            try {
-                carouselState.animateScrollToItem(effectiveTargetIndex)
-            } finally {
-                programmaticScrollInProgress = false
+        
+        val currentPage = carouselState.pagerState.currentPage
+        if (currentPage != effectiveTargetIndex) {
+            val isShiftOnly = currentSong?.id != null && 
+                              currentSong.id == lastSettledSongId && 
+                              requestedTargetIndex == null
+            
+            if (isShiftOnly) {
+                // Same song moved to a new index: scroll instantly to maintain focus
+                // and avoid showing the wrong item for the duration of an animation.
+                carouselState.pagerState.scrollToPage(effectiveTargetIndex)
+            } else {
+                if (requestedTargetIndex != null) {
+                    ignoreNextSettledSelectionForPage = effectiveTargetIndex
+                }
+                programmaticScrollInProgress = true
+                try {
+                    carouselState.animateScrollToItem(effectiveTargetIndex)
+                } finally {
+                    programmaticScrollInProgress = false
+                }
             }
         }
+        lastSettledSongId = currentSong?.id
     }
 
     val hapticFeedback = LocalHapticFeedback.current
@@ -140,11 +157,11 @@ fun AlbumCarouselSection(
             itemCornerRadius = corner,
             suppressNoPeekSettleCorrection = requestedTargetIndex != null || programmaticScrollInProgress,
             carouselStyle = if (carouselState.pagerState.pageCount == 1) CarouselStyle.NO_PEEK else carouselStyle, // Handle single-item case
-            carouselWidth = availableWidth // Pass the full width for layout calculations
-        ) { index ->
-            val song = queue[index]
-            val isFocusedItem = carouselState.pagerState.currentPage == index
-            key(song.id) {
+            carouselWidth = availableWidth, // Pass the full width for layout calculations
+            itemKey = { index -> carouselItemKeys.getOrNull(index) ?: "queue_item_$index" },
+            content = { index ->
+                val song = queue[index]
+                val isFocusedItem = carouselState.pagerState.currentPage == index
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -167,6 +184,31 @@ fun AlbumCarouselSection(
                     )
                 }
             }
-        }
+        )
+    }
+}
+
+private fun resolveCurrentQueueIndex(
+    currentSong: Song?,
+    currentMediaItemIndex: Int,
+    queue: ImmutableList<Song>
+): Int {
+    val songId = currentSong?.id ?: return 0
+    if (currentMediaItemIndex in queue.indices && queue[currentMediaItemIndex].id == songId) {
+        return currentMediaItemIndex
+    }
+    return queue.indexOfFirst { it.id == songId }
+        .takeIf { it >= 0 }
+        ?: queue.indexOf(currentSong)
+            .takeIf { it >= 0 }
+        ?: 0
+}
+
+private fun buildQueueOccurrenceKeys(queue: ImmutableList<Song>): List<String> {
+    val occurrencesBySongId = HashMap<String, Int>()
+    return queue.mapIndexed { index, song ->
+        val occurrence = occurrencesBySongId.getOrDefault(song.id, 0)
+        occurrencesBySongId[song.id] = occurrence + 1
+        "queue_carousel_${song.id}_${occurrence}_${song.albumArtUriString.orEmpty().hashCode()}_$index"
     }
 }

@@ -28,6 +28,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import androidx.lifecycle.compose.currentStateAsState
+import com.theveloper.pixelplay.presentation.navigation.isMainRootRoute
 
 
 @OptIn(UnstableApi::class)
@@ -76,6 +77,12 @@ fun ScreenWrapper(
     // dim overlay would flash onto the screen the user is navigating back to.
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val isNavigationTarget = myEntry != null && currentBackStackEntry?.id == myEntry.id
+    val myRoute = myEntry?.destination?.route
+    val isMainRootScreen = isMainRootRoute(myRoute)
+    val hasVisibleNonMainRootScreen = visibleEntries.any { entry ->
+        entry.destination.route?.let { route -> !isMainRootRoute(route) } == true
+    }
+    val shouldRunDepthEffects = !isMainRootScreen || hasVisibleNonMainRootScreen
 
     // Dim Logic:
     // If I am BACKGROUND (myIndex < topIndex) -> Dim.
@@ -93,7 +100,7 @@ fun ScreenWrapper(
 
     // Declarative Animations
     // Radius: If NOT Resumed -> 32dp. (Background OR Popped)
-    val targetRadius = if (isResumed) 0f else 32f
+    val targetRadius = if (shouldRunDepthEffects && !isResumed) 32f else 0f
     val cornerRadius by animateFloatAsState(
         targetValue = targetRadius,
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
@@ -101,7 +108,7 @@ fun ScreenWrapper(
     )
 
     // Dim: If strictly behind Top -> 0.4f. Else -> 0f.
-    val targetDim = if (shouldDim) 0.4f else 0f
+    val targetDim = if (shouldRunDepthEffects && shouldDim) 0.4f else 0f
     val dimAlpha by animateFloatAsState(
         targetValue = targetDim,
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
@@ -115,10 +122,16 @@ fun ScreenWrapper(
             // the full lifecycle of the screen. Toggling the strategy between Auto and
             // Offscreen mid-transition (when cornerRadius crosses the threshold) causes the
             // RenderNode's rendering mode to flip for one frame, producing a subtle flash on
-            // the outgoing screen right as the animation starts. Only shape/clip are toggled.
+            // the outgoing screen right as the animation starts. Main root tab switches are
+            // the exception: Home/Search/Library keep the same slide/fade transition, but skip
+            // the expensive offscreen depth layer while no deeper screen is visible.
             .graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                if (cornerRadius > 0.5f) {
+                compositingStrategy = if (shouldRunDepthEffects) {
+                    CompositingStrategy.Offscreen
+                } else {
+                    CompositingStrategy.Auto
+                }
+                if (shouldRunDepthEffects && cornerRadius > 0.5f) {
                     this.shape = RoundedCornerShape(cornerRadius.dp)
                     this.clip = true
                 } else {

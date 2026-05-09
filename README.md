@@ -81,7 +81,7 @@
 
 ### ⚙️ Advanced Features
 - **Tag Editor** - Edit metadata with TagLib (MP3, FLAC, M4A support)
-- **AI Playlists** - Generate playlists with Gemini AI
+- **AI Playlists** - Generate playlists with AI (Supports Gemini, Deepseek, OpenAI, etc.)
 
 ---
 
@@ -108,7 +108,7 @@
 ## 📱 Requirements
 
 - **Android 11** (API 30) or higher
-- **4GB RAM** recommended for smooth performance
+- **6GB RAM** recommended for smooth performance
 
 ---
 

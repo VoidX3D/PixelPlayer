@@ -87,7 +87,7 @@
     <string name="presentation_batch_g_stats_avg_plays_per_track">每首平均播放</string>
     <string name="presentation_batch_g_stats_unique_tracks">不同曲目数</string>
     <string name="presentation_batch_g_stats_top_three_share_label">前 3 占比</string>
-    <string name="presentation_batch_g_stats_avatar_placeholder">?</string>
+    <string name="presentation_batch_g_stats_avatar_placeholder">\?</string>
     <string name="presentation_batch_g_device_info_title">设备信息</string>
     <string name="presentation_batch_g_device_supported_codecs_title">支持的音频编解码器</string>
     <string name="presentation_batch_g_device_section_audio_output">音频输出</string>
@@ -182,7 +182,7 @@
     <string name="presentation_batch_g_artist_group_by_album_artist">按专辑艺术家分组</string>
     <string name="presentation_batch_g_artist_group_by_album_artist_sub">将合作专辑显示在主艺术家名下</string>
     <string name="presentation_batch_g_artist_info_title">关于多艺术家解析</string>
-    <string name="presentation_batch_g_artist_info_body">PixelPlay 会使用字符分隔符（/、;、&amp;）和单词分隔符（feat.、ft.、vs.、x）拆分艺术家标签。单词分隔符匹配时不区分大小写。
+    <string name="presentation_batch_g_artist_info_body">PixelPlayer 会使用字符分隔符（/、;、&amp;）和单词分隔符（feat.、ft.、vs.、x）拆分艺术家标签。单词分隔符匹配时不区分大小写。
 
 “从标题提取艺术家”会检测歌曲标题中类似（feat. Artist）的模式。
 
@@ -267,9 +267,9 @@
     <string name="presentation_batch_g_playstore_open">打开 Play 商店</string>
     <string name="presentation_batch_g_playstore_continue_beta">继续使用测试版</string>
     <string name="presentation_batch_g_playstore_link_pending">Play 商店链接将通过 GitHub 配置启用。</string>
-    <string name="presentation_batch_g_playstore_title">PixelPlay 现已上架 Google Play</string>
+    <string name="presentation_batch_g_playstore_title">PixelPlayer 现已上架 Google Play</string>
     <string name="presentation_batch_g_playstore_body">你可以在 Google Play 的稳定渠道获取正式版更新，同时我们仍会继续提供测试版构建。</string>
-    <string name="presentation_batch_g_playstore_app_name">PixelPlay</string>
+    <string name="presentation_batch_g_playstore_app_name">PixelPlayer</string>
     <string name="presentation_batch_g_playstore_release_announcement">发布公告</string>
     <string name="presentation_batch_g_playstore_coming_soon">即将推出</string>
     <string name="presentation_batch_g_genre_sort_title">排序与播放</string>
@@ -311,7 +311,7 @@
     <string name="presentation_batch_g_album_sel_queue_hint">加入队列并播放会遵循你的选择顺序。</string>
     <string name="presentation_batch_g_album_sel_limit">限制：每次最多选择 %1$d 张专辑。</string>
     <string name="presentation_batch_g_album_sel_add_queue_play">加入队列并播放</string>
-    <string name="presentation_batch_g_app_name">PixelPlay</string>
+    <string name="presentation_batch_g_app_name">PixelPlayer</string>
     <string name="presentation_batch_g_app_tagline">音乐播放器</string>
     <string name="presentation_batch_g_brick_high">最高 %1$d</string>
     <string name="presentation_batch_g_brick_cd_close">关闭</string>

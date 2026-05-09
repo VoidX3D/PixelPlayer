@@ -47,7 +47,7 @@ import javax.inject.Singleton
 
 @Singleton
 class CastTransferStateHolder @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val castStateHolder: CastStateHolder,
     private val playbackStateHolder: PlaybackStateHolder,
     private val dualPlayerEngine: DualPlayerEngine, // For local player control during transfer

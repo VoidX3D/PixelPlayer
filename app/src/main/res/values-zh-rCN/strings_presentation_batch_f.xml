@@ -154,7 +154,7 @@
     <string name="presentation_batch_f_percent">%1$d%%</string>
     <string name="presentation_batch_f_status_bullet_step">%1$s • %2$s</string>
     <string name="presentation_batch_f_dot_space_suffix"> · %1$s</string>
-    <string name="presentation_batch_f_unknown_short">?</string>
+    <string name="presentation_batch_f_unknown_short">\?</string>
 
     <!-- Telegram login -->
     <string name="presentation_batch_f_telegram_login_title">Telegram 登录</string>

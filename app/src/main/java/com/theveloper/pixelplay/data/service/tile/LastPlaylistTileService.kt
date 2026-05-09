@@ -112,6 +112,7 @@ class LastPlaylistTileService : TileService() {
                 }
 
                 val intent = Intent(this@LastPlaylistTileService, MainActivity::class.java).apply {
+                    setPackage(packageName)
                     action = MainActivityIntentContract.ACTION_OPEN_PLAYLIST
                     putExtra(MainActivityIntentContract.EXTRA_PLAYLIST_ID, playlistId)
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP

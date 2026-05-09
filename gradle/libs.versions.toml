@@ -1,116 +1,125 @@
 [versions]
 accompanistDrawablepainter = "0.37.3"
-agp = "9.1.1"
+agp = "9.2.1"
 app = "1.7.0"
-googleGenai = "1.11.0"
-googlePlayServicesCast = "21.5.0"
-animation = "1.10.4"
-appcompat = "1.7.0"
+googleGenai = "1.53.0"
+googlePlayServicesCast = "22.3.1"
+animation = "1.11.1"
+appcompat = "1.7.1"
 capturable = "3.0.1"
 codeview = "1.3.9"
 coilCompose = "2.7.0"
 composeDnd = "0.4.0"
 composeMaterialIcons = "1.7.8"
-composeUi = "1.10.4"
+composeUi = "1.11.1"
 constraintlayoutCompose = "1.1.1"
-coreSplashscreen = "1.0.1"
-desugarJdkLibs = "2.1.4"
-duktapeAndroid = "1.3.0"
-foundation = "1.10.4"
+coreSplashscreen = "1.2.0"
+desugarJdkLibs = "2.1.5"
+duktapeAndroid = "1.4.0"
+foundation = "1.11.1"
 glance = "1.2.0-rc01"
 graphicsShapes = "1.1.0"
-gson = "2.13.2"
+gson = "2.14.0"
 hiltAndroid = "2.59.2"
-hiltNavigationCompose = "1.2.0"
-ktor = "2.3.12"
-kotlin = "2.1.0"
-coreKtx = "1.16.0"
+hiltNavigationCompose = "1.3.0"
+ktor = "3.4.3"
+kotlin = "2.3.21"
+coreKtx = "1.18.0"
 junit = "4.13.2"
-junitVersion = "1.2.1"
-junitJupiter = "5.11.4"
-espressoCore = "3.6.1"
-kotlinx-coroutines = "1.8.0"
-kotlinxCollectionsImmutable = "0.3.7"
-kotlinxSerializationJson = "1.8.0"
-lifecycleRuntimeKtx = "2.9.0"
-activityCompose = "1.10.1"
-composeBom = "2025.05.00"
+junitVersion = "1.3.0"
+junitJupiter = "6.0.3"
+espressoCore = "3.7.0"
+kotlinx-coroutines = "1.10.2"
+kotlinxCollectionsImmutable = "0.4.0"
+kotlinxSerializationJson = "1.11.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.13.0"
+composeBom = "2026.05.00"
 material = "1.13.0"
-material3 = "1.5.0-alpha15"
-media = "1.7.1"
-media3Session = "1.9.2"
-media3Transformer = "1.9.2"
+material3 = "1.5.0-alpha19"
+media = "1.8.0"
+media3Session = "1.10.0"
+media3Transformer = "1.10.0"
 mediaRouter = "1.8.1"
-navigationCompose = "2.9.7"
+navigationCompose = "2.9.8"
 paletteKtx = "1.0.0"
-protobufJavalite = "3.25.1"
+protobufJavalite = "4.34.1"
 pytorch_android = "2.1.0"
 pytorch_android_torchvision = "2.1.0"
 reorderable = "0.9.6"
-reorderables = "3.0.0"
-paging = "3.4.1"
-roomCompiler = "2.7.1"
-roomKtx = "2.7.1"
-roomRuntime = "2.7.1"
+reorderables = "3.1.0"
+paging = "3.5.0"
+roomCompiler = "2.8.4"
+roomKtx = "2.8.4"
+roomRuntime = "2.8.4"
 accompanist = "0.37.3"
-checkerframework = "3.53.1" # O la versión más reciente que encuentres
-taglib = "1.0.5"
+checkerframework = "4.1.0" # O la versión más reciente que encuentres
+taglib = "1.0.6"
 jaudiotagger = "3.0.1"
 vorbisjava = "0.8"
-datastore = "1.1.1"
-credentials = "1.5.0"
+datastore = "1.2.1"
+credentials = "1.6.0"
 googleid = "1.2.0"
-androidxTestCore = "1.6.1"
-junit5 = "5.11.4"
+androidxTestCore = "1.7.0"
+junit5 = "6.0.3"
 kuromoji = "0.9.0"
 pinyin4j = "2.5.1"
-securityCrypto = "1.1.0-alpha06"
+securityCrypto = "1.1.0"
+netty = "4.2.13.Final"
+bouncycastle = "1.84"
+commons-lang3 = "3.20.0"
+jdom2 = "2.0.6.1"
+jose4j = "0.9.6"
+httpclient = "4.5.14"
 
 # DI
 dagger = "2.59.2"
 javax-inject = "1"
 
 # Annotations procesing
-ksp = "2.1.0-1.0.29"
+ksp = "2.3.7"
 smoothCornerRectAndroidCompose = "v1.0.0"
 spleeterAndroidIos = "1.0.2"
 tensorflowLite = "2.17.0"
 tensorflowLiteSelectTfOps = "2.16.1"
 tensorflowLiteSelectTfOpsVersion = "2.16.1"
 tensorflowLiteSupport = "0.5.0"
-wavySlider = "2.0.0"
-workRuntimeKtx = "2.10.1"
+wavySlider = "2.2.0"
+workRuntimeKtx = "2.11.2"
 composeTesting = "1.0.0-alpha03"
 timber = "5.0.1"
 generativeai = "0.9.0"
-mockk = "1.13.13"
-turbine = "1.1.0"
-truth = "1.4.4"
+mockk = "1.14.9"
+turbine = "1.2.1"
+truth = "1.4.5"
 
 retrofit = "3.0.0"
 okhttp = "5.3.2"
 mediarouterVersion = "1.8.1"
-playServicesCastFramework = "22.3.0"
-navigationRuntimeKtx = "2.9.7"
+playServicesCastFramework = "22.3.1"
+navigationRuntimeKtx = "2.9.8"
 uiautomator = "2.3.0"
 benchmarkMacroJunit4 = "1.4.1"
-baselineprofile = "1.4.1"
+baselineprofile = "1.5.0-alpha06"
 profileinstaller = "1.4.1"
 pagingCommon = "3.3.6"
 
 # Wear OS
 horologist = "0.7.15"
-wearCompose = "1.6.0-beta01"
-playServicesWearable = "19.0.0"
+wearCompose = "1.6.1"
+playServicesWearable = "20.0.1"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
 
+lifecycleprocess = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleRuntimeKtx" }
+junitplatformlauncher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junitJupiter" }
+worktesting = { group = "androidx.work", name = "work-testing", version.ref = "workRuntimeKtx" }
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 tdlib = { module = "com.github.tdlibx:td", version = "1.8.56" }
-androidx-paging-common = { group = "androidx.paging", name = "paging-common", version = "3.3.6" }
+androidx-paging-common = { group = "androidx.paging", name = "paging-common", version = "3.5.0" }
 androidx-app = { module = "androidx.car.app:app", version.ref = "app" }
 androidx-app-projected = { module = "androidx.car.app:app-projected", version.ref = "app" }
 androidx-media = { module = "androidx.media:media", version.ref = "media" }
@@ -128,6 +137,7 @@ androidx-glance = { module = "androidx.glance:glance", version.ref = "glance" }
 androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
 androidx-graphics-shapes = { module = "androidx.graphics:graphics-shapes", version.ref = "graphicsShapes" }
+androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "hiltNavigationCompose" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltNavigationCompose" }
 androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "composeMaterialIcons" }
@@ -136,7 +146,7 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3Session" }
 androidx-media3-transformer = { module = "androidx.media3:media3-transformer", version.ref = "media3Transformer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Session" }
-androidx-media3-exoplayer-ffmpeg = { module = "org.jellyfin.media3:media3-ffmpeg-decoder", version = "1.8.0+1" }
+androidx-media3-exoplayer-ffmpeg = { module = "org.jellyfin.media3:media3-ffmpeg-decoder", version = "1.9.0+1" }
 androidx-media-router = { module = "androidx.mediarouter:mediarouter", version.ref = "mediaRouter" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
@@ -247,6 +257,17 @@ kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref
 
 # Pinyin
 pinyin4j-core = { module = "com.belerweb:pinyin4j", version.ref = "pinyin4j" }
+# Security/Vulnerability fixes (Constraints)
+netty-common = { module = "io.netty:netty-common", version.ref = "netty" }
+netty-handler = { module = "io.netty:netty-handler", version.ref = "netty" }
+netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "netty" }
+netty-codec-http2 = { module = "io.netty:netty-codec-http2", version.ref = "netty" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+jdom2 = { module = "org.jdom:jdom2", version.ref = "jdom2" }
+jose4j = { module = "org.bitbucket.b_c:jose4j", version.ref = "jose4j" }
+apache-httpclient = { module = "org.apache.httpcomponents:httpclient", version.ref = "httpclient" }
 
 
 [plugins]

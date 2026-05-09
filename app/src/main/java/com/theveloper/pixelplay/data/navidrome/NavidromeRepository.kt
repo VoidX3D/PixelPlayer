@@ -708,7 +708,7 @@ class NavidromeRepository @Inject constructor(
                     dateAdded = navidromeSong.dateAdded.takeIf { it > 0 }
                         ?: System.currentTimeMillis(),
                     mimeType = navidromeSong.mimeType,
-                    bitrate = navidromeSong.bitRate,
+                    bitrate = navidromeSong.bitRate?.let { it * 1000 },
                     sampleRate = null,
                     telegramChatId = null,
                     telegramFileId = null,
@@ -814,6 +814,40 @@ class NavidromeRepository @Inject constructor(
         }
     }
 
+    // ─── Playback Reporting ──────────────────────────────────────────────
+
+    suspend fun reportPlayback(
+        navidromeId: String,
+        positionMs: Long,
+        state: String,
+        playbackRate: Float = 1.0f,
+        ignoreScrobble: Boolean = false
+    ): Result<Unit> {
+        if (!isLoggedIn) return Result.failure(Exception("Not logged in"))
+        val result = api.reportPlayback(
+            mediaId = navidromeId,
+            positionMs = positionMs,
+            state = state,
+            playbackRate = playbackRate,
+            ignoreScrobble = ignoreScrobble
+        )
+        // Fallback to standard scrobble if reportPlayback is not supported.
+        // PS: The latest release of Navidrome currently doesn't support the
+        // standard OpenSubsonic API (reportPlayback) at the time of writing
+        // See: (https://github.com/navidrome/navidrome/pull/5442), so this is required.
+        if (result.isFailure && result.exceptionOrNull()?.message?.contains("404") == true) {
+            if (state == "playing" || state == "starting") {
+                return api.scrobble(id = navidromeId, submission = false)
+            }
+        }
+        return result
+    }
+
+    suspend fun scrobble(navidromeId: String, submission: Boolean = true): Result<Unit> {
+        if (!isLoggedIn) return Result.failure(Exception("Not logged in"))
+        return api.scrobble(id = navidromeId, submission = submission)
+    }
+
     // ─── Delete ────────────────────────────────────────────────────────────
 
     suspend fun deletePlaylist(playlistId: String) {
@@ -843,11 +877,12 @@ fun NavidromeSong.toSong(): Song {
         duration = duration,
         genre = genre,
         mimeType = resolvedMimeType,
-        bitrate = bitRate,
+        bitrate = bitRate?.let { it * 1000 },
         sampleRate = null,
         year = year,
         trackNumber = trackNumber,
         dateAdded = System.currentTimeMillis(),
-        isFavorite = false
+        isFavorite = false,
+        navidromeId = id
     )
 }

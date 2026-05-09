@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.data.network.netease
 
+import android.annotation.SuppressLint
 import android.util.Base64
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
@@ -7,7 +8,7 @@ import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.spec.X509EncodedKeySpec
 import java.util.Locale
-import java.util.Random
+import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -35,30 +36,36 @@ object NeteaseEncryption {
         -----END PUBLIC KEY-----
     """
 
+    private val secureRandom = SecureRandom()
+
     private fun randomKey(): String {
-        val random = Random()
-        return buildString { repeat(16) { append(BASE62[random.nextInt(BASE62.length)]) } }
+        return buildString { repeat(16) { append(BASE62[secureRandom.nextInt(BASE62.length)]) } }
     }
 
     // ─── AES ───────────────────────────────────────────────────────────
 
+    @SuppressLint("GetInstance")
     private fun aesEncrypt(text: String, key: String, iv: String, mode: String, format: String): String {
         val secretKey = SecretKeySpec(key.toByteArray(StandardCharsets.UTF_8), "AES")
-        val cipher = when (mode.lowercase(Locale.getDefault())) {
+        val cipher = when (mode.lowercase(Locale.ROOT)) {
             "cbc" -> {
-                Cipher.getInstance("AES/CBC/PKCS5Padding").apply {
+                // CBC with PKCS#7 is required for compatibility with the Netease API
+                // codeql[java/weak-cryptographic-algorithm]
+                Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
                     init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(iv.toByteArray(StandardCharsets.UTF_8)))
                 }
             }
             "ecb" -> {
-                Cipher.getInstance("AES/ECB/PKCS5Padding").apply {
+                // ECB with PKCS#7 is required for compatibility with the Netease API
+                // codeql[java/weak-cryptographic-algorithm]
+                Cipher.getInstance("AES/ECB/PKCS7Padding").apply {
                     init(Cipher.ENCRYPT_MODE, secretKey)
                 }
             }
             else -> throw IllegalArgumentException("Unknown AES mode: $mode")
         }
         val encrypted = cipher.doFinal(text.toByteArray(StandardCharsets.UTF_8))
-        return when (format.lowercase(Locale.getDefault())) {
+        return when (format.lowercase(Locale.ROOT)) {
             "base64" -> Base64.encodeToString(encrypted, Base64.NO_WRAP)
             "hex" -> encrypted.joinToString("") { "%02x".format(it) }
             else -> throw IllegalArgumentException("Unknown format: $format")
@@ -73,7 +80,7 @@ object NeteaseEncryption {
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
                 .replace("\\s".toRegex(), "")
-            val keyBytes = java.util.Base64.getDecoder().decode(cleanedKey)
+            val keyBytes = Base64.decode(cleanedKey, Base64.DEFAULT)
             val keySpec = X509EncodedKeySpec(keyBytes)
             val pubKey = KeyFactory.getInstance("RSA")
                 .generatePublic(keySpec) as java.security.interfaces.RSAPublicKey
@@ -127,7 +134,7 @@ object NeteaseEncryption {
             md5Hex(String.format(EAPI_SALT, apiUrl, data))
         )
         val cipher = aesEncrypt(message, EAPI_KEY, "", "ecb", "hex")
-            .uppercase(Locale.getDefault())
+            .uppercase(Locale.ROOT)
         return mapOf("params" to cipher)
     }
 

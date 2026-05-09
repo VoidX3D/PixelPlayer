@@ -61,6 +61,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -169,6 +170,8 @@ class MainActivity : ComponentActivity() {
     lateinit var userPreferencesRepository: UserPreferencesRepository // Inject here
     @Inject
     lateinit var themePreferencesRepository: ThemePreferencesRepository
+    @Inject
+    lateinit var syncManager: SyncManager
     // For handling shortcut navigation - using StateFlow so composables can observe changes
     private val _pendingPlaylistNavigation = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val _pendingShuffleAll = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -207,6 +210,21 @@ class MainActivity : ComponentActivity() {
 
         // LEER SEÑAL DE BENCHMARK
         val isBenchmarkMode = intent.getBooleanExtra("is_benchmark", false)
+        val shouldBenchmarkRebuildDatabase =
+            isBenchmarkMode && intent.getBooleanExtra("benchmark_rebuild_database", false)
+        Log.i(
+            "PixelPlayBenchmark",
+            "onCreate benchmark=$isBenchmarkMode rebuildDatabase=$shouldBenchmarkRebuildDatabase"
+        )
+        if (shouldBenchmarkRebuildDatabase) {
+            lifecycleScope.launch {
+                userPreferencesRepository.setInitialSetupDone(true)
+                Log.i("PixelPlayBenchmark", "Enqueueing benchmark database rebuild")
+                syncManager.rebuildDatabase()
+                delay(1_500L)
+                playerViewModel.prepareBenchmarkPlayerFromLibrary()
+            }
+        }
 
         setContent {
             val systemDarkTheme = isSystemInDarkTheme()
