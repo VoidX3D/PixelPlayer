@@ -133,6 +133,7 @@ import com.theveloper.pixelplay.utils.ValidatedLyricsImport
 import com.theveloper.pixelplay.utils.formatDuration
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
@@ -1988,7 +1989,13 @@ private fun DelayedContent(
                 return@LaunchedEffect
             }
 
-            isDelayGateOpen = isExpandedOverride
+            if (isExpandedOverride) {
+                isDelayGateOpen = true
+            } else {
+                snapshotFlow { expansionFractionProvider().coerceIn(0f, 1f) }
+                    .first { fraction -> fraction <= 0.001f }
+                isDelayGateOpen = false
+            }
             return@LaunchedEffect
         }
 

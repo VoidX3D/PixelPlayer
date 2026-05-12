@@ -12,6 +12,7 @@ object GDriveConstants {
         "audio/mpeg", "audio/mp3", "audio/flac", "audio/wav", "audio/x-wav",
         "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg",
         "audio/opus", "audio/x-aiff", "audio/alac", "audio/aiff",
-        "audio/x-flac", "audio/vnd.wave"
+        "audio/x-flac", "audio/vnd.wave", "audio/midi", "audio/x-midi",
+        "audio/sp-midi", "audio/x-mid"
     )
 }

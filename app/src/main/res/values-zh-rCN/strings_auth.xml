@@ -4,7 +4,7 @@
     <string name="auth_cd_back">返回</string>
     <string name="auth_show_password">显示密码</string>
     <string name="auth_hide_password">隐藏密码</string>
-    <string name="auth_connecting">正在连接…</string>
+    <string name="auth_connecting">正在连接……</string>
     <string name="auth_connect">连接</string>
     <string name="auth_connection_details">连接信息</string>
     <string name="auth_connection_details_subtitle">输入你的服务器 URL 和账户凭据。</string>
@@ -57,7 +57,7 @@
     <string name="auth_web_cd_web_forward">网页前进</string>
     <string name="auth_web_cd_refresh">刷新</string>
     <string name="auth_web_cd_open_home">打开主页</string>
-    <string name="auth_saving">正在保存…</string>
+    <string name="auth_saving">正在保存……</string>
     <string name="auth_done">完成</string>
     <string name="auth_web_retry">重试</string>
     <string name="auth_dial_plus">+</string>

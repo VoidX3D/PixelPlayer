@@ -2718,12 +2718,6 @@ class PlayerViewModel @Inject constructor(
                     val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
                     themeStateHolder.extractAndGenerateColorScheme(uri, currentUri)
                 }
-                listeningStatsTracker.onSongChanged(
-                    song = song,
-                    positionMs = initialPosition,
-                    durationMs = resolvedDuration,
-                    isPlaying = playerCtrl.isPlaying
-                )
                 loadLyricsForCurrentSong()
                 if (playerCtrl.isPlaying) {
                     _isSheetVisible.value = true
@@ -2757,10 +2751,6 @@ class PlayerViewModel @Inject constructor(
                         playWhenReady = playerCtrl.playWhenReady
                     )
                 }
-                listeningStatsTracker.onPlayStateChanged(
-                    isPlaying = isPlaying,
-                    positionMs = playerCtrl.currentPosition.coerceAtLeast(0L)
-                )
                 if (isPlaying) {
                     _isSheetVisible.value = true
                     clearPreparingSongIfMatching(playerCtrl.currentMediaItem?.mediaId)
@@ -2805,7 +2795,6 @@ class PlayerViewModel @Inject constructor(
                     }
 
                     mediaItem?.let { transitionedItem ->
-                        listeningStatsTracker.finalizeCurrentSession()
                         val song = resolveSongFromMediaItem(transitionedItem)
                         
                         // Offline check for Telegram songs
@@ -2850,12 +2839,6 @@ class PlayerViewModel @Inject constructor(
                         )
 
                         song?.let { currentSongValue ->
-                            listeningStatsTracker.onSongChanged(
-                                song = currentSongValue,
-                                positionMs = transitionPosition,
-                                durationMs = resolvedDuration,
-                                isPlaying = playerCtrl.isPlaying
-                            )
                             viewModelScope.launch {
                                 val uri = currentSongValue.albumArtUriString?.toUri()
                                 val currentUri = playbackStateHolder.stablePlayerState.value.currentSong?.albumArtUriString
@@ -2915,16 +2898,11 @@ class PlayerViewModel @Inject constructor(
                     )
                     syncPlaybackPositionFromPlayer(playerCtrl.currentMediaItem?.mediaId, readyPosition)
                     playbackStateHolder.updateStablePlayerState { it.copy(totalDuration = resolvedDuration) }
-                    listeningStatsTracker.updateDuration(resolvedDuration)
                     startProgressUpdates()
-                }
-                if (playbackState == Player.STATE_ENDED) {
-                    listeningStatsTracker.finalizeCurrentSession()
                 }
                 if (playbackState == Player.STATE_IDLE && playerCtrl.mediaItemCount == 0) {
                     clearPreparingSongIfMatching()
                     if (!isCastConnecting.value && !isRemotePlaybackActive.value) {
-                        listeningStatsTracker.onPlaybackStopped()
                         lyricsStateHolder.cancelLoading()
                         playbackStateHolder.updateStablePlayerState {
                             it.copy(
@@ -4340,7 +4318,6 @@ class PlayerViewModel @Inject constructor(
         remoteQueueLoadJob?.cancel()
         castSongUiSyncJob?.cancel()
         stopProgressUpdates()
-        listeningStatsTracker.onCleared()
         castTransferStateHolder.onCleared()
         castStateHolder.onCleared()
         searchStateHolder.onCleared()

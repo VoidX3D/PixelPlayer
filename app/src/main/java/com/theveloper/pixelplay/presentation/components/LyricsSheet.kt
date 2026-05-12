@@ -5,6 +5,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.R
 import androidx.activity.compose.BackHandler
+import com.theveloper.pixelplay.presentation.components.scoped.LyricsPredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.heightIn
@@ -17,6 +18,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.util.lerp
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -59,6 +62,7 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -118,7 +122,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.theveloper.pixelplay.data.preferences.dataStore
-import androidx.compose.ui.graphics.TransformOrigin
 
 import kotlin.math.abs
 import kotlin.math.pow
@@ -251,7 +254,34 @@ fun LyricsSheet(
     highlightOffsetDp: Dp = 32.dp,
     autoscrollAnimationSpec: AnimationSpec<Float>? = null // null = auto-detect from preference
 ) {
-    BackHandler { onBackClick() }
+    // ─── Enter / Exit animation state ────────────────────────────────────────
+    // Mirrors the player-sheet pattern: a plain Float in state drives graphicsLayer
+    // at draw-phase (no recomposition per frame). 0f = fully visible, 1f = dismissed.
+    var backProgress by remember { mutableFloatStateOf(1f) }
+
+    // Draw-phase lambda provider — read only inside graphicsLayer so layout is never
+    // re-triggered during the gesture (same technique as SheetVisualState).
+    val backProgressProvider = rememberUpdatedState(backProgress)
+
+    // Enter animation: slide up from +6 % height + fade in.
+    LaunchedEffect(Unit) {
+        val anim = Animatable(1f)
+        anim.animateTo(
+            targetValue = 0f,
+            animationSpec = spring(
+                stiffness = Spring.StiffnessMediumLow,
+                dampingRatio = Spring.DampingRatioLowBouncy
+            )
+        ) { backProgress = value }
+    }
+
+    // Predictive-back (Android 13+) or plain back on older devices.
+    LyricsPredictiveBackHandler(
+        enabled = true,
+        onProgressChanged = { backProgress = it },
+        onBack = onBackClick
+    )
+
     val stablePlayerState by stablePlayerStateFlow.collectAsStateWithLifecycle()
     val sheetColors = remember(colorScheme) { lyricsSheetColors(colorScheme) }
     val backgroundColor = sheetColors.controlContainer
@@ -489,6 +519,15 @@ fun LyricsSheet(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
+            // ─── Enter / Predictive-back exit transformation ──────────────────
+            // Read backProgressProvider inside graphicsLayer (draw-phase) — no layout
+            // pass is triggered per gesture frame, same pattern as SheetVisualState.
+            // 0f = fully visible, 1f = fully dismissed.
+            // Effect: slides down 8 % of height (no fade).
+            .graphicsLayer {
+                val p = backProgressProvider.value
+                translationY = androidx.compose.ui.util.lerp(0f, size.height * 0.08f, p)
+            }
             .clip(RoundedCornerShape(32.dp))
             .pointerInput(Unit) {
                 detectDragGestures(
@@ -866,6 +905,8 @@ fun LyricsSheet(
                     onBackgroundColor = onBackgroundColor,
                     accentColor = accentColor,
                     onAccentColor = onAccentColor,
+                    // Pass progress so the back button animates with the gesture (draw-phase).
+                    backProgressProvider = { backProgressProvider.value },
                 )
              }
             }

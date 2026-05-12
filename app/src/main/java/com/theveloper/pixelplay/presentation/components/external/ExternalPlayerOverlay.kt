@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import coil.size.Size
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.preferences.sanitizeNavBarCornerRadius
 import com.theveloper.pixelplay.presentation.components.OptimizedAlbumArt
 import com.theveloper.pixelplay.presentation.components.WavyMusicSlider
 import com.theveloper.pixelplay.presentation.components.player.AnimatedPlaybackControls
@@ -74,7 +75,8 @@ fun ExternalPlayerOverlay(
     val playbackPosition by playerViewModel.currentPlaybackPosition.collectAsStateWithLifecycle()
     val remotePosition by playerViewModel.remotePosition.collectAsStateWithLifecycle()
     val isRemotePlaybackActive by playerViewModel.isRemotePlaybackActive.collectAsStateWithLifecycle()
-    val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
+    val navBarCornerRadiusRaw by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
+    val navBarCornerRadius = sanitizeNavBarCornerRadius(navBarCornerRadiusRaw)
     val currentSong = stablePlayerState.currentSong
 
     var sheetVisible by remember { mutableStateOf(true) }

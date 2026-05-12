@@ -51,7 +51,7 @@
     <string name="auth_web_exit_confirm_body">You can come back later. Current page state will be discarded when closing.</string>
     <string name="auth_exit">Exit</string>
     <string name="auth_stay">Stay</string>
-    <string name="auth_login_netease_title">Login to NetEase</string>
+    <string name="auth_login_netease_title">Login to NetEase Cloud Music</string>
     <string name="auth_login_qq_title">Login to QQ Music</string>
     <string name="auth_web_cd_web_back">Web back</string>
     <string name="auth_web_cd_web_forward">Web forward</string>

@@ -11,9 +11,11 @@
     <string name="presentation_batch_f_sync_phase_processing_tracks">正在处理曲目</string>
     <string name="presentation_batch_f_sync_phase_saving_db">正在保存到数据库</string>
     <string name="presentation_batch_f_sync_phase_scanning_lrc">正在扫描歌词文件</string>
+    <string name="presentation_batch_f_sync_phase_cleaning_cache">正在清理专辑封面缓存</string>
+    <string name="presentation_batch_f_sync_phase_syncing_cloud">正在同步云端资源</string>
     <string name="presentation_batch_f_sync_phase_completing">正在完成同步</string>
     <string name="presentation_batch_f_sync_progress_detailed">%1$s • %2$d%% (%3$d/%4$d)</string>
-    <string name="presentation_batch_f_sync_progress_indeterminate">%1$s…</string>
+    <string name="presentation_batch_f_sync_progress_indeterminate">%1$s……</string>
     <string name="presentation_batch_f_refresh_lyrics_title">刷新歌词</string>
     <string name="presentation_batch_f_refresh_lyrics_subtitle">使用 lrclib 自动为所有歌曲获取歌词。</string>
     <string name="presentation_batch_f_cd_refresh_lyrics">刷新歌词</string>
@@ -22,7 +24,7 @@
     <string name="presentation_batch_f_save">保存</string>
     <string name="presentation_batch_f_saved">已保存！</string>
     <string name="presentation_batch_f_preset_prompts">预设提示词</string>
-    <string name="presentation_batch_f_enter_system_prompt_placeholder">输入系统提示词…</string>
+    <string name="presentation_batch_f_enter_system_prompt_placeholder">输入系统提示词……</string>
     <string name="presentation_batch_f_reset">重置</string>
     <string name="presentation_batch_f_ai_preset_professional_curator_name">专业策展人</string>
     <string name="presentation_batch_f_ai_preset_professional_curator_prompt">你是“Vibe-Engine”，世界级音乐策展人和声音流动大师。你的目标是构建无缝、高保真的聆听体验。优先考虑和声兼容性、合理的 BPM 过渡，以及在熟悉最爱与有品位、基于逻辑的发现之间取得精致平衡。</string>
@@ -159,13 +161,13 @@
     <!-- Telegram login -->
     <string name="presentation_batch_f_telegram_login_title">Telegram 登录</string>
     <string name="presentation_batch_f_telegram_edit_number_chip">你正在编辑手机号。重新发送验证码将替换上一次发送的验证码。</string>
-    <string name="presentation_batch_f_working">处理中…</string>
-    <string name="presentation_batch_f_telegram_status_initializing">正在初始化 Telegram…</string>
-    <string name="presentation_batch_f_telegram_status_logging_out">正在退出登录…</string>
-    <string name="presentation_batch_f_telegram_status_closing">正在关闭会话…</string>
+    <string name="presentation_batch_f_working">处理中……</string>
+    <string name="presentation_batch_f_telegram_status_initializing">正在初始化 Telegram……</string>
+    <string name="presentation_batch_f_telegram_status_logging_out">正在退出登录……</string>
+    <string name="presentation_batch_f_telegram_status_closing">正在关闭会话……</string>
     <string name="presentation_batch_f_telegram_status_closed">会话已关闭。重新打开登录以继续。</string>
-    <string name="presentation_batch_f_telegram_status_preparing">正在准备安全的 Telegram 会话…</string>
-    <string name="presentation_batch_f_telegram_status_waiting">正在等待 Telegram 响应…</string>
+    <string name="presentation_batch_f_telegram_status_preparing">正在准备安全的 Telegram 会话……</string>
+    <string name="presentation_batch_f_telegram_status_waiting">正在等待 Telegram 响应……</string>
     <string name="presentation_batch_f_connect_telegram">连接 Telegram</string>
     <string name="presentation_batch_f_connect_telegram_subtitle">提供完善的错误处理、超时控制和可编辑步骤的登录流程。</string>
     <string name="presentation_batch_f_phone_number_title">手机号</string>
@@ -185,7 +187,7 @@
     <string name="presentation_batch_f_two_step_password_subtitle">输入你的 Telegram 密码。你仍可返回修改手机号。</string>
     <string name="presentation_batch_f_password_label">密码</string>
     <string name="presentation_batch_f_verify_password">验证密码</string>
-    <string name="presentation_batch_f_please_wait">请稍候…</string>
+    <string name="presentation_batch_f_please_wait">请稍候……</string>
 
     <!-- Telegram dashboard -->
     <string name="presentation_batch_f_telegram_channels_title">Telegram 频道</string>
@@ -213,7 +215,7 @@
     <string name="presentation_batch_f_add_channel_sheet_subtitle">搜索公开的 Telegram 频道以同步其中的音乐</string>
     <string name="presentation_batch_f_channel_search_placeholder">\@频道名 或链接</string>
     <string name="presentation_batch_f_cd_search">搜索</string>
-    <string name="presentation_batch_f_searching">搜索中…</string>
+    <string name="presentation_batch_f_searching">搜索中……</string>
     <string name="presentation_batch_f_search_channel_title">搜索频道</string>
     <string name="presentation_batch_f_search_channel_body">输入公开频道的用户名或链接\n以同步其中的音频文件</string>
     <string name="presentation_batch_f_done">完成</string>

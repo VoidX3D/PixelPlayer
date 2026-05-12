@@ -51,7 +51,7 @@
     <string name="setcat_sync_scanning">同步与扫描</string>
     <string name="setcat_sync_full_rescan_label">正在执行完整重扫</string>
     <string name="toast_library_sync_finished">媒体库同步完成</string>
-    <string name="toast_full_rescan_started">完整重扫已开始…</string>
+    <string name="toast_full_rescan_started">完整重扫已开始……</string>
     <string name="setcat_auto_scan_lrc_title">自动扫描 .lrc 文件</string>
     <string name="setcat_auto_scan_lrc_subtitle">在媒体库同步时自动扫描同文件夹中的 .lrc 文件并进行关联。</string>
     <string name="setcat_lyrics_management">歌词管理</string>
@@ -190,7 +190,7 @@
     <string name="setcat_ai_source_glm">Zhipu AI Open Platform (bigmodel.cn)</string>
     <string name="setcat_ai_source_openai">OpenAI Platform (platform.openai.com)</string>
     <string name="setcat_model_selection">模型选择</string>
-    <string name="setcat_loading_models">正在加载可用模型…</string>
+    <string name="setcat_loading_models">正在加载可用模型………</string>
     <string name="setcat_ai_model_label">AI 模型</string>
     <string name="setcat_ai_model_desc">选择一个模型。</string>
     <string name="setcat_prompt_behavior">提示词行为</string>
@@ -233,7 +233,7 @@
     <string name="backup_dialog_supporting_export">精确选择你想包含在备份包中的内容。</string>
     <string name="backup_confirm_export_pxpl">导出 .pxpl</string>
     <string name="backup_sections_selected_format">已选择 %1$d/%2$d 个部分</string>
-    <string name="backup_transfer_in_progress">正在传输…</string>
+    <string name="backup_transfer_in_progress">正在传输……</string>
     <string name="backup_exporting">导出中</string>
     <string name="backup_importing">导入中</string>
     <string name="backup_dialog_creating">正在创建备份</string>
@@ -243,12 +243,12 @@
 
     <string name="dialog_palette_regenerated">已为 %1$s 重新生成配色</string>
     <string name="dialog_palette_regenerate_failed">无法为 %1$s 重新生成配色</string>
-    <string name="dialog_regenerating_palettes_title">正在重新生成专辑配色…</string>
+    <string name="dialog_regenerating_palettes_title">正在重新生成专辑配色……</string>
     <string name="dialog_regenerate_palettes_title">重新生成所有专辑配色？</string>
     <string name="dialog_regenerate_palettes_progress_body">正在为 %1$d 个唯一专辑封面重建缓存的配色变体。大型媒体库可能需要较长时间。</string>
     <string name="dialog_regenerate_palettes_confirm_body">这将清除缓存的主题数据，并为 %1$d 个唯一专辑封面重建所有配色风格。</string>
     <string name="dialog_palette_progress_format">已完成 %1$d/%2$d</string>
-    <string name="working_ellipsis">处理中…</string>
+    <string name="working_ellipsis">处理中……</string>
     <string name="dialog_regenerate">重新生成</string>
     <string name="toast_regenerated_palettes_all">已重新生成 %1$d 个专辑封面配色</string>
     <string name="toast_regenerated_palettes_partial">已重新生成 %1$d/%2$d 个专辑封面配色</string>
@@ -260,7 +260,7 @@
     <string name="dialog_rebuild_database_message">这将从头彻底重建你的音乐媒体库。所有已导入歌词、收藏和自定义元数据都会丢失。此操作无法撤销。</string>
     <string name="rebuild">重建</string>
     <string name="sync_indicator_rebuilding">正在重建数据库</string>
-    <string name="toast_rebuilding_database">正在重建数据库…</string>
+    <string name="toast_rebuilding_database">正在重建数据库……</string>
     <string name="dialog_regenerate_daily_mix_title">重新生成每日合辑？</string>
     <string name="dialog_regenerate_daily_mix_body">这将丢弃当前合辑，并基于最近的收听习惯生成新的合辑。</string>
     <string name="toast_daily_mix_regeneration_started">每日合辑重新生成已开始</string>
@@ -274,7 +274,7 @@
     <string name="setcat_force_palette_empty">未找到带专辑封面的歌曲。</string>
     <string name="setcat_force_palette_subtitle">可为所有专辑封面重建缓存的配色变体，或选择单个封面进行刷新。</string>
     <string name="setcat_regenerate_all">全部重新生成</string>
-    <string name="setcat_regenerating">重新生成中…</string>
+    <string name="setcat_regenerating">重新生成中……</string>
     <string name="setcat_choose_song">选择歌曲</string>
 
     <string name="setcat_ai_clear_logs">清除日志</string>
@@ -286,7 +286,7 @@
 
     <!-- Import backup flow (SettingsCategoryScreen) -->
     <string name="import_backup_toolbar_title">导入备份</string>
-    <string name="import_inspecting">检查中…</string>
+    <string name="import_inspecting">检查中……</string>
     <string name="import_browse_file">浏览文件</string>
     <string name="import_backup_hint">选择一个 .pxpl 备份文件进行检查。你将在下一步中选择要恢复的部分。</string>
     <string name="import_recent_backups">最近备份</string>
@@ -295,7 +295,7 @@
     <string name="palette_force_regenerate_title">强制重新生成专辑配色</string>
     <string name="palette_force_regenerate_subtitle">选择一首歌曲，清除缓存的主题数据，并根据专辑封面重新生成所有配色风格。</string>
     <string name="search_songs_by_title_artist_album">按标题、艺术家或专辑搜索</string>
-    <string name="palette_regenerating_progress">正在重新生成配色…</string>
+    <string name="palette_regenerating_progress">正在重新生成配色……</string>
     <string name="search_no_songs_match">没有歌曲符合你的搜索。</string>
     <string name="cd_remove_from_history">从历史记录中移除</string>
     <string name="cd_clear_search">清除搜索</string>

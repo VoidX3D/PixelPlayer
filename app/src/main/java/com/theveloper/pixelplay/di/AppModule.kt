@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.work.WorkManager
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
@@ -110,6 +111,12 @@ object AppModule {
     @AppScope
     fun provideAppCoroutineScope(): CoroutineScope {
         return CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    }
+
+    @Singleton
+    @Provides
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+        return WorkManager.getInstance(context)
     }
 
     @Singleton

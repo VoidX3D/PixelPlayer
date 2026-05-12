@@ -2,12 +2,14 @@ package com.theveloper.pixelplay.presentation.navidrome.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingWorkPolicy
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.theveloper.pixelplay.data.database.NavidromePlaylistEntity
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
+import com.theveloper.pixelplay.data.worker.NavidromeSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NavidromeDashboardViewModel @Inject constructor(
-    private val repository: NavidromeRepository
+    private val repository: NavidromeRepository,
+    private val workManager: WorkManager
 ) : ViewModel() {
 
     val playlists: StateFlow<List<NavidromePlaylistEntity>> = repository.getPlaylists()
@@ -26,6 +29,9 @@ class NavidromeDashboardViewModel @Inject constructor(
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _syncProgress = MutableStateFlow<Float?>(null)
+    val syncProgress: StateFlow<Float?> = _syncProgress.asStateFlow()
 
     private val _syncMessage = MutableStateFlow<String?>(null)
     val syncMessage: StateFlow<String?> = _syncMessage.asStateFlow()
@@ -36,62 +42,62 @@ class NavidromeDashboardViewModel @Inject constructor(
     val username: String? get() = repository.username
     val serverUrl: String? get() = repository.serverUrl
     val isLoggedIn: StateFlow<Boolean> = repository.isLoggedInFlow
+    val lastSyncTime: Long get() = repository.lastFullSyncTime
 
     init {
-        // Auto-sync full library (songs + playlists) when dashboard opens
-        syncAllPlaylistsAndSongs()
+        observeSyncWorker()
+        // Auto sync full library (songs + playlists) if it's been more than 24 hours
+        val lastSync = repository.lastFullSyncTime
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastSync > NavidromeRepository.SYNC_THRESHOLD_MS) {
+            syncAllPlaylistsAndSongs()
+        }
+    }
+
+    private fun observeSyncWorker() {
+        viewModelScope.launch {
+            workManager.getWorkInfosForUniqueWorkFlow(WORK_NAME_SYNC_ALL).collect { workInfos ->
+                val workInfo = workInfos.firstOrNull() ?: return@collect
+                
+                when (workInfo.state) {
+                    WorkInfo.State.RUNNING -> {
+                        _isSyncing.value = true
+                        val progress = workInfo.progress.getFloat(NavidromeSyncWorker.PROGRESS_VALUE, 0f)
+                        _syncProgress.value = if (progress > 0f) progress else null
+                        _syncMessage.value = workInfo.progress.getString(NavidromeSyncWorker.PROGRESS_MESSAGE)
+                    }
+                    WorkInfo.State.SUCCEEDED -> {
+                        _isSyncing.value = false
+                        _syncProgress.value = null
+                    }
+                    WorkInfo.State.FAILED -> {
+                        _isSyncing.value = false
+                        _syncProgress.value = null
+                        _syncMessage.value = workInfo.outputData.getString(NavidromeSyncWorker.ERROR_MESSAGE) ?: "Sync failed"
+                    }
+                    else -> {
+                        _isSyncing.value = false
+                        _syncProgress.value = null
+                    }
+                }
+            }
+        }
     }
 
     fun syncAllPlaylistsAndSongs() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            _syncMessage.value = "Syncing all playlists and songs..."
-            val result = repository.syncAllPlaylistsAndSongs()
-            result.fold(
-                onSuccess = { summary ->
-                    _syncMessage.value = if (summary.failedPlaylistCount == 0) {
-                        "Synced ${summary.playlistCount} playlists, ${summary.syncedSongCount} songs"
-                    } else {
-                        "Synced ${summary.playlistCount} playlists, ${summary.syncedSongCount} songs (${summary.failedPlaylistCount} failed)"
-                    }
-                },
-                onFailure = { _syncMessage.value = "Sync failed: ${it.message}" }
-            )
-            _isSyncing.value = false
-        }
-    }
-
-    fun syncPlaylists() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            _syncMessage.value = "Syncing playlists..."
-            val result = repository.syncPlaylists()
-            result.fold(
-                onSuccess = { _syncMessage.value = "Synced ${it.size} playlists" },
-                onFailure = { _syncMessage.value = "Sync failed: ${it.message}" }
-            )
-            _isSyncing.value = false
-        }
+        workManager.enqueueUniqueWork(
+            WORK_NAME_SYNC_ALL,
+            ExistingWorkPolicy.KEEP,
+            NavidromeSyncWorker.startAllSync()
+        )
     }
 
     fun syncPlaylistSongs(playlistId: String) {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            _syncMessage.value = "Syncing songs..."
-            val result = repository.syncPlaylistSongs(playlistId)
-            result.fold(
-                onSuccess = { count ->
-                    try {
-                        repository.syncUnifiedLibrarySongsFromNavidrome()
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to sync unified library after playlist sync")
-                    }
-                    _syncMessage.value = "Synced $count songs"
-                },
-                onFailure = { _syncMessage.value = "Sync failed: ${it.message}" }
-            )
-            _isSyncing.value = false
-        }
+        workManager.enqueueUniqueWork(
+            "navidrome_sync_playlist_$playlistId",
+            ExistingWorkPolicy.REPLACE,
+            NavidromeSyncWorker.startPlaylistSync(playlistId)
+        )
     }
 
     fun loadPlaylistSongs(playlistId: String) {
@@ -116,5 +122,9 @@ class NavidromeDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repository.logout()
         }
+    }
+
+    companion object {
+        private const val WORK_NAME_SYNC_ALL = "navidrome_sync_all"
     }
 }

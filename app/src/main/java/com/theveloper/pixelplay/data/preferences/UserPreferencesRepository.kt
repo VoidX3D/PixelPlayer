@@ -47,6 +47,12 @@ object AppThemeMode {
     const val DARK = "dark"
 }
 
+const val MIN_NAV_BAR_CORNER_RADIUS = 0
+const val MAX_NAV_BAR_CORNER_RADIUS = 60
+
+internal fun sanitizeNavBarCornerRadius(radius: Int): Int =
+        radius.coerceIn(MIN_NAV_BAR_CORNER_RADIUS, MAX_NAV_BAR_CORNER_RADIUS)
+
 /**
  * Album art quality settings for developer options.
  * Controls maximum resolution for album artwork in player view.
@@ -1223,12 +1229,12 @@ constructor(
 
     val navBarCornerRadiusFlow: Flow<Int> =
             dataStore.data.map { preferences ->
-                preferences[PreferencesKeys.NAV_BAR_CORNER_RADIUS] ?: 32
+                sanitizeNavBarCornerRadius(preferences[PreferencesKeys.NAV_BAR_CORNER_RADIUS] ?: 32)
             }
 
     suspend fun setNavBarCornerRadius(radius: Int) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.NAV_BAR_CORNER_RADIUS] = radius
+            preferences[PreferencesKeys.NAV_BAR_CORNER_RADIUS] = sanitizeNavBarCornerRadius(radius)
         }
     }
 

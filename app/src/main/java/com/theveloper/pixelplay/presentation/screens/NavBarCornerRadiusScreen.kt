@@ -64,6 +64,8 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.data.preferences.MAX_NAV_BAR_CORNER_RADIUS
+import com.theveloper.pixelplay.data.preferences.MIN_NAV_BAR_CORNER_RADIUS
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
@@ -100,14 +102,17 @@ fun NavBarCornerRadiusContent(
     isFullWidth: Boolean,
     isCompactMode: Boolean = false
 ) {
-    var sliderValue by remember { mutableFloatStateOf(initialRadius) }
+    fun Float.safeRadius(): Float =
+        coerceIn(MIN_NAV_BAR_CORNER_RADIUS.toFloat(), MAX_NAV_BAR_CORNER_RADIUS.toFloat())
+
+    var sliderValue by remember { mutableFloatStateOf(initialRadius.safeRadius()) }
     var hasBeenAdjusted by remember { mutableStateOf(sliderValue != DEFAULT_NAV_BAR_CORNER_RADIUS) }
 
     val haptic = LocalHapticFeedback.current
 
     // Sync if initial value changes externally (though unlikely in this flow, good practice)
     LaunchedEffect(initialRadius) {
-        sliderValue = initialRadius
+        sliderValue = initialRadius.safeRadius()
     }
     
     // Update hasBeenAdjusted when sliderValue changes relative to default
@@ -136,7 +141,7 @@ fun NavBarCornerRadiusContent(
                 actions = {
                     Button(
                         onClick = {
-                            onRadiusChange(sliderValue.toInt())
+                            onRadiusChange(sliderValue.toInt().coerceIn(MIN_NAV_BAR_CORNER_RADIUS, MAX_NAV_BAR_CORNER_RADIUS))
                             onDone()
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -233,7 +238,7 @@ fun NavBarCornerRadiusContent(
                             if (hasBeenAdjusted) {
                                 FilledTonalButton(
                                     onClick = {
-                                        sliderValue = DEFAULT_NAV_BAR_CORNER_RADIUS
+                                        sliderValue = DEFAULT_NAV_BAR_CORNER_RADIUS.safeRadius()
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     },
                                     colors = ButtonDefaults.filledTonalButtonColors(
@@ -275,10 +280,10 @@ fun NavBarCornerRadiusContent(
                                             if (it.toInt() != sliderValue.toInt()) {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             }
-                                            sliderValue = it
+                                            sliderValue = it.safeRadius()
                                         }
                                     },
-                                    valueRange = 0f..60f,
+                                    valueRange = MIN_NAV_BAR_CORNER_RADIUS.toFloat()..MAX_NAV_BAR_CORNER_RADIUS.toFloat(),
                                     colors = SliderDefaults.colors(
                                         thumbColor = MaterialTheme.colorScheme.primary,
                                         activeTrackColor = MaterialTheme.colorScheme.primary,

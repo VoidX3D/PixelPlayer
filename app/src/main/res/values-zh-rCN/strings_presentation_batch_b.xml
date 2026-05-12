@@ -10,7 +10,7 @@
     <string name="presentation_batch_b_accounts_status_connected">已连接</string>
     <string name="presentation_batch_b_accounts_open_service">打开服务</string>
     <string name="presentation_batch_b_accounts_coming_soon_short">即将推出</string>
-    <string name="presentation_batch_b_accounts_logging_out">正在退出登录…</string>
+    <string name="presentation_batch_b_accounts_logging_out">正在退出登录……</string>
     <string name="presentation_batch_b_accounts_no_linked_title">还没有已关联的账户</string>
     <string name="presentation_batch_b_accounts_no_linked_body">连接一个服务提供方后，即可在此页面管理它。</string>
     <string name="presentation_batch_b_accounts_connect_service">连接 %1$s</string>

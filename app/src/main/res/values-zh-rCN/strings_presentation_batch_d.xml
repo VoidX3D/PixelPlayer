@@ -22,7 +22,7 @@
     <string name="presentation_batch_d_topic_mode_both">两者都显示</string>
     <string name="presentation_batch_d_cloud_sources_heading">云端</string>
     <string name="presentation_batch_d_cloud_only">仅云端</string>
-    <string name="presentation_batch_d_generating_ai_metadata">正在使用 AI 生成元数据…</string>
+    <string name="presentation_batch_d_generating_ai_metadata">正在使用 AI 生成元数据……</string>
     <string name="presentation_batch_d_max_albums_selection">你最多可以选择 %1$d 张专辑</string>
     <string name="presentation_batch_d_folder_name_fallback">文件夹</string>
     <string name="presentation_batch_d_expand_tab_menu_cd">展开菜单</string>
@@ -33,13 +33,13 @@
 
     <!-- LibraryScreen — watch transfer dialog -->
     <string name="presentation_batch_d_watch_sending_title">正在发送到手表</string>
-    <string name="presentation_batch_d_watch_starting_transfer">正在开始传输…</string>
+    <string name="presentation_batch_d_watch_starting_transfer">正在开始传输……</string>
     <string name="presentation_batch_d_watch_status_transferring">传输中</string>
     <string name="presentation_batch_d_watch_status_completed">已完成</string>
     <string name="presentation_batch_d_watch_status_failed">失败</string>
     <string name="presentation_batch_d_watch_status_cancelled">已取消</string>
     <string name="presentation_batch_d_watch_status_preparing">准备中</string>
-    <string name="presentation_batch_d_watch_preparing_transfer">正在准备传输…</string>
+    <string name="presentation_batch_d_watch_preparing_transfer">正在准备传输……</string>
     <string name="presentation_batch_d_watch_cancel_transfer">取消传输</string>
 
     <!-- LibraryScreen — merge playlists -->
@@ -50,11 +50,11 @@
 
     <!-- MashupScreen -->
     <string name="presentation_batch_d_mashup_title">DJ 空间</string>
-    <string name="presentation_batch_d_loading">加载中…</string>
+    <string name="presentation_batch_d_loading">加载中……</string>
     <string name="presentation_batch_d_mashup_deck_n">Deck %1$d</string>
     <string name="presentation_batch_d_mashup_load_song_cd">加载歌曲</string>
     <string name="presentation_batch_d_mashup_no_song_loaded">未加载歌曲</string>
-    <string name="presentation_batch_d_mashup_artist_placeholder">…</string>
+    <string name="presentation_batch_d_mashup_artist_placeholder">……</string>
     <string name="presentation_batch_d_mashup_stem_separation_unavailable">人声/伴奏分离功能暂不可用。</string>
     <string name="presentation_batch_d_mashup_volume">音量</string>
     <string name="presentation_batch_d_mashup_speed">速度</string>

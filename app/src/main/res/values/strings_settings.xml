@@ -3,7 +3,7 @@
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Settings</string>
     <string name="settings_accounts_row_title">Accounts</string>
-    <string name="settings_accounts_row_subtitle">Manage Telegram, Google Drive, Netease, and more services</string>
+    <string name="settings_accounts_row_subtitle">Manage Telegram, Google Drive, NetEase, and more services</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Music Management</string>

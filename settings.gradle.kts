@@ -22,6 +22,7 @@ dependencyResolutionManagement {
         maven("https://jitpack.io") {
             content {
                 includeGroup("com.github.FaceOnLive")
+                includeGroup("com.github.philburk")
                 includeGroup("com.github.racra")
                 includeGroup("com.github.tdlibx")
             }

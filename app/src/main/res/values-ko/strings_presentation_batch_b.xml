@@ -16,7 +16,7 @@
     <string name="presentation_batch_b_accounts_connect_service">%1$s 연결</string>
     <string name="presentation_batch_b_accounts_service_paren_coming_soon">%1$s (출시 예정)</string>
     <string name="presentation_batch_b_service_telegram">Telegram</string>
-    <string name="presentation_batch_b_service_netease">Netease</string>
+    <string name="presentation_batch_b_service_netease">NetEase Cloud Music</string>
 
     <!-- PlaylistDetailScreen -->
     <string name="presentation_batch_b_sort_songs">곡 정렬</string>

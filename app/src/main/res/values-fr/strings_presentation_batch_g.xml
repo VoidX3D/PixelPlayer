@@ -288,7 +288,7 @@
     <string name="presentation_batch_g_beta_sheet_expect_title">À attendre</string>
     <string name="presentation_batch_g_beta_sheet_expect_1">Utilisation quotidienne plus rapide : démarrage, navigation et interactions avec le lecteur plus fluides dans toute l\'application.</string>
     <string name="presentation_batch_g_beta_sheet_expect_2">Support d\'appareils plus large : Android Auto, améliorations Wear OS et fiabilité Cast renforcée.</string>
-    <string name="presentation_batch_g_beta_sheet_expect_3">Écosystème cloud élargi : playlists Telegram, sync NetEase, QQ Music et mises à jour du streaming Google Drive.</string>
+    <string name="presentation_batch_g_beta_sheet_expect_3">Écosystème cloud élargi : playlists Telegram, sync NetEase Cloud Music, QQ Music et mises à jour du streaming Google Drive.</string>
     <string name="presentation_batch_g_beta_sheet_expect_4">Grande passe de fiabilité : logique file d\'attente/aléatoire, comportement de lecture en arrière-plan et nombreuses corrections d\'interface.</string>
     <string name="presentation_batch_g_beta_sheet_report_title">Signaler un problème</string>
     <string name="presentation_batch_g_beta_sheet_report_body">Partagez les étapes de reproduction, le résultat attendu, le résultat actuel et les détails de votre appareil/OS. Une courte capture d\'écran est très utile.</string>

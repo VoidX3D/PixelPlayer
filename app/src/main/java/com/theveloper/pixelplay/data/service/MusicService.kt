@@ -95,6 +95,7 @@ import com.theveloper.pixelplay.utils.ArtworkTransportSanitizer
 import com.theveloper.pixelplay.utils.MediaItemBuilder
 import com.theveloper.pixelplay.data.navidrome.NavidromeRepository
 import com.theveloper.pixelplay.di.AppScope
+import com.theveloper.pixelplay.presentation.viewmodel.ListeningStatsTracker
 import kotlin.math.abs
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
@@ -140,6 +141,8 @@ class MusicService : MediaLibraryService() {
     @Inject
     lateinit var navidromeRepository: NavidromeRepository
     @Inject
+    lateinit var listeningStatsTracker: ListeningStatsTracker
+    @Inject
     @AppScope
     lateinit var appScope: CoroutineScope
 
@@ -179,6 +182,7 @@ class MusicService : MediaLibraryService() {
     private var castSessionManagerListener: SessionManagerListener<CastSession>? = null
     private var castRemoteClientCallback: RemoteMediaClient.Callback? = null
     private var observedCastSession: CastSession? = null
+    private var activeCastStatsOccurrenceId: String? = null
     private var playbackSnapshotPersistJob: Job? = null
     private var isRestoringPlaybackSnapshot = false
     private var isPlaybackUnloadInProgress = false
@@ -292,6 +296,7 @@ class MusicService : MediaLibraryService() {
         }
 
         Timber.tag("MusicService").d(logMessage)
+        syncLocalListeningStatsFromPlayer(player)
         requestWidgetFullUpdate(force = true)
         refreshMediaSessionUi(session)
     }
@@ -310,6 +315,48 @@ class MusicService : MediaLibraryService() {
             engine.incomingTrackReplayGainVolume = cachedVolume
         }
         applyReplayGain(incomingItem)
+    }
+
+    private fun syncLocalListeningStatsFromPlayer(
+        player: Player = engine.masterPlayer,
+        forceNewSession: Boolean = false
+    ) {
+        val mediaItem = player.currentMediaItem
+        val songId = mediaItem?.mediaId?.takeIf { it.isNotBlank() }
+        if (songId == null) {
+            if (
+                player.mediaItemCount == 0 ||
+                player.playbackState == Player.STATE_IDLE ||
+                player.playbackState == Player.STATE_ENDED
+            ) {
+                listeningStatsTracker.onPlaybackStopped()
+            }
+            return
+        }
+
+        val positionMs = player.currentPosition.coerceAtLeast(0L)
+        val durationMs = player.duration
+        val fallbackDurationMs = mediaItem.mediaMetadata.extras
+            ?.getLong(MediaItemBuilder.EXTERNAL_EXTRA_DURATION, 0L)
+            ?: 0L
+
+        if (forceNewSession) {
+            listeningStatsTracker.onTrackChanged(
+                songId = songId,
+                positionMs = positionMs,
+                durationMs = durationMs,
+                fallbackDurationMs = fallbackDurationMs,
+                isPlaying = player.isPlaying
+            )
+        } else {
+            listeningStatsTracker.ensureSession(
+                songId = songId,
+                positionMs = positionMs,
+                durationMs = durationMs,
+                fallbackDurationMs = fallbackDurationMs,
+                isPlaying = player.isPlaying
+            )
+        }
     }
 
     override fun onCreate() {
@@ -342,10 +389,12 @@ class MusicService : MediaLibraryService() {
         }
 
         super.onCreate()
+        listeningStatsTracker.initialize(appScope)
         
         // Ensure engine is ready (re-initialize if service was restarted)
         engine.initialize()
         userSelectedVolume = engine.masterPlayer.volume.coerceIn(0f, 1f)
+        syncLocalListeningStatsFromPlayer(engine.masterPlayer)
 
         engine.masterPlayer.addListener(playerListener)
 
@@ -1102,8 +1151,9 @@ class MusicService : MediaLibraryService() {
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            val player = engine.masterPlayer
+            val player = mediaSession?.player ?: engine.masterPlayer
             Timber.tag(TAG).d("onIsPlayingChanged: $isPlaying. Duration: ${player.duration}, Seekable: ${player.isCurrentMediaItemSeekable}")
+            syncLocalListeningStatsFromPlayer(player)
             
             if (isPlaying) {
                 reportNavidromePlayback("playing")
@@ -1152,7 +1202,8 @@ class MusicService : MediaLibraryService() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             Timber.tag(TAG).d("Playback state changed: $playbackState")
             if (playbackState == Player.STATE_ENDED) {
-                val mediaItem = engine.masterPlayer.currentMediaItem
+                listeningStatsTracker.finalizeCurrentSession()
+                val mediaItem = (mediaSession?.player ?: engine.masterPlayer).currentMediaItem
                 getNavidromeId(mediaItem)?.let { navidromeId ->
                     appScope.launch(Dispatchers.IO) {
                         navidromeRepository.scrobble(navidromeId, submission = true)
@@ -1162,6 +1213,8 @@ class MusicService : MediaLibraryService() {
                 endOfTrackTimerSongId = null
                 reportNavidromePlayback("stopped")
                 stopNavidromePlaybackReporting()
+            } else {
+                syncLocalListeningStatsFromPlayer(mediaSession?.player ?: engine.masterPlayer)
             }
             mediaSession?.let { refreshMediaSessionUi(it) }
             schedulePlaybackSnapshotPersist(immediate = playbackState == Player.STATE_IDLE)
@@ -1221,6 +1274,7 @@ class MusicService : MediaLibraryService() {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            syncLocalListeningStatsFromPlayer(mediaSession?.player ?: engine.masterPlayer, forceNewSession = true)
             if (isNavidromeMediaItem(mediaItem)) {
                 reportNavidromePlayback("starting")
                 if (engine.masterPlayer.isPlaying) {
@@ -1457,14 +1511,17 @@ class MusicService : MediaLibraryService() {
 
         val remoteCallback = object : RemoteMediaClient.Callback() {
             override fun onStatusUpdated() {
+                syncCastListeningStatsFromRemote()
                 requestWidgetFullUpdate(force = false)
             }
 
             override fun onMetadataUpdated() {
+                syncCastListeningStatsFromRemote()
                 requestWidgetFullUpdate(force = false)
             }
 
             override fun onQueueStatusUpdated() {
+                syncCastListeningStatsFromRemote()
                 requestWidgetFullUpdate(force = false)
             }
 
@@ -1523,6 +1580,10 @@ class MusicService : MediaLibraryService() {
                 runCatching { remoteClient.registerCallback(callback) }
             }
             remoteClient.requestStatus()
+            syncCastListeningStatsFromRemote()
+        } ?: run {
+            activeCastStatsOccurrenceId = null
+            listeningStatsTracker.onPlaybackStopped()
         }
         requestWidgetFullUpdate(force = true)
     }
@@ -1571,6 +1632,7 @@ class MusicService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onDestroy() {
+        listeningStatsTracker.finalizeCurrentSession(forceSynchronousPersistence = true)
         reportNavidromePlayback("stopped")
         stopNavidromePlaybackReporting()
         playbackSnapshotPersistJob?.cancel()
@@ -1964,6 +2026,7 @@ class MusicService : MediaLibraryService() {
     }
 
     private data class RemotePlaybackSnapshot(
+        val occurrenceId: String,
         val songId: String?,
         val title: String,
         val artist: String,
@@ -1974,6 +2037,34 @@ class MusicService : MediaLibraryService() {
         val repeatMode: Int,
         val isShuffleEnabled: Boolean,
     )
+
+    private fun syncCastListeningStatsFromRemote() {
+        val snapshot = resolveCastRemoteSnapshot() ?: return
+        val songId = snapshot.songId?.takeIf { it.isNotBlank() }
+        if (songId == null) {
+            activeCastStatsOccurrenceId = null
+            listeningStatsTracker.onPlaybackStopped()
+            return
+        }
+
+        if (activeCastStatsOccurrenceId != snapshot.occurrenceId) {
+            activeCastStatsOccurrenceId = snapshot.occurrenceId
+            listeningStatsTracker.onTrackChanged(
+                songId = songId,
+                positionMs = snapshot.currentPositionMs,
+                durationMs = snapshot.totalDurationMs,
+                isPlaying = snapshot.isPlaying
+            )
+            return
+        }
+
+        listeningStatsTracker.ensureSession(
+            songId = songId,
+            positionMs = snapshot.currentPositionMs,
+            durationMs = snapshot.totalDurationMs,
+            isPlaying = snapshot.isPlaying
+        )
+    }
 
     private fun resolveCastRemoteSnapshot(): RemotePlaybackSnapshot? {
         val remoteClient = observedCastSession?.remoteMediaClient
@@ -1996,6 +2087,13 @@ class MusicService : MediaLibraryService() {
             ?.customData
             ?.optString("songId")
             ?.takeIf { it.isNotBlank() }
+        val occurrenceId = currentItem
+            ?.itemId
+            ?.takeIf { it > 0 }
+            ?.toString()
+            ?: songId
+            ?: mediaInfo?.contentId
+            ?: return null
 
         val durationHintMs = currentItem
             ?.customData
@@ -2019,6 +2117,7 @@ class MusicService : MediaLibraryService() {
         }
 
         return RemotePlaybackSnapshot(
+            occurrenceId = occurrenceId,
             songId = songId,
             title = metadata?.getString(CastMediaMetadata.KEY_TITLE).orEmpty(),
             artist = metadata?.getString(CastMediaMetadata.KEY_ARTIST).orEmpty(),
@@ -2794,6 +2893,8 @@ class MusicService : MediaLibraryService() {
         } else {
             clearPlaybackSnapshotBlocking()
         }
+
+        listeningStatsTracker.finalizeCurrentSession(forceSynchronousPersistence = true)
 
         player.playWhenReady = false
         player.stop()

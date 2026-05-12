@@ -12,7 +12,6 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -29,7 +28,6 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
-import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -52,7 +50,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -197,13 +194,7 @@ class DualPlayerEngine @Inject constructor(
             initializedTimestampMs: Long,
             initializationDurationMs: Long
         ) {
-            val isSamsung = Build.MANUFACTURER.lowercase(Locale.US) == "samsung"
-            // Heuristic to check if decoder is hardware based on name and manufacturer-specific quirks.
-            // On Samsung, c2.sec.* are high-perf hardware paths.
-            val isHardware = decoderName.startsWith("omx.google.", ignoreCase = true).not() &&
-                decoderName.startsWith("c2.android.", ignoreCase = true).not() &&
-                (decoderName.startsWith("c2.sec.", ignoreCase = true) || !isSamsung)
-            
+            val isHardware = AudioDecoderPolicy.isLikelyHardwareDecoder(decoderName)
             _activeDecoderInfo.value = ActiveDecoderInfo(decoderName, isHardware)
             Timber.tag("DualPlayerEngine").d("Audio decoder initialized: %s (Hardware: %b)", decoderName, isHardware)
         }
@@ -523,34 +514,7 @@ class DualPlayerEngine @Inject constructor(
                 requiresTunnelingDecoder
             )
 
-            val samsungPreferred = if (Build.MANUFACTURER.lowercase(Locale.US) == "samsung") {
-                val (secCodecs, otherCodecs) = decoderInfos.partition { it.name.startsWith("c2.sec.") }
-                val secCodecsForced = secCodecs.map { info ->
-                    if (!info.hardwareAccelerated) {
-                        MediaCodecInfo.newInstance(
-                            info.name,
-                            info.mimeType,
-                            info.codecMimeType,
-                            info.capabilities,
-                            true, // hardwareAccelerated = true
-                            info.softwareOnly,
-                            info.vendor,
-                            false,
-                            false
-                        )
-                    } else info
-                }
-                secCodecsForced + otherCodecs
-            } else {
-                decoderInfos
-            }
-
-            if (mimeType.equals(MimeTypes.AUDIO_ALAC, ignoreCase = true)) {
-                val softwareDecoders = samsungPreferred.filterNot { it.hardwareAccelerated }
-                softwareDecoders.ifEmpty { emptyList() }
-            } else {
-                samsungPreferred.sortedByDescending { it.hardwareAccelerated }
-            }
+            AudioDecoderPolicy.selectPlatformDecoders(mimeType, decoderInfos)
         }
         val renderersFactory = object : DefaultRenderersFactory(context) {
             override fun buildAudioSink(

@@ -42,7 +42,7 @@
     <string name="auth_web_exit_confirm_body">Puedes volver más tarde. Al cerrar se descarta el estado de la página.</string>
     <string name="auth_exit">Salir</string>
     <string name="auth_stay">Permanecer</string>
-    <string name="auth_login_netease_title">Iniciar sesión en NetEase</string>
+    <string name="auth_login_netease_title">Iniciar sesión en NetEase Cloud Music</string>
     <string name="auth_login_qq_title">Iniciar sesión en QQ Music</string>
     <string name="auth_web_cd_web_back">Atrás en la web</string>
     <string name="auth_web_cd_web_forward">Adelante en la web</string>

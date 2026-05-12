@@ -3,7 +3,7 @@
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">설정</string>
     <string name="settings_accounts_row_title">계정</string>
-    <string name="settings_accounts_row_subtitle">Telegram, Google Drive, Netease 및 기타 서비스 관리</string>
+    <string name="settings_accounts_row_subtitle">Telegram, Google Drive, NetEase Cloud Music 및 기타 서비스 관리</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">음악 관리</string>

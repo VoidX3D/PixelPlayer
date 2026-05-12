@@ -50,6 +50,13 @@
 -keep class androidx.media3.decoder.ffmpeg.** { *; }
 -keep class androidx.media3.exoplayer.ffmpeg.** { *; }
 
+# ExoPlayer MIDI extension and JSyn synthesizer
+-keep class androidx.media3.decoder.midi.** { *; }
+-keep class com.jsyn.** { *; }
+-keep class com.softsynth.** { *; }
+-dontwarn com.jsyn.**
+-dontwarn com.softsynth.**
+
 # Mantener clases de datos y sus miembros para evitar que R8 Full elimine campos
 -keepclassmembers class com.theveloper.pixelplay.data.model.** { *; }
 -keepclassmembers class com.theveloper.pixelplay.domain.model.** { *; }

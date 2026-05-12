@@ -99,6 +99,7 @@ import com.theveloper.pixelplay.data.github.GitHubAnnouncementPropertiesService
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
+import com.theveloper.pixelplay.data.preferences.sanitizeNavBarCornerRadius
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.service.MusicService
@@ -637,7 +638,8 @@ class MainActivity : ComponentActivity() {
 
         val navBarStyle by playerViewModel.navBarStyle.collectAsStateWithLifecycle()
         val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
-        val navBarCornerRadius by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
+        val navBarCornerRadiusRaw by playerViewModel.navBarCornerRadius.collectAsStateWithLifecycle()
+        val navBarCornerRadius = sanitizeNavBarCornerRadius(navBarCornerRadiusRaw)
         val hapticsEnabled by playerViewModel.hapticsEnabled.collectAsStateWithLifecycle()
         val rootView = LocalView.current
         val platformHapticFeedback = LocalHapticFeedback.current

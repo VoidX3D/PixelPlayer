@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Web login security notes (QQ / NetEase) -->
-    <string name="auth_web_login_security_note_qq">Sicherheitshinweis: Ihr Passwort wird nur auf den Webseiten von QQ Music eingegeben. PixelPlayer speichert Sitzungscookies, um Ihre Bibliothek zu synchronisieren.</string>
-    <string name="auth_web_login_security_note_netease">Sicherheitshinweis: Ihr Passwort wird nur auf den Webseiten von NetEase eingegeben. PixelPlayer speichert Sitzungscookies (MUSIC_U), um Ihre Bibliothek zu synchronisieren.</string>
-    <string name="auth_error_read_qq_cookies_failed">Fehler beim Lesen der QQ Music-Cookies: %1$s</string>
-    <string name="auth_error_read_netease_cookies_failed">Fehler beim Lesen der NetEase-Cookies: %1$s</string>
+    <string name="auth_web_login_security_note_qq">Dein Passwort wird nur auf QQ Music-Seiten eingegeben. PixelPlayer speichert nur Session-Cookies zur Bibliothekssynchronisierung.</string>
+    <string name="auth_web_login_security_note_netease">Dein Passwort wird nur auf NetEase-Seiten eingegeben. PixelPlayer speichert nur Session-Cookies (MUSIC_U) zur Bibliothekssynchronisierung.</string>
+    <string name="auth_error_read_qq_cookies_failed">QQ Music-Cookies konnten nicht gelesen werden: %1$s</string>
+    <string name="auth_error_read_netease_cookies_failed">NetEase-Cookies konnten nicht gelesen werden: %1$s</string>
 
     <!-- Google Drive folder setup -->
     <string name="auth_gdrive_setting_up">Google Drive wird eingerichtet…</string>
     <string name="auth_gdrive_connect_title">Google Drive verbinden</string>
-    <string name="auth_gdrive_connect_subtitle">Musikdateien direkt von Ihrem Google Drive streamen</string>
-    <string name="auth_gdrive_sign_in_with_google">Über Google anmelden</string>
+    <string name="auth_gdrive_connect_subtitle">Musikdateien direkt aus deinem Google Drive streamen</string>
+    <string name="auth_gdrive_sign_in_with_google">Mit Google anmelden</string>
     <string name="auth_gdrive_select_music_folder_title">Musikordner auswählen</string>
-    <string name="auth_gdrive_select_music_folder_subtitle">Wählen oder erstellen Sie einen Ordner, der als Musikquelle dienen soll</string>
-    <string name="auth_gdrive_create_pixelplay_music_title">\"PixelPlayer-Musik\" erstellen</string>
-    <string name="auth_gdrive_create_folder_here_hint">Erstellen Sie hier einen neuen Ordner für Ihre Musik</string>
-    <string name="auth_gdrive_no_folders_here">Keine Ordner vorhanden</string>
+    <string name="auth_gdrive_select_music_folder_subtitle">Ordner wählen oder erstellen, der als Musikquelle dient</string>
+    <string name="auth_gdrive_create_pixelplay_music_title">\"PixelPlayer Music\" erstellen</string>
+    <string name="auth_gdrive_create_folder_here_hint">Neuen Ordner für Musik hier erstellen</string>
+    <string name="auth_gdrive_no_folders_here">Keine Ordner hier</string>
     <string name="auth_gdrive_use_this_folder">Verwenden</string>
     <string name="auth_gdrive_cd_open_folder">Ordner öffnen</string>
 </resources>

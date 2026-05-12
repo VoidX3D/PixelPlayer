@@ -2,7 +2,7 @@ package com.theveloper.pixelplay.utils
 
 import com.google.common.truth.Truth.assertThat
 import kotlin.io.path.createTempDirectory
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class AlbumArtUtilsTest {
 
@@ -38,6 +38,19 @@ class AlbumArtUtilsTest {
         val downloadsDir = root.resolve("Downloads").apply { mkdirs() }
         val songFile = downloadsDir.resolve("Fresh Track.mp3").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         downloadsDir.resolve("cover.jpg").writeBytes(ByteArray(2048) { 5 })
+
+        val resolved = AlbumArtUtils.findExternalAlbumArtFile(songFile.absolutePath)
+
+        assertThat(resolved).isNull()
+        root.deleteRecursively()
+    }
+
+    @Test
+    fun findExternalAlbumArtFile_ignoresStudioGalleryFolder() {
+        val root = createTempDirectory("album-art-test").toFile()
+        val studioDir = root.resolve("Studio").apply { mkdirs() }
+        val songFile = studioDir.resolve("Voice Note.mp3").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        studioDir.resolve("cover.jpg").writeBytes(ByteArray(2048) { 5 })
 
         val resolved = AlbumArtUtils.findExternalAlbumArtFile(songFile.absolutePath)
 

@@ -131,6 +131,9 @@
 
     <!-- Home / detail shared -->
     <string name="home_your_mix_title">Your\nMix</string>
+    <string name="home_empty_placeholder_title">No data to show yet</string>
+    <string name="home_empty_placeholder_subtitle">Your mix will appear here when PixelPlayer finds songs or syncs a source.</string>
+    <string name="home_empty_placeholder_refresh">Refresh</string>
     <string name="cd_shuffle_play">Shuffle Play</string>
     <string name="cd_album_art_for_title">Album art for %1$s</string>
     <string name="cd_options">Options</string>
@@ -213,6 +216,16 @@
     <string name="dash_status_syncing">Syncing</string>
     <string name="dash_action_sync_library">Sync library</string>
     <string name="dash_action_disconnect">Disconnect</string>
+    <string name="dash_status_syncing_library">Syncing library…</string>
+    <string name="dash_status_fetching_playlists">Fetching playlists…</string>
+    <string name="dash_status_syncing_playlist_format">Syncing playlist: %1$s</string>
+    <string name="dash_status_updating_local">Updating local library…</string>
+    <string name="dash_status_sync_complete">Sync complete</string>
+    <string name="dash_status_fetching_albums">Fetching album list…</string>
+    <string name="dash_status_fetching_songs_from_format">Fetching songs from %1$s…</string>
+    <string name="dash_status_saving_songs_format">Saving %1$d songs to database…</string>
+    <string name="dash_status_no_songs_found">No library songs found</string>
+    <string name="dash_status_library_sync_complete">Library sync complete</string>
     <string name="dash_song_count">%1$d songs</string>
     <string name="cd_sync">Sync</string>
     <string name="cd_sync_all">Sync all</string>

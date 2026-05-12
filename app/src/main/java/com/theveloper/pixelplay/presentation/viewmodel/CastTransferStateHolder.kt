@@ -50,8 +50,7 @@ class CastTransferStateHolder @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val castStateHolder: CastStateHolder,
     private val playbackStateHolder: PlaybackStateHolder,
-    private val dualPlayerEngine: DualPlayerEngine, // For local player control during transfer
-    private val listeningStatsTracker: ListeningStatsTracker
+    private val dualPlayerEngine: DualPlayerEngine // For local player control during transfer
 ) {
     private val CAST_LOG_TAG = "PlayerCastTransfer"
 
@@ -163,7 +162,6 @@ class CastTransferStateHolder @Inject constructor(
                 }
                 castStateHolder.setRemotePosition(progress)
                 lastRemoteStreamPosition = progress
-                listeningStatsTracker.onProgress(progress, lastKnownRemoteIsPlaying)
             }
         }
 

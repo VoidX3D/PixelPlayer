@@ -46,7 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
+import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,6 +98,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -230,14 +231,6 @@ fun SearchScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(280.dp)
-//                .background(
-//                    gradientBrush
-//                )
-//        )
 
         Column(
             modifier = Modifier.fillMaxSize()
@@ -245,11 +238,7 @@ fun SearchScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        start = 24.dp,
-                        top = statusBarTopInset,
-                        end = 24.dp
-                    ),
+                    .padding(start = 24.dp, top = statusBarTopInset, end = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -261,84 +250,83 @@ fun SearchScreen(
                     cursorColor = MaterialTheme.colorScheme.primary
                 )
 
-                SearchBar(
-                    inputField = {
-                        SearchBarDefaults.InputField(
-                            modifier = Modifier.focusRequester(searchInputFocusRequester),
-                            query = searchQuery,
-                            onQueryChange = {
-                                searchQuery = it
-                                playerViewModel.updateSearchQuery(it)
-                            },
-                            onSearch = { query ->
-                                if (query.isNotBlank()) {
-                                    playerViewModel.onSearchQuerySubmitted(query)
-                                }
-                                keyboardController?.hide()
-                            },
-                            expanded = false,
-                            onExpandedChange = {},
-                            placeholder = {
-                                Text(
-                                    stringResource(R.string.search_placeholder),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Search,
-                                    contentDescription = stringResource(R.string.cd_search_icon),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotBlank()) {
-                                    IconButton(
-                                        onClick = {
-                                            searchQuery = ""
-                                            playerViewModel.updateSearchQuery("")
-                                        },
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                                            )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Close,
-                                            contentDescription = stringResource(R.string.cd_clear_search_query),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            },
-                            colors = searchBarInputFieldColors
-                        )
-                    },
-                    expanded = false,
-                    onExpandedChange = {},
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
+                Box(
+                    Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(searchbarCornerRadius)),
-                    colors = SearchBarDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        dividerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        inputFieldColors = searchBarInputFieldColors
-                    ),
-                    windowInsets = WindowInsets(0.dp),
-                    content = {}
-                )
+                        .background(color = Color.Transparent)
+                ) {
+                    DockedSearchBar(
+                        inputField = {
+                            SearchBarDefaults.InputField(
+                                modifier = Modifier.focusRequester(searchInputFocusRequester),
+                                query = searchQuery,
+                                onQueryChange = {
+                                    searchQuery = it
+                                    playerViewModel.updateSearchQuery(it)
+                                },
+                                onSearch = { query ->
+                                    if (query.isNotBlank()) {
+                                        playerViewModel.onSearchQuerySubmitted(query)
+                                    }
+                                    keyboardController?.hide()
+                                },
+                                expanded = false,
+                                onExpandedChange = {},
+                                placeholder = {
+                                    Text(
+                                        stringResource(R.string.search_placeholder),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = stringResource(R.string.cd_search_icon),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotBlank()) {
+                                        IconButton(
+                                            onClick = {
+                                                searchQuery = ""
+                                                playerViewModel.updateSearchQuery("")
+                                            },
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                                )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Close,
+                                                contentDescription = stringResource(R.string.cd_clear_search_query),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                },
+                                colors = searchBarInputFieldColors
+                            )
+                        },
+                        expanded = false,
+                        onExpandedChange = {},
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(searchbarCornerRadius)),
+                        colors = SearchBarDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            dividerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            inputFieldColors = searchBarInputFieldColors
+                        ),
+                        content = {}
+                    )
+                }
 
                 FilledIconButton(
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(48.dp)
-                        .padding(top = 4.dp)
-                    ,
+                    modifier = Modifier.padding(bottom = 2.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer

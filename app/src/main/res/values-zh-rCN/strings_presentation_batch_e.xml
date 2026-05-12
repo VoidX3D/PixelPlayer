@@ -19,7 +19,7 @@
     <string name="presentation_batch_e_save_as_playlist_sheet_title">保存为播放列表</string>
     <string name="presentation_batch_e_deselect_all">取消全选</string>
     <string name="presentation_batch_e_playlist_name_label">播放列表名称</string>
-    <string name="presentation_batch_e_search_songs_to_include_placeholder">搜索要包含的歌曲…</string>
+    <string name="presentation_batch_e_search_songs_to_include_placeholder">搜索要包含的歌曲……</string>
     <string name="presentation_batch_e_save_as_format">保存为：%1$s</string>
     <string name="presentation_batch_e_enter_playlist_name">输入播放列表名称</string>
     <string name="presentation_batch_e_no_songs_match_query">没有歌曲匹配“%1$s”</string>
@@ -53,7 +53,7 @@
     <!-- AI playlist lab -->
     <string name="presentation_batch_e_ai_playlist_lab_title">AI 播放列表实验室</string>
     <string name="presentation_batch_e_ai_reset">重置</string>
-    <string name="presentation_batch_e_ai_generating">生成中…</string>
+    <string name="presentation_batch_e_ai_generating">生成中……</string>
     <string name="presentation_batch_e_ai_generate">生成</string>
     <string name="presentation_batch_e_ai_section_intent">意图</string>
     <string name="presentation_batch_e_ai_playlist_name_optional">播放列表名称（可选）</string>
@@ -87,7 +87,7 @@
     <string name="presentation_batch_e_ai_error_add_instruction">请至少为 AI 添加一条指令。</string>
     <string name="presentation_batch_e_ai_error_song_range">请设置有效的歌曲范围。</string>
     <string name="presentation_batch_e_ai_level_out_of_five">%1$d/5</string>
-    <string name="presentation_batch_e_ai_custom_chip">自定义…</string>
+    <string name="presentation_batch_e_ai_custom_chip">自定义……</string>
     <string name="presentation_batch_e_ai_enter_custom_title">输入自定义值</string>
     <string name="presentation_batch_e_ai_enter_custom_label">输入你的自定义值</string>
 
@@ -146,6 +146,6 @@
     <string name="presentation_batch_e_daily_mix_how_body">你的每日合辑会基于你最喜欢和最常播放的歌曲构建。我们也会加入你喜欢的艺术家和流派中的曲目，帮助你发现新音乐。</string>
     <string name="presentation_batch_e_daily_mix_prompt_label">告诉 AI 你今天想听什么</string>
     <string name="presentation_batch_e_daily_mix_cost_hint">我们会使用较小的样本来控制成本</string>
-    <string name="presentation_batch_e_daily_mix_updating">更新中…</string>
+    <string name="presentation_batch_e_daily_mix_updating">更新中……</string>
     <string name="presentation_batch_e_daily_mix_update">更新每日合辑</string>
 </resources>

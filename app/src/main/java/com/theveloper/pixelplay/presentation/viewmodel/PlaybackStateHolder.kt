@@ -36,7 +36,6 @@ class PlaybackStateHolder @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val castStateHolder: CastStateHolder,
     private val queueStateHolder: QueueStateHolder,
-    private val listeningStatsTracker: ListeningStatsTracker,
     @param:ApplicationContext private val appContext: Context
 ) {
     companion object {
@@ -522,7 +521,6 @@ class PlaybackStateHolder @Inject constructor(
                             castStateHolder.setRemotePosition(currentPosition)
                         }
 
-                        listeningStatsTracker.onProgress(currentPosition, isRemotePlaying)
                         val nextPosition = if (isRemotelySeeking) _currentPosition.value else currentPosition
                         if (_currentPosition.value != nextPosition) {
                             _currentPosition.value = nextPosition
@@ -564,28 +562,27 @@ class PlaybackStateHolder @Inject constructor(
                             continue
                         }
 
-                         val currentPosition = controller.currentPosition.coerceAtLeast(0L)
-                         val songDurationHint = visibleSong?.duration ?: 0L
-                         val duration = resolveEffectiveDuration(
-                             reportedDurationMs = controller.duration,
-                             songDurationHintMs = songDurationHint,
-                             currentPositionMs = currentPosition
-                         )
-                         
-                         listeningStatsTracker.onProgress(currentPosition, true)
-                         val resolvedPosition = resolveUiPosition(currentMediaId, currentPosition)
-                         if (_currentPosition.value != resolvedPosition) {
-                             _currentPosition.value = resolvedPosition
+                          val currentPosition = controller.currentPosition.coerceAtLeast(0L)
+                          val songDurationHint = visibleSong?.duration ?: 0L
+                          val duration = resolveEffectiveDuration(
+                              reportedDurationMs = controller.duration,
+                              songDurationHintMs = songDurationHint,
+                              currentPositionMs = currentPosition
+                          )
+
+                          val resolvedPosition = resolveUiPosition(currentMediaId, currentPosition)
+                          if (_currentPosition.value != resolvedPosition) {
+                              _currentPosition.value = resolvedPosition
+                          }
+
+                          _stablePlayerState.update { state ->
+                              if (state.totalDuration == duration) {
+                                  state
+                              } else {
+                                  state.copy(totalDuration = duration)
+                              }
                          }
-                         
-                         _stablePlayerState.update { state ->
-                             if (state.totalDuration == duration) {
-                                 state
-                             } else {
-                                 state.copy(totalDuration = duration)
-                             }
-                        }
-                     }
+                      }
                 }
                 delay(tickMs)
             }

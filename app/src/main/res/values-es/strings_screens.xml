@@ -129,6 +129,9 @@
     <string name="dialog_delete_song_message">\"%1$s\" de %2$s\n\nEsta canción se eliminará permanentemente del dispositivo y no podrá recuperarse.</string>
 
     <string name="home_your_mix_title">Tu\nMix</string>
+    <string name="home_empty_placeholder_title">Aun no hay datos para mostrar</string>
+    <string name="home_empty_placeholder_subtitle">Tu mix aparecera aqui cuando PixelPlayer encuentre canciones o sincronice una fuente.</string>
+    <string name="home_empty_placeholder_refresh">Actualizar</string>
     <string name="cd_shuffle_play">Reproducción aleatoria</string>
     <string name="cd_album_art_for_title">Carátula de %1$s</string>
     <string name="cd_options">Opciones</string>

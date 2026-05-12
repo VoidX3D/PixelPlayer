@@ -7,7 +7,7 @@
     <string name="auth_error_read_netease_cookies_failed">读取网易云音乐 Cookie 失败：%1$s</string>
 
     <!-- Google Drive folder setup -->
-    <string name="auth_gdrive_setting_up">正在设置 Google Drive…</string>
+    <string name="auth_gdrive_setting_up">正在设置 Google Drive……</string>
     <string name="auth_gdrive_connect_title">连接 Google Drive</string>
     <string name="auth_gdrive_connect_subtitle">直接从你的 Google Drive 串流播放音乐文件</string>
     <string name="auth_gdrive_sign_in_with_google">使用 Google 登录</string>

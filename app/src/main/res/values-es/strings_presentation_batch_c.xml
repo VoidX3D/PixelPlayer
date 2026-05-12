@@ -56,7 +56,7 @@
     <string name="lib_empty_songs_offline_title">No se encontraron canciones locales</string>
     <string name="lib_empty_songs_offline_subtitle">Prueba con otro filtro de fuente o vuelve a escanear la biblioteca del dispositivo.</string>
     <string name="lib_empty_songs_online_title">No se encontraron canciones en la nube</string>
-    <string name="lib_empty_songs_online_subtitle">Sincroniza canciones de Telegram o Netease, o cambia a la fuente local.</string>
+    <string name="lib_empty_songs_online_subtitle">Sincroniza canciones de Telegram o NetEase, o cambia a la fuente local.</string>
     <string name="lib_empty_albums_all_title">No hay álbumes disponibles</string>
     <string name="lib_empty_albums_all_subtitle">Los álbumes aparecerán aquí en cuanto tu biblioteca tenga pistas agrupadas.</string>
     <string name="lib_empty_albums_offline_title">No se encontraron álbumes locales</string>
@@ -74,7 +74,7 @@
     <string name="lib_empty_liked_offline_title">No hay canciones favoritas locales</string>
     <string name="lib_empty_liked_offline_subtitle">Cambia el filtro de fuente o marca canciones de tu dispositivo como favoritas.</string>
     <string name="lib_empty_liked_online_title">No hay canciones favoritas en la nube</string>
-    <string name="lib_empty_liked_online_subtitle">Marca canciones de Telegram o Netease como favoritas para verlas aquí.</string>
+    <string name="lib_empty_liked_online_subtitle">Marca canciones de Telegram o NetEase como favoritas para verlas aquí.</string>
     <string name="lib_empty_folders_title">No se encontraron carpetas</string>
     <string name="lib_empty_folders_subtitle">Las carpetas de almacenamiento interno con música aparecerán aquí.</string>
     <string name="lib_empty_playlists_title">Aún no hay listas de reproducción</string>

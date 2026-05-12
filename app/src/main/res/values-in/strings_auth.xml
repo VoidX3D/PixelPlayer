@@ -51,7 +51,7 @@
     <string name="auth_web_exit_confirm_body">Anda dapat kembali lagi nanti. Status halaman saat ini akan dibuang saat menutup.</string>
     <string name="auth_exit">Keluar</string>
     <string name="auth_stay">Tetap di sini</string>
-    <string name="auth_login_netease_title">Login ke NetEase</string>
+    <string name="auth_login_netease_title">Login ke NetEase Cloud Music</string>
     <string name="auth_login_qq_title">Login ke QQ Music</string>
     <string name="auth_web_cd_web_back">Web kembali</string>
     <string name="auth_web_cd_web_forward">Web maju</string>

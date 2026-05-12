@@ -16,7 +16,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 
 object AlbumArtUtils {
-    private const val CACHE_VERSION_SUFFIX = "_v2"
+    private const val CACHE_VERSION_SUFFIX = "_v3"
 
     // P2-1: Dedicated app-level scope to replace GlobalScope.
     // SupervisorJob ensures child failures don't cancel sibling coroutines.
@@ -39,11 +39,23 @@ object AlbumArtUtils {
         "music",
         "songs",
         "audio",
-        "telegram audio"
+        "telegram audio",
+        "studio",
+        "gallery",
+        "pictures",
+        "photos",
+        "images",
+        "dcim",
+        "camera",
+        "screenshots"
     )
 
     /**
-     * Main function to get album art - tries multiple methods
+     * Main function to get album art for local songs.
+     *
+     * Local artwork is intentionally embedded-only. Falling back to folder images such as
+     * cover.jpg/thumb.jpg can pick unrelated Gallery files when music is stored in mixed
+     * directories, and can duplicate the same image across unrelated tracks.
      */
     fun getAlbumArtUri(
         appContext: Context,
@@ -123,13 +135,6 @@ object AlbumArtUtils {
             return cachedFile.takeIf { it.exists() && it.length() > 0 }
         }
 
-        getExternalAlbumArtUri(resolvedPath)?.let { externalUri ->
-            if (copyUriToCache(appContext, externalUri, cachedFile) != null) {
-                noArtFile.delete()
-                return cachedFile
-            }
-        }
-
         cachedFile.delete()
         noArtFile.createNewFile()
         return null
@@ -190,18 +195,16 @@ object AlbumArtUtils {
             return true
         }
 
-        if (getExternalAlbumArtUri(filePath) != null) {
-            noArtFile.delete()
-            return true
-        }
-
         cachedFile.delete()
         noArtFile.createNewFile()
         return false
     }
 
     /**
-     * Look for external album art files in the same directory
+     * Look for external album art files in the same directory.
+     *
+     * This is kept for explicit, controlled callers only. The default local-song artwork path
+     * must remain embedded-only so the app does not pull unrelated personal Gallery files.
      */
     fun getExternalAlbumArtUri(filePath: String): Uri? {
         return runCatching {
@@ -263,10 +266,14 @@ object AlbumArtUtils {
      * Delete both the cached artwork and the "no art" marker for a specific song.
      */
     fun clearCacheForSong(appContext: Context, songId: Long) {
-        getCachedAlbumArtFile(appContext, songId).delete()
-        noArtMarkerFile(appContext, songId).delete()
-        legacyCachedAlbumArtFile(appContext, songId).delete()
-        legacyNoArtMarkerFile(appContext, songId).delete()
+        listOf(
+            getCachedAlbumArtFile(appContext, songId),
+            noArtMarkerFile(appContext, songId),
+            legacyCachedAlbumArtFile(appContext, songId, "_v2"),
+            legacyNoArtMarkerFile(appContext, songId, "_v2"),
+            legacyCachedAlbumArtFile(appContext, songId),
+            legacyNoArtMarkerFile(appContext, songId)
+        ).forEach { it.delete() }
     }
 
     // Album art lives in filesDir (persistent) instead of cacheDir, because Android can
@@ -333,12 +340,20 @@ object AlbumArtUtils {
         return File(getAlbumArtDir(appContext), "song_art_${songId}${CACHE_VERSION_SUFFIX}_no.jpg")
     }
 
-    private fun legacyCachedAlbumArtFile(appContext: Context, songId: Long): File {
-        return File(getAlbumArtDir(appContext), "song_art_${songId}.jpg")
+    private fun legacyCachedAlbumArtFile(
+        appContext: Context,
+        songId: Long,
+        versionSuffix: String = ""
+    ): File {
+        return File(getAlbumArtDir(appContext), "song_art_${songId}${versionSuffix}.jpg")
     }
 
-    private fun legacyNoArtMarkerFile(appContext: Context, songId: Long): File {
-        return File(getAlbumArtDir(appContext), "song_art_${songId}_no.jpg")
+    private fun legacyNoArtMarkerFile(
+        appContext: Context,
+        songId: Long,
+        versionSuffix: String = ""
+    ): File {
+        return File(getAlbumArtDir(appContext), "song_art_${songId}${versionSuffix}_no.jpg")
     }
 
     private data class MediaStoreSongInfo(
@@ -399,24 +414,6 @@ object AlbumArtUtils {
 
         return runCatching {
             AudioMetadataReader.read(File(filePath))?.artwork?.bytes?.takeIf { it.isNotEmpty() }
-        }.getOrNull()
-    }
-
-    private fun copyUriToCache(
-        appContext: Context,
-        sourceUri: Uri,
-        targetFile: File
-    ): File? {
-        return runCatching {
-            openArtworkInputStream(appContext, sourceUri)?.use { input ->
-                targetFile.outputStream().use { output -> input.copyTo(output) }
-            } ?: return null
-
-            appScope.launch {
-                AlbumArtCacheManager.cleanCacheIfNeeded(appContext, AlbumArtCacheManager.configuredCacheLimitMb)
-            }
-
-            targetFile
         }.getOrNull()
     }
 

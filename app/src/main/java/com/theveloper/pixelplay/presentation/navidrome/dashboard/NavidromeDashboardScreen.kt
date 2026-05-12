@@ -38,6 +38,7 @@ import com.theveloper.pixelplay.data.database.NavidromePlaylistEntity
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.utils.formatTimeAgo
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
@@ -50,6 +51,7 @@ fun NavidromeDashboardScreen(
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val syncMessage by viewModel.syncMessage.collectAsStateWithLifecycle()
 
     val cardShape = AbsoluteSmoothCornerShape(
@@ -93,8 +95,10 @@ fun NavidromeDashboardScreen(
         DashboardContent(
             playlists = playlists,
             isSyncing = isSyncing,
+            syncProgress = syncProgress,
             syncMessage = syncMessage,
             username = viewModel.username,
+            lastSyncTime = viewModel.lastSyncTime,
             onSyncAll = { viewModel.syncAllPlaylistsAndSongs() },
             onSyncPlaylist = { viewModel.syncPlaylistSongs(it) },
             onDeletePlaylist = { viewModel.deletePlaylist(it) },
@@ -113,8 +117,10 @@ fun NavidromeDashboardScreen(
 private fun DashboardContent(
     playlists: List<NavidromePlaylistEntity>,
     isSyncing: Boolean,
+    syncProgress: Float?,
     syncMessage: String?,
     username: String?,
+    lastSyncTime: Long,
     onSyncAll: () -> Unit,
     onSyncPlaylist: (String) -> Unit,
     onDeletePlaylist: (String) -> Unit,
@@ -149,23 +155,47 @@ private fun DashboardContent(
                             MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isSyncing && syncProgress == null) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(12.dp))
+                            }
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = GoogleSansRounded,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(Modifier.width(12.dp))
+                            if (isSyncing && syncProgress != null) {
+                                Text(
+                                    text = "${(syncProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = GoogleSansRounded,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = GoogleSansRounded
-                        )
+                        
+                        if (isSyncing && syncProgress != null) {
+                            Spacer(Modifier.height(12.dp))
+                            LinearProgressIndicator(
+                                progress = { syncProgress!! },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(CircleShape),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            )
+                        }
                     }
                 }
             }
@@ -215,6 +245,12 @@ private fun DashboardContent(
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Last synced: ${formatTimeAgo(lastSyncTime)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = GoogleSansRounded,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }

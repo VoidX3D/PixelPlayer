@@ -25,7 +25,6 @@ class PlaybackStateHolderTest {
     private val userPreferencesRepository: UserPreferencesRepository = mockk(relaxed = true)
     private val castStateHolder: CastStateHolder = mockk(relaxed = true)
     private val queueStateHolder: QueueStateHolder = mockk(relaxed = true)
-    private val listeningStatsTracker: ListeningStatsTracker = mockk(relaxed = true)
     private val appContext: Context = mockk(relaxed = true)
     private val powerManager: PowerManager = mockk(relaxed = true)
 
@@ -34,7 +33,6 @@ class PlaybackStateHolderTest {
         userPreferencesRepository = userPreferencesRepository,
         castStateHolder = castStateHolder,
         queueStateHolder = queueStateHolder,
-        listeningStatsTracker = listeningStatsTracker,
         appContext = appContext
     )
 

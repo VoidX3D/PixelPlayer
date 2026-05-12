@@ -58,3 +58,19 @@ fun formatListeningDurationCompact(milliseconds: Long): String {
 fun formatSongCount(count: Int): String {
     return if (count <= 1) "$count Song" else "$count Songs"
 }
+
+fun formatTimeAgo(timestamp: Long): String {
+    if (timestamp <= 0) return "Never"
+    val diff = System.currentTimeMillis() - timestamp
+    val seconds = diff / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
+
+    return when {
+        days > 0 -> if (days == 1L) "1 day ago" else "$days days ago"
+        hours > 0 -> if (hours == 1L) "1 hour ago" else "$hours hours ago"
+        minutes > 0 -> if (minutes == 1L) "1 minute ago" else "$minutes minutes ago"
+        else -> "Just now"
+    }
+}

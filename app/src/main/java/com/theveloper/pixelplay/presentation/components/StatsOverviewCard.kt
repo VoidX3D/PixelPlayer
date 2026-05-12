@@ -215,6 +215,10 @@ private fun PlaceholderOverviewContent() {
 @Composable
 private fun MiniListeningTimeline(summary: PlaybackStatsRepository.PlaybackStatsSummary?) {
     val timeline = summary?.timeline ?: emptyList()
+    if (summary?.range == StatsTimeRange.MONTH && timeline.isNotEmpty()) {
+        MonthlyHorizontalListeningTimeline(timeline)
+        return
+    }
     val maxDuration = timeline.maxOfOrNull { it.totalDurationMs }?.takeIf { it > 0 } ?: 1L
     Row(
         modifier = Modifier
@@ -256,6 +260,57 @@ private fun MiniListeningTimeline(summary: PlaybackStatsRepository.PlaybackStats
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyHorizontalListeningTimeline(
+    timeline: List<PlaybackStatsRepository.TimelineEntry>
+) {
+    val maxDuration = timeline.maxOfOrNull { it.totalDurationMs }?.takeIf { it > 0 } ?: 1L
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(108.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        timeline.forEach { entry ->
+            val widthFraction = (entry.totalDurationMs.toFloat() / maxDuration.toFloat())
+                .coerceIn(0f, 1f)
+                .takeIf { it > 0f }
+                ?: 0.06f
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier.width(56.dp),
+                    text = entry.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(12.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(widthFraction)
+                            .height(12.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
             }
         }
     }

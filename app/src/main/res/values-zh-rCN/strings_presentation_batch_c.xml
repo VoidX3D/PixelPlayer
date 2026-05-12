@@ -29,7 +29,7 @@
     <string name="song_picker_title">添加歌曲</string>
     <string name="cd_confirm_add_songs">添加所选歌曲</string>
     <string name="song_picker_action_add">添加</string>
-    <string name="song_picker_search_label">搜索歌曲…</string>
+    <string name="song_picker_search_label">搜索歌曲……</string>
     <string name="song_picker_error_load_failed">加载歌曲失败</string>
     <string name="song_picker_load_more">加载更多</string>
 
@@ -43,13 +43,13 @@
     <string name="ai_playlist_section_size">播放列表大小</string>
     <string name="ai_playlist_min_songs">最少歌曲数</string>
     <string name="ai_playlist_max_songs">最多歌曲数</string>
-    <string name="ai_playlist_prompt_placeholder">例如：轻松的夜晚氛围、充满活力的健身节奏…</string>
+    <string name="ai_playlist_prompt_placeholder">例如：轻松的夜晚氛围、充满活力的健身节奏……</string>
     <string name="ai_playlist_tap_to_retry">点击重试</string>
     <string name="ai_playlist_status_default">声音旅程已生成！</string>
-    <string name="ai_playlist_generating">生成中…</string>
+    <string name="ai_playlist_generating">生成中……</string>
     <string name="ai_playlist_ready_to_play">可立即播放</string>
     <string name="ai_playlist_generate">生成播放列表</string>
-    
+
     <!-- Library Empty State -->
     <string name="lib_empty_songs_all_title">暂无歌曲</string>
     <string name="lib_empty_songs_all_subtitle">向设备中添加音乐或同步云端来源以开始聆听。</string>

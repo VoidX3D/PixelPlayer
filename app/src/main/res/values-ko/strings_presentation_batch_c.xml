@@ -56,7 +56,7 @@
     <string name="lib_empty_songs_offline_title">로컬 곡을 찾을 수 없음</string>
     <string name="lib_empty_songs_offline_subtitle">다른 소스 필터를 시도하거나 기기 라이브러리를 다시 스캔하세요.</string>
     <string name="lib_empty_songs_online_title">클라우드 곡을 찾을 수 없음</string>
-    <string name="lib_empty_songs_online_subtitle">Telegram 또는 Netease 곡을 동기화하거나 로컬 소스로 전환하세요.</string>
+    <string name="lib_empty_songs_online_subtitle">Telegram 또는 NetEase Cloud Music 곡을 동기화하거나 로컬 소스로 전환하세요.</string>
     <string name="lib_empty_albums_all_title">사용 가능한 앨범 없음</string>
     <string name="lib_empty_albums_all_subtitle">라이브러리의 트랙이 그룹화되는 대로 앨범이 여기에 표시됩니다.</string>
     <string name="lib_empty_albums_offline_title">로컬 앨범을 찾을 수 없음</string>
@@ -74,7 +74,7 @@
     <string name="lib_empty_liked_offline_title">좋아요 표시한 로컬 곡 없음</string>
     <string name="lib_empty_liked_offline_subtitle">소스 필터를 전환하거나 기기의 곡에 좋아요를 표시하세요.</string>
     <string name="lib_empty_liked_online_title">좋아요 표시한 클라우드 곡 없음</string>
-    <string name="lib_empty_liked_online_subtitle">Telegram 또는 Netease 트랙에 좋아요를 표시하여 이 보기에 나타나게 하세요.</string>
+    <string name="lib_empty_liked_online_subtitle">Telegram 또는 NetEase 트랙에 좋아요를 표시하여 이 보기에 나타나게 하세요.</string>
     <string name="lib_empty_folders_title">폴더를 찾을 수 없음</string>
     <string name="lib_empty_folders_subtitle">음악이 포함된 내부 저장소 폴더가 여기에 표시됩니다.</string>
     <string name="lib_empty_playlists_title">플레이리스트가 아직 없습니다</string>
