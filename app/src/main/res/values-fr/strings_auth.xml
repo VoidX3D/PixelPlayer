@@ -51,7 +51,7 @@
     <string name="auth_web_exit_confirm_body">Vous pourrez revenir plus tard. L\'état actuel de la page sera perdu lors de la fermeture.</string>
     <string name="auth_exit">Quitter</string>
     <string name="auth_stay">Rester</string>
-    <string name="auth_login_netease_title">Connexion à NetEase Cloud Music</string>
+    <string name="auth_login_netease_title">Connexion à NetEase Music</string>
     <string name="auth_login_qq_title">Connexion à QQ Music</string>
     <string name="auth_web_cd_web_back">Retour Web</string>
     <string name="auth_web_cd_web_forward">Avance Web</string>

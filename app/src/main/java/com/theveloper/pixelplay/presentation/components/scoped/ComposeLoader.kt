@@ -62,11 +62,20 @@ fun rememberSmoothProgress(
 
     val latestPositionProvider by rememberUpdatedState(newValue = currentPositionProvider)
     val latestIsPlayingProvider by rememberUpdatedState(newValue = isPlayingProvider)
+    // Read these inside the loop so the LaunchedEffect doesn't restart every time
+    // they change. With the previous keying scheme, crossing the expansion threshold
+    // (which flips `isVisible` at 0.01 and the playing sample rate at 0.995) would
+    // cancel and relaunch this coroutine mid-gesture — the new fresh coroutine
+    // immediately allocated a new Job + had to re-issue its first `sampleNow` and
+    // `delay`, which contributed to the post-interaction gesture lag.
+    val latestSampleWhilePlayingMs by rememberUpdatedState(sampleWhilePlayingMs)
+    val latestSampleWhilePausedMs by rememberUpdatedState(sampleWhilePausedMs)
+    val latestIsVisible by rememberUpdatedState(isVisible)
 
     val safeUpperBound = totalDuration.coerceAtLeast(0L)
     val safeDuration = totalDuration.coerceAtLeast(1L)
 
-    LaunchedEffect(totalDuration, sampleWhilePlayingMs, sampleWhilePausedMs, isVisible) {
+    LaunchedEffect(totalDuration) {
         fun sampleNow() {
             val rawPosition = latestPositionProvider()
             val clampedPosition = rawPosition.coerceIn(0L, safeUpperBound)
@@ -75,11 +84,14 @@ fun rememberSmoothProgress(
         }
 
         sampleNow()
-        if (!isVisible) return@LaunchedEffect
 
         while (isActive) {
+            if (!latestIsVisible) {
+                delay(200L)
+                continue
+            }
             val isPlaying = latestIsPlayingProvider()
-            val delayMillis = if (isPlaying) sampleWhilePlayingMs else sampleWhilePausedMs
+            val delayMillis = if (isPlaying) latestSampleWhilePlayingMs else latestSampleWhilePausedMs
             delay(delayMillis.coerceAtLeast(1L))
             sampleNow()
         }

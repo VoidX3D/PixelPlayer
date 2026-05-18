@@ -16,7 +16,7 @@
     <string name="presentation_batch_b_accounts_connect_service">Koble til %1$s</string>
     <string name="presentation_batch_b_accounts_service_paren_coming_soon">%1$s (Kommer snart)</string>
     <string name="presentation_batch_b_service_telegram">Telegram</string>
-    <string name="presentation_batch_b_service_netease">NetEase Cloud Music</string>
+    <string name="presentation_batch_b_service_netease">NetEase Music</string>
 
     <!-- PlaylistDetailScreen -->
     <string name="presentation_batch_b_sort_songs">Sorter sanger</string>

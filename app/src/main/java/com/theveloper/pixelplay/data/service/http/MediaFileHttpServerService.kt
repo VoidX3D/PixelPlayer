@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.theveloper.pixelplay.data.service.http
 
 import android.app.Service
@@ -418,38 +419,32 @@ class MediaFileHttpServerService : Service() {
                                     if (canTranscode) {
                                         // ALAC codec inside M4A — Cast DMR cannot play ALAC.
                                         // Serve via temp-file transcode cache so Cast can seek.
-                                        if (codecInfo != null) {
-                                            Timber.tag(castHttpLogTag).i(
-                                                "GET /song ALAC→AAC transcode-cache songId=%s sr=%d ch=%d",
-                                                song.id, codecInfo.sampleRate, codecInfo.channelCount
-                                            )
-                                        }
-                                        if (codecInfo != null) {
-                                            Timber.tag("PX_CAST_HTTP")
-                                                .i("GET /song transcode_alac songId=${song.id} sr=${codecInfo.sampleRate} ch=${codecInfo.channelCount}")
-                                        }
-                                        if (codecInfo != null) {
-                                            call.respondTranscodedWithCache(
-                                                song = song, codecInfo = codecInfo, uri = uri,
-                                                rangeHeader = call.request.headers[HttpHeaders.Range]
-                                            )
-                                        }
+                                        val c = checkNotNull(codecInfo)
+                                        Timber.tag(castHttpLogTag).i(
+                                            "GET /song ALAC→AAC transcode-cache songId=%s sr=%d ch=%d",
+                                            song.id, c.sampleRate, c.channelCount
+                                        )
+                                        Timber.tag("PX_CAST_HTTP")
+                                            .i("GET /song transcode_alac songId=${song.id} sr=${c.sampleRate} ch=${c.channelCount}")
+
+                                        call.respondTranscodedWithCache(
+                                            song = song, codecInfo = c, uri = uri,
+                                            rangeHeader = call.request.headers[HttpHeaders.Range]
+                                        )
                                         return@get
                                     }
 
                                     if (isAlac && !canTranscode) {
                                         // ALAC decoder unavailable on this device — serve the raw
                                         // M4A container. Newer Cast devices support ALAC natively.
-                                        if (codecInfo != null) {
-                                            Timber.tag(castHttpLogTag).w(
-                                                "GET /song ALAC decoder unavailable songId=%s sr=%d, serving raw M4A",
-                                                song.id, codecInfo.sampleRate
-                                            )
-                                        }
-                                        if (codecInfo != null) {
-                                            Timber.tag("PX_CAST_HTTP")
-                                                .w("GET /song alac_fallback_raw songId=${song.id} sr=${codecInfo.sampleRate}")
-                                        }
+                                        val c = checkNotNull(codecInfo)
+                                        Timber.tag(castHttpLogTag).w(
+                                            "GET /song ALAC decoder unavailable songId=%s sr=%d, serving raw M4A",
+                                            song.id, c.sampleRate
+                                        )
+                                        Timber.tag("PX_CAST_HTTP")
+                                            .w("GET /song alac_fallback_raw songId=${song.id} sr=${c.sampleRate}")
+
                                         val rangeHeader = call.request.headers[HttpHeaders.Range]
                                         val source = resolveAudioStreamSource(song, uri)
                                         if (source == null) {
@@ -473,7 +468,7 @@ class MediaFileHttpServerService : Service() {
                                     // causing an involuntary track skip. Transcode to AAC-ADTS so
                                     // Cast gets a CBR stream it can seek accurately.
                                     val isFlac = codecInfo?.codecMime == "audio/flac"
-                                    if (isFlac && codecInfo != null && isFlacTranscodeSupported(codecInfo)) {
+                                    if (isFlac && isFlacTranscodeSupported(codecInfo)) {
                                         Timber.tag(castHttpLogTag).i(
                                             "GET /song FLAC→AAC transcode-cache songId=%s sr=%d ch=%d",
                                             song.id, codecInfo.sampleRate, codecInfo.channelCount
@@ -490,7 +485,7 @@ class MediaFileHttpServerService : Service() {
                                     // AC3/EAC3: Cast DMR cannot play Dolby audio. Transcode to AAC
                                     // when a decoder is available (Snapdragon Dolby decoder).
                                     val isAc3 = codecInfo?.codecMime == "audio/ac3" || codecInfo?.codecMime == "audio/eac3"
-                                    if (isAc3 && codecInfo != null && isAc3TranscodeSupported(codecInfo)) {
+                                    if (isAc3 && isAc3TranscodeSupported(codecInfo)) {
                                         Timber.tag(castHttpLogTag).i(
                                             "GET /song AC3/EAC3→AAC transcode-cache songId=%s sr=%d ch=%d",
                                             song.id, codecInfo.sampleRate, codecInfo.channelCount
@@ -617,7 +612,7 @@ class MediaFileHttpServerService : Service() {
 
                                     // FLAC: transcoded to AAC-ADTS for reliable Cast seeking.
                                     val isFlac = codecInfo?.codecMime == "audio/flac"
-                                    if (isFlac && codecInfo != null && isFlacTranscodeSupported(codecInfo)) {
+                                    if (isFlac && isFlacTranscodeSupported(codecInfo)) {
                                         call.response.header(HttpHeaders.ContentType, "audio/aac")
                                         val entry = transcodeCache[song.id]
                                         if (entry != null && entry.done && entry.tempFile.exists()) {
@@ -634,7 +629,7 @@ class MediaFileHttpServerService : Service() {
 
                                     // AC3/EAC3: transcoded to AAC for Cast.
                                     val isAc3 = codecInfo?.codecMime == "audio/ac3" || codecInfo?.codecMime == "audio/eac3"
-                                    if (isAc3 && codecInfo != null && isAc3TranscodeSupported(codecInfo)) {
+                                    if (isAc3 && isAc3TranscodeSupported(codecInfo)) {
                                         call.response.header(HttpHeaders.ContentType, "audio/aac")
                                         val entry = transcodeCache[song.id]
                                         if (entry != null && entry.done && entry.tempFile.exists()) {
@@ -877,6 +872,7 @@ class MediaFileHttpServerService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun selectIpAddress(context: Context, castDeviceIpHint: String?): AddressSelection? {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetwork = connectivityManager.activeNetwork
@@ -1683,13 +1679,11 @@ class MediaFileHttpServerService : Service() {
                 is io.ktor.http.ContentRange.Bounded -> range.from
                 is io.ktor.http.ContentRange.TailFrom -> range.from
                 is io.ktor.http.ContentRange.Suffix -> fileSize - range.lastCount
-                else -> 0L
             }
             val end = when (range) {
                 is io.ktor.http.ContentRange.Bounded -> range.to
                 is io.ktor.http.ContentRange.TailFrom -> fileSize - 1
                 is io.ktor.http.ContentRange.Suffix -> fileSize - 1
-                else -> fileSize - 1
             }
 
             val clampedStart = start.coerceAtLeast(0L)
@@ -2506,7 +2500,7 @@ class MediaFileHttpServerService : Service() {
                         val isEos = decoderOutput.isEndOfStream()
                         val pcm = decoderOutput.data?.duplicate()?.apply {
                             position(0)
-                            limit(decoderOutput!!.data?.limit() ?: 0)
+                            limit(decoderOutput.data?.limit() ?: 0)
                         }
 
                         if (!decoderOutput.shouldBeSkipped && pcm != null && pcm.hasRemaining()) {

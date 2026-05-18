@@ -51,6 +51,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
 import com.theveloper.pixelplay.presentation.components.player.BottomToggleRow
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -191,14 +192,14 @@ fun LyricsMoreBottomSheet(
                                 onResetImportedLyrics()
                             }
                         ) {
-                            Text(stringResource(R.string.action_reset), color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.action_reset), color = MaterialTheme.colorScheme.error, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     },
                     dismissButton = {
                         androidx.compose.material3.TextButton(
                             onClick = { showResetDialog = false }
                         ) {
-                            Text(stringResource(R.string.cancel))
+                            Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

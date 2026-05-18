@@ -179,12 +179,12 @@
     <string name="about_app_name">PixelPlayer</string>
     <string name="about_tagline">Плеер с открытым исходным кодом, созданный сообществом.</string>
     <string name="about_version_format">Версия v%1$s</string>
-    <string name="about_contributions_format">%1$d участников</string>
+    <string name="about_contributions_format">%1$d contrib.</string>
     <string name="screen_about">О приложении</string>
-    <string name="about_maintainer_title">Сопровождающий</string>
+    <string name="about_maintainer_title">Ведущий сообщества</string>
     <string name="about_maintainer_subtitle">Человек, стоящий за PixelPlayer.</string>
-    <string name="about_spotlight_title">В центре внимания</string>
-    <string name="about_spotlight_subtitle">Признание участников с большим вкладом.</string>
+    <string name="about_spotlight_title">Звезды сообщества</string>
+    <string name="about_spotlight_subtitle">Участники, внесшие огромный вклад.</string>
     <string name="about_contributors_section_title">Участники проекта</string>
     <string name="about_contributors_section_subtitle">Список участников из GitHub.</string>
     <string name="about_signal_open_source">Open source</string>
@@ -218,7 +218,7 @@
     <string name="cd_sync_all">Синхронизировать всё</string>
     <string name="cd_add_drive_folder">Добавить папку</string>
     <string name="cd_logout">Выйти</string>
-    <string name="screen_netease_dashboard_title">NetEase Cloud Music</string>
+    <string name="screen_netease_dashboard_title">NetEase Music</string>
     <string name="screen_qq_music_dashboard_title">QQ Music</string>
     <string name="cd_sync_all_playlists">Синхронизировать все плейлисты</string>
     <string name="error_with_message_format">Ошибка: %1$s</string>
@@ -236,4 +236,21 @@
     <string name="toast_added_to_queue">Добавлено в очередь</string>
     <string name="toast_playing_next">Будет сыграно следующим</string>
     <string name="error_share_song_format">Не удалось поделиться песней: %1$s</string>
+
+    <!-- Cloud dashboard sync status -->
+    <string name="dash_status_syncing_library">Синхронизация фонотеки:</string>
+    <string name="dash_status_fetching_playlists">Загрузка плейлистов:</string>
+    <string name="dash_status_syncing_playlist_format">Синхронизация плейлиста: %1$s</string>
+    <string name="dash_status_updating_local">Обновление локальной фонотеки:</string>
+    <string name="dash_status_sync_complete">Синхронизация завершена</string>
+    <string name="dash_status_fetching_albums">Загрузка списка альбомов:</string>
+    <string name="dash_status_fetching_songs_from_format">Загрузка треков из %1$s:</string>
+    <string name="dash_status_saving_songs_format">Сохранение %1$d треков в базу:</string>
+    <string name="dash_status_no_songs_found">Треки в фонотеке не найдены</string>
+    <string name="dash_status_library_sync_complete">Синхронизация фонотеки завершена</string>
+
+    <!-- Home empty placeholder -->
+    <string name="home_empty_placeholder_title">Пока нечего показать</string>
+    <string name="home_empty_placeholder_subtitle">Ваш микс появится здесь, когда PixelPlayer найдёт треки или синхронизирует источник.</string>
+    <string name="home_empty_placeholder_refresh">Обновить</string>
 </resources>

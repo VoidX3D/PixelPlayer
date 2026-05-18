@@ -218,7 +218,7 @@
     <string name="cd_sync_all">Sincronizza tutto</string>
     <string name="cd_add_drive_folder">Aggiungi cartella</string>
     <string name="cd_logout">Disconnetti</string>
-    <string name="screen_netease_dashboard_title">NetEase Cloud Music</string>
+    <string name="screen_netease_dashboard_title">NetEase Music</string>
     <string name="screen_qq_music_dashboard_title">QQ Music</string>
     <string name="cd_sync_all_playlists">Sincronizza tutte le playlist</string>
     <string name="error_with_message_format">Errore: %1$s</string>

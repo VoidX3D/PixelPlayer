@@ -36,7 +36,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AiCacheEntity::class,
         AiUsageEntity::class
     ],
-    version = 40,
+    version = 41,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -622,6 +622,30 @@ abstract class PixelPlayDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_songs_parent_directory_path_source_type_id " +
                         "ON songs(parent_directory_path, source_type, id)"
                 )
+            }
+        }
+
+        val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if ("album_artist" !in getTableColumns(db, "albums")) {
+                    db.execSQL("ALTER TABLE albums ADD COLUMN album_artist TEXT DEFAULT NULL")
+                }
+                db.execSQL(
+                    """
+                    UPDATE albums
+                    SET album_artist = (
+                        SELECT s.album_artist
+                        FROM songs s
+                        WHERE s.album_id = albums.id
+                          AND s.album_artist IS NOT NULL
+                          AND TRIM(s.album_artist) != ''
+                        GROUP BY s.album_artist
+                        ORDER BY COUNT(*) DESC, LENGTH(s.album_artist) DESC
+                        LIMIT 1
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_albums_album_artist ON albums(album_artist)")
             }
         }
 

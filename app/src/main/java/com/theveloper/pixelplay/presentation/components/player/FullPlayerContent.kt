@@ -816,7 +816,7 @@ fun FullPlayerContent(
                                             AnimatedContent(
                                                 targetState = when {
                                                     isCastConnecting -> stringResource(R.string.presentation_batch_g_player_connecting)
-                                                    isRemotePlaybackActive && selectedRouteName != null -> selectedRouteName ?: ""
+                                                    isRemotePlaybackActive && selectedRouteName != null -> selectedRouteName
                                                     else -> ""
                                                 },
                                                 transitionSpec = {
@@ -1011,12 +1011,14 @@ private fun FullPlayerAlbumCoverSection(
 ) {
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delayAlbumCarousel
     val shouldApplyPausedScale = !isPlayingProvider() && !playWhenReadyProvider()
+    // Use a short deterministic tween instead of spring(StiffnessLow). The original
+    // spring took ~1s to settle, producing ~60 frames of graphicsLayer invalidations
+    // that overlapped with any subsequent sheet-collapse gesture. A 260 ms tween
+    // finishes well before the user can start the next gesture, keeping the album
+    // art's "pause squish" visible but removing the long tail of frame work.
     val albumArtScale by animateFloatAsState(
         targetValue = if (shouldApplyPausedScale) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
         label = "AlbumArtScale"
     )
 
@@ -1803,12 +1805,10 @@ private fun PlayerProgressBarSection(
                 EfficientSlider(
                     valueState = animatedProgressState,
                     onValueChange = { sliderDragValue = it },
-                    onValueChangeFinished = {
-                        sliderDragValue?.let { finalValue ->
-                            val targetMs = (finalValue * durationForCalc).roundToLong()
-                            optimisticPosition = targetMs
-                            onSeek(targetMs)
-                        }
+                    onValueCommit = { finalValue ->
+                        val targetMs = (finalValue * durationForCalc).roundToLong()
+                        optimisticPosition = targetMs
+                        onSeek(targetMs)
                         sliderDragValue = null
                     },
                     thumbColor = thumbColor,
@@ -1837,7 +1837,7 @@ private fun PlayerProgressBarSection(
 private fun EfficientSlider(
     valueState: androidx.compose.runtime.State<Float>,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit,
+    onValueCommit: (Float) -> Unit,
     thumbColor: Color,
     activeTrackColor: Color,
     inactiveTrackColor: Color,
@@ -1863,7 +1863,7 @@ private fun EfficientSlider(
     WavySliderExpressive(
         value = valueState.value,
         onValueChange = onValueChangeWithHaptics,
-        onValueChangeFinished = onValueChangeFinished,
+        onValueCommit = onValueCommit,
         interactionSource = interactionSource,
         activeTrackColor = activeTrackColor,
         inactiveTrackColor = inactiveTrackColor,

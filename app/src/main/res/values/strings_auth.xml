@@ -23,6 +23,7 @@
     <string name="auth_navidrome_server_url_hint">Use the full https:// base address of your server.</string>
     <string name="auth_navidrome_username_hint">This is your Subsonic or Navidrome account name.</string>
     <string name="auth_navidrome_password_hint">App password also works if your server supports it.</string>
+    <string name="auth_navidrome_пароль_hint">App password also works if your server supports it.</string>
     <string name="auth_prefill_https">Prefill https://</string>
     <string name="auth_navidrome_footer">Compatible with Navidrome, Gonic, Airsonic, and other Subsonic-compatible servers</string>
     <string name="cd_navidrome_logo">Navidrome</string>
@@ -51,7 +52,7 @@
     <string name="auth_web_exit_confirm_body">You can come back later. Current page state will be discarded when closing.</string>
     <string name="auth_exit">Exit</string>
     <string name="auth_stay">Stay</string>
-    <string name="auth_login_netease_title">Login to NetEase Cloud Music</string>
+    <string name="auth_login_netease_title">Login to NetEase Music</string>
     <string name="auth_login_qq_title">Login to QQ Music</string>
     <string name="auth_web_cd_web_back">Web back</string>
     <string name="auth_web_cd_web_forward">Web forward</string>

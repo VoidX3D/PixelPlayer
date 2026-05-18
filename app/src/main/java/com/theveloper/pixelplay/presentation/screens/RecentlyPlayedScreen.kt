@@ -66,7 +66,7 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
@@ -308,18 +308,24 @@ fun RecentlyPlayedScreen(
                     navController.navigateSafely(Screen.ArtistDetail.createRoute(song.artistId))
                     showSongInfoBottomSheet = false
                 },
+                onNavigateToArtistById = { artistId ->
+                    navController.navigateSafely(Screen.ArtistDetail.createRoute(artistId))
+                    showSongInfoBottomSheet = false
+                },
                 onNavigateToGenre = {
                     song.genre?.let {
                         navController.navigateSafely(Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(it, "UTF-8")))
                     }
                     showSongInfoBottomSheet = false
                 },
-                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                onEditSong = { newTitle, newArtist, newAlbum, newAlbumArtist, newComposer, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         song,
                         newTitle,
                         newArtist,
                         newAlbum,
+                        newAlbumArtist,
+                        newComposer,
                         newGenre,
                         newLyrics,
                         newTrackNumber,
@@ -694,8 +700,8 @@ private fun groupRecentlyPlayedSongs(
             bucket += item
         } else {
             groups += TimestampGroup(
-                key = currentBucketKey ?: "",
-                label = currentLabel ?: "",
+                key = currentBucketKey,
+                label = currentLabel!!,
                 isHourBucket = currentIsHourBucket,
                 songs = bucket
             )
@@ -708,8 +714,8 @@ private fun groupRecentlyPlayedSongs(
 
     if (bucket.isNotEmpty() && currentLabel != null && currentBucketKey != null) {
         groups += TimestampGroup(
-            key = currentBucketKey ?: "",
-            label = currentLabel ?: "",
+            key = currentBucketKey,
+            label = currentLabel,
             isHourBucket = currentIsHourBucket,
             songs = bucket
         )

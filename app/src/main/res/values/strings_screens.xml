@@ -231,7 +231,7 @@
     <string name="cd_sync_all">Sync all</string>
     <string name="cd_add_drive_folder">Add folder</string>
     <string name="cd_logout">Log out</string>
-    <string name="screen_netease_dashboard_title">NetEase Cloud Music</string>
+    <string name="screen_netease_dashboard_title">NetEase Music</string>
     <string name="screen_qq_music_dashboard_title">QQ Music</string>
     <string name="cd_sync_all_playlists">Sync all playlists</string>
     <string name="error_with_message_format">Error: %1$s</string>

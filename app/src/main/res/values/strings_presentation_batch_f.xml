@@ -169,7 +169,7 @@
     <string name="presentation_batch_f_telegram_status_preparing">Preparing secure Telegram session…</string>
     <string name="presentation_batch_f_telegram_status_waiting">Waiting for Telegram response…</string>
     <string name="presentation_batch_f_connect_telegram">Connect Telegram</string>
-    <string name="presentation_batch_f_connect_telegram_subtitle">Login with robust error handling, timeout control, and editable steps.</string>
+    <string name="presentation_batch_f_connect_telegram_subtitle">Connect Telegram to stream music from your channels and chats.</string>
     <string name="presentation_batch_f_phone_number_title">Phone Number</string>
     <string name="presentation_batch_f_phone_number_subtitle">Enter your Telegram number. You can come back and edit it later.</string>
     <string name="presentation_batch_f_phone_number_hint">Phone number</string>
@@ -204,6 +204,9 @@
     <string name="presentation_batch_f_fetch_latest_songs">Fetch latest songs from this channel</string>
     <string name="presentation_batch_f_remove_channel">Remove channel</string>
     <string name="presentation_batch_f_remove_channel_subtitle">Stop syncing and remove cached songs</string>
+    <string name="presentation_batch_f_remove_channel_confirm_title">Remove channel?</string>
+    <string name="presentation_batch_f_remove_channel_confirm_body">%1$s will stop syncing and all cached songs from this channel will be removed.</string>
+    <string name="presentation_batch_f_remove_channel_confirm_action">Remove</string>
     <string name="presentation_batch_f_no_channels_synced">No Channels Synced</string>
     <string name="presentation_batch_f_no_channels_body">Add public Telegram channels to sync\nyour music library</string>
     <string name="presentation_batch_f_add_channel_button">Add channel</string>

@@ -141,12 +141,17 @@ internal fun rememberSheetVisualState(
         }
     }
 
+    // isPlaying and hasCurrentSong are only used in the fallback branch when
+    // !showPlayerContentArea. Reading them via rememberUpdatedState keeps the
+    // shape provider lambda stable across play/pause toggles — so the
+    // PlayerSheetDynamicShape instance (and the modifier chain that consumes it)
+    // is not recreated on every isPlaying flip.
+    val isPlayingState = rememberUpdatedState(isPlaying)
+    val hasCurrentSongState = rememberUpdatedState(hasCurrentSong)
     val playerContentActualBottomRadiusProvider: () -> Dp = remember(
         navBarStyle,
         showPlayerContentArea,
         playerContentExpansionFraction,
-        isPlaying,
-        hasCurrentSong,
         predictiveBackCollapseProgress,
         currentSheetContentState,
         swipeDismissProgress,
@@ -176,7 +181,7 @@ internal fun rememberSheetVisualState(
                                 lerp(26.dp, 0.dp, ((fraction - 0.2f) / 0.8f).coerceIn(0f, 1f))
                             }
                         } else {
-                            if (!isPlaying || !hasCurrentSong) {
+                            if (!isPlayingState.value || !hasCurrentSongState.value) {
                                 if (isNavBarHidden) 32.dp else navBarCornerRadiusDp
                             } else {
                                 if (isNavBarHidden) 32.dp else 12.dp

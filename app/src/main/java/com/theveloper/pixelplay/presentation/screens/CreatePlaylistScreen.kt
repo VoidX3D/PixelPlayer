@@ -20,6 +20,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,8 +47,10 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.GridView
@@ -95,6 +98,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -126,6 +130,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Clear
@@ -134,6 +139,13 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.TransformOrigin
+import com.theveloper.pixelplay.data.model.StorageFilter
+import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.material3.SliderDefaults
 
@@ -146,7 +158,9 @@ import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.presentation.screens.TabAnimation
 
 data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
@@ -263,12 +277,13 @@ fun EditPlaylistDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(UnstableApi::class)
 @Composable
 private fun CreatePlaylistContent(
     onDismiss: () -> Unit,
     onGenerateClick: () -> Unit,
-    onCreate: (String, String?, Int?, String?, List<String>, Float, Float, Float, String?, Float?, Float?, Float?, Float?, String?) -> Unit
+    onCreate: (String, String?, Int?, String?, List<String>, Float, Float, Float, String?, Float?, Float?, Float?, Float?, String?) -> Unit,
+    playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
 
@@ -396,7 +411,7 @@ private fun CreatePlaylistContent(
             )
         },
         floatingActionButton = {
-            if (!showCropUi) {
+            if (!showCropUi && !(currentStep == 1 && creationMode == PlaylistCreationMode.MANUAL)) {
                 MediumExtendedFloatingActionButton(
                     text = {
                         Text(
@@ -498,6 +513,120 @@ private fun CreatePlaylistContent(
                 )
             }
         },
+        bottomBar = {
+            if (currentStep == 1 && creationMode == PlaylistCreationMode.MANUAL) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val storageFilter by playerViewModel.playlistPickerStorageFilter.collectAsStateWithLifecycle()
+                    val tabs = listOf(
+                        StorageFilter.OFFLINE to R.string.library_storage_filter_offline,
+                        StorageFilter.ONLINE to R.string.library_storage_filter_online
+                    )
+                    val selectedTabIndex = tabs.indexOfFirst { it.first == storageFilter }.coerceAtLeast(0)
+
+                    PrimaryTabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .padding(5.dp),
+                        containerColor = Color.Transparent,
+                        divider = {},
+                        indicator = {}
+                    ) {
+                        tabs.forEachIndexed { index, (filter, labelRes) ->
+                            TabAnimation(
+                                index = index,
+                                title = stringResource(labelRes),
+                                selectedIndex = selectedTabIndex,
+                                onClick = { playerViewModel.setPlaylistPickerStorageFilter(filter) },
+                                transformOrigin = if (index == 0) TransformOrigin(0f, 0.5f) else TransformOrigin(1f, 0.5f)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    if (filter == StorageFilter.OFFLINE) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_phonef),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Cloud,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        fontFamily = GoogleSansRounded,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    FilledIconButton(
+                        onClick = {
+                            val imageUriString = if(selectedTab == 1) selectedImageUri?.toString() else null
+                            val color = if(selectedTab == 2) selectedColor else null
+                            val icon = if(selectedTab == 2) selectedIconName else null
+                            
+                            val scale = if(selectedTab == 1) cropScale else 1f
+                            val panX = if(selectedTab == 1) cropOffset.x else 0f
+                            val panY = if(selectedTab == 1) cropOffset.y else 0f
+                            
+                            val shapeTypeForSave = if (selectedTab == 2) selectedShapeType.name else null
+                            val (d1, d2, d3, d4) = if (selectedTab == 2) {
+                                when (selectedShapeType) {
+                                    PlaylistShapeType.SmoothRect -> Quadruple(smoothRectCornerRadius, smoothRectSmoothness, 0f, 0f)
+                                    PlaylistShapeType.Star -> Quadruple(starCurve.toFloat(), starRotation, starScale, starSides.toFloat())
+                                    else -> Quadruple(0f, 0f, 0f, 0f)
+                                }
+                            } else Quadruple(null, null, null, null)
+
+                            onCreate(
+                                playlistName, 
+                                imageUriString, 
+                                color, 
+                                icon, 
+                                selectedSongIds.filterValues { it }.keys.toList(),
+                                scale,
+                                panX,
+                                panY,
+                                shapeTypeForSave,
+                                d1, d2, d3, d4,
+                                null
+                            )
+                        },
+                        modifier = Modifier.size(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    ) {
+                        Icon(
+                            Icons.Rounded.Check,
+                            contentDescription = stringResource(R.string.presentation_batch_f_create),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+        },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         AnimatedContent(
@@ -559,7 +688,8 @@ private fun CreatePlaylistContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .imePadding(),
-                    contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp, top = 8.dp),
+                    playerViewModel = playerViewModel
                 )
             }
         }
@@ -994,7 +1124,7 @@ private fun PlaylistFormContent(
                                  contentAlignment = Alignment.Center
                              ) {
                                  if (selectedIconName != null) {
-                                     val icon = getIconByName(selectedIconName!!) ?: Icons.Rounded.MusicNote
+                                     val icon = getIconByName(selectedIconName) ?: Icons.Rounded.MusicNote
                                      Icon(
                                          imageVector = icon,
                                          contentDescription = null,
@@ -1067,27 +1197,27 @@ private fun PlaylistFormContent(
             }
 
             // AI Generation Button - only show in Create mode (not Edit mode)
-            if (onGenerateClick != null) {
-                androidx.compose.material3.FilledTonalButton(
-                    onClick = onGenerateClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 22.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.AutoAwesome, // Use built-in icon
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.presentation_batch_f_generate_with_ai), fontWeight = FontWeight.SemiBold)
-                }
-            }
+//            if (onGenerateClick != null) {
+//                androidx.compose.material3.FilledTonalButton(
+//                    onClick = onGenerateClick,
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 22.dp),
+//                    shape = RoundedCornerShape(14.dp),
+//                    colors = ButtonDefaults.filledTonalButtonColors(
+//                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+//                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+//                    )
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Rounded.AutoAwesome, // Use built-in icon
+//                        contentDescription = null,
+//                        modifier = Modifier.size(18.dp)
+//                    )
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Text(stringResource(R.string.presentation_batch_f_generate_with_ai), fontWeight = FontWeight.SemiBold)
+//                }
+//            }
 
             AnimatedVisibility(visible = creationMode == PlaylistCreationMode.SMART) {
                 Column(
@@ -1110,7 +1240,8 @@ private fun PlaylistFormContent(
                             FilterChip(
                                 selected = selectedSmartRule == rule,
                                 onClick = { onSmartRuleChange(rule) },
-                                label = { Text(smartPlaylistRuleTitle(rule)) }
+                                label = { Text(smartPlaylistRuleTitle(rule)) },
+                                shape = CircleShape
                             )
                         }
                     }

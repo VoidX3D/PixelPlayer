@@ -758,7 +758,6 @@ class MainActivity : ComponentActivity() {
                             val intent = Intent(this@MainActivity, com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity::class.java)
                             startActivity(intent)
                         }
-                        else -> {}
                     }
                 }
         ) {

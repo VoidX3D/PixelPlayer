@@ -160,7 +160,7 @@ class AccountsViewModel @Inject constructor(
                 add(
                     ExternalAccountUiModel(
                         service = ExternalServiceAccount.NETEASE,
-                        title = "Netease Cloud Music",
+                        title = "Netease Music",
                         accountLabel = neteaseRepository.userNickname
                             ?.takeIf { it.isNotBlank() }
                             ?: "Netease account connected",

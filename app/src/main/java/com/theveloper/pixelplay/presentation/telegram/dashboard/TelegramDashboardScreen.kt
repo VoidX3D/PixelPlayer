@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Topic
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -56,6 +57,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -72,7 +74,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -89,7 +90,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.theveloper.pixelplay.R
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.theveloper.pixelplay.data.database.TelegramChannelEntity
 import com.theveloper.pixelplay.data.database.TelegramTopicEntity
@@ -118,16 +119,12 @@ fun TelegramDashboardScreen(
     val topicsMap by viewModel.topicsMap.collectAsStateWithLifecycle()
     val expandedChannels by viewModel.expandedChannels.collectAsStateWithLifecycle()
     var selectedChannelForActions by remember { mutableStateOf<TelegramChannelEntity?>(null) }
+    var channelPendingRemoval by remember { mutableStateOf<TelegramChannelEntity?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val lazyListState = rememberLazyListState()
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
-
-    val gradientColors = listOf(
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-        Color.Transparent
-    )
 
     LaunchedEffect(statusMessage) {
         statusMessage?.let {
@@ -210,7 +207,6 @@ fun TelegramDashboardScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(gradientColors))
             .nestedScroll(nestedScrollConnection)
     ) {
         Crossfade(targetState = channels.isEmpty(), label = "telegramContentState") { isEmpty ->
@@ -322,8 +318,55 @@ fun TelegramDashboardScreen(
                     viewModel.refreshChannel(selectedChannel)
                 },
                 onDelete = {
+                    channelPendingRemoval = selectedChannel
                     selectedChannelForActions = null
-                    viewModel.removeChannel(selectedChannel.chatId)
+                }
+            )
+        }
+
+        channelPendingRemoval?.let { channel ->
+            val channelLabel = channel.title.ifBlank {
+                channel.username?.let { "@$it" } ?: channel.chatId.toString()
+            }
+            AlertDialog(
+                onDismissRequest = { channelPendingRemoval = null },
+                icon = { Icon(Icons.Rounded.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.presentation_batch_f_remove_channel_confirm_title),
+                        fontFamily = GoogleSansRounded
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(
+                            R.string.presentation_batch_f_remove_channel_confirm_body,
+                            channelLabel
+                        ),
+                        fontFamily = GoogleSansRounded,
+                        textAlign = TextAlign.Center
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.removeChannel(channel.chatId)
+                        channelPendingRemoval = null
+                    }) {
+                        Text(
+                            text = stringResource(R.string.presentation_batch_f_remove_channel_confirm_action),
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { channelPendingRemoval = null }) {
+                        Text(
+                            text = stringResource(R.string.cancel),
+                            fontFamily = GoogleSansRounded
+                        )
+                    }
                 }
             )
         }
@@ -396,14 +439,7 @@ private fun ExpressiveChannelItem(
                     modifier = Modifier
                         .size(62.dp)
                         .clip(imageShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                            )
-                        ),
+                        .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     if (!channel.photoPath.isNullOrEmpty()) {
@@ -881,14 +917,7 @@ private fun ExpressiveEmptyState(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    )
-                ),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -928,7 +957,7 @@ private fun ExpressiveEmptyState(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.size(8.dp))
-            Text(stringResource(R.string.presentation_batch_f_add_channel_button))
+            Text(stringResource(R.string.presentation_batch_f_add_channel_button), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

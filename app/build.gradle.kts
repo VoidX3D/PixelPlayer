@@ -138,12 +138,7 @@ android {
 }
 
 composeCompiler {
-    // Applies Compose's strong skipping optimization (skip composables whose parameters
-    // haven't changed) in Debug builds as well, making dev-mode performance more
-    // representative of Release and reducing unnecessary recompositions during development.
-    featureFlags = setOf(
-        org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.StrongSkipping
-    )
+    // StrongSkipping is now enabled by default.
 }
 
 baselineProfile {
@@ -163,6 +158,7 @@ ksp {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
 
         if (enableComposeCompilerReports) {
             val buildDir = project.layout.buildDirectory.get().asFile.absolutePath

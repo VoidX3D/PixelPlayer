@@ -3,6 +3,8 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.database.MusicDao
+import com.theveloper.pixelplay.data.database.toArtist
+import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.wear.PhoneWatchTransferState
 import com.theveloper.pixelplay.data.service.wear.PhoneWatchTransferStateStore
@@ -38,6 +40,8 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     )
 
     private val _audioMeta = MutableStateFlow<AudioMeta?>(null)
+    private val _resolvedArtists = MutableStateFlow<List<Artist>>(emptyList())
+    val resolvedArtists: StateFlow<List<Artist>> = _resolvedArtists.asStateFlow()
     private val _isPixelPlayWatchAvailable = MutableStateFlow(false)
     val isPixelPlayWatchAvailable: StateFlow<Boolean> = _isPixelPlayWatchAvailable.asStateFlow()
     private val _isWatchAvailabilityResolved = MutableStateFlow(false)
@@ -74,6 +78,27 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     )
 
     val audioMeta: StateFlow<AudioMeta?> = _audioMeta.asStateFlow()
+
+    fun loadArtistsForSong(song: Song) {
+        val refs = song.artists
+        if (refs.isEmpty() || refs.size < 2) {
+            _resolvedArtists.value = emptyList()
+            return
+        }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val ids = refs.map { it.id }.filter { it > 0L }.distinct()
+            val entitiesById = if (ids.isNotEmpty()) {
+                musicDao.getArtistsByIds(ids).associateBy { it.id }
+            } else {
+                emptyMap()
+            }
+            val resolved = refs.map { ref ->
+                entitiesById[ref.id]?.toArtist()
+                    ?: Artist(id = ref.id, name = ref.name, songCount = 0)
+            }
+            _resolvedArtists.value = resolved
+        }
+    }
 
     fun loadAudioMeta(song: Song) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -184,7 +209,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private fun getCloudProviderLabel(contentUriString: String): String? {
         return when {
             contentUriString.startsWith("telegram://") -> "Telegram"
-            contentUriString.startsWith("netease://") -> "Netease Cloud Music"
+            contentUriString.startsWith("netease://") -> "Netease Music"
             contentUriString.startsWith("qqmusic://") -> "QQ Music"
             contentUriString.startsWith("navidrome://") -> "Navidrome"
             contentUriString.startsWith("gdrive://") -> "Google Drive"

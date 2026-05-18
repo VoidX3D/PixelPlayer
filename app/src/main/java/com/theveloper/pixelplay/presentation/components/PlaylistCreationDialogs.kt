@@ -43,7 +43,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.PlaylistAdd
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -87,7 +87,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -103,6 +102,7 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun PlaylistCreationTypeDialog(
@@ -138,14 +138,6 @@ fun PlaylistCreationTypeDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f),
-                                MaterialTheme.colorScheme.surfaceContainerHigh
-                            )
-                        )
-                    )
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -176,7 +168,7 @@ fun PlaylistCreationTypeDialog(
                     subtitle = stringResource(R.string.presentation_batch_e_creation_mode_manual_subtitle),
                     icon = {
                         Icon(
-                            imageVector = Icons.Rounded.PlaylistAdd,
+                            imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -929,7 +921,7 @@ private fun ChipsSingleSelect(
                 } else null,
                 label = { 
                     Text(
-                        if (isCustomSelection) selected!! 
+                        if (isCustomSelection) selected
                         else stringResource(R.string.presentation_batch_e_ai_custom_chip)
                     ) 
                 }
@@ -962,7 +954,7 @@ private fun ChipsSingleSelect(
                         customInputValue = ""
                     }
                 ) {
-                    Text(stringResource(R.string.action_save))
+                    Text(stringResource(R.string.action_save), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             },
             dismissButton = {
@@ -970,7 +962,7 @@ private fun ChipsSingleSelect(
                     showCustomDialog = false
                     customInputValue = ""
                 }) {
-                    Text(stringResource(R.string.dismiss))
+                    Text(stringResource(R.string.dismiss), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         )

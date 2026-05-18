@@ -486,6 +486,9 @@ interface MusicDao {
     @Query("SELECT COUNT(*) FROM songs")
     fun getSongCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM songs WHERE source_type != 0")
+    fun getCloudSongCount(): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM songs")
     suspend fun getSongCountOnce(): Int
 
@@ -669,7 +672,7 @@ interface MusicDao {
      */
     @Query("""
         SELECT * FROM songs
-        WHERE (:applyDirectoryFilter = 0 OR parent_directory_path IN (:allowedParentDirs))
+        WHERE (:applyDirectoryFilter = 0 OR id < 0 OR parent_directory_path IN (:allowedParentDirs))
         AND (
             :filterMode = 0
             OR (
@@ -753,7 +756,7 @@ interface MusicDao {
     @Query("""
         SELECT songs.* FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
-        WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND (
             :filterMode = 0
             OR (
@@ -790,7 +793,7 @@ interface MusicDao {
     @Query("""
         SELECT songs.* FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
-        WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND (
             :filterMode = 0
             OR (
@@ -854,7 +857,7 @@ interface MusicDao {
     @Query("""
         SELECT COUNT(*) FROM songs
         INNER JOIN favorites ON songs.id = favorites.songId AND favorites.isFavorite = 1
-        WHERE (:applyDirectoryFilter = 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
         AND (
             :filterMode = 0
             OR (
@@ -1011,6 +1014,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1034,6 +1038,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1053,6 +1058,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1076,6 +1082,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1083,8 +1090,8 @@ interface MusicDao {
         ORDER BY
             CASE WHEN :sortOrder = 'album_title_az' THEN albums.title END COLLATE NOCASE ASC,
             CASE WHEN :sortOrder = 'album_title_za' THEN albums.title END COLLATE NOCASE DESC,
-            CASE WHEN :sortOrder = 'album_artist' THEN albums.artist_name END COLLATE NOCASE ASC,
-            CASE WHEN :sortOrder = 'album_artist_desc' THEN albums.artist_name END COLLATE NOCASE DESC,
+            CASE WHEN :sortOrder = 'album_artist' THEN COALESCE(NULLIF(TRIM(albums.album_artist), ''), albums.artist_name) END COLLATE NOCASE ASC,
+            CASE WHEN :sortOrder = 'album_artist_desc' THEN COALESCE(NULLIF(TRIM(albums.album_artist), ''), albums.artist_name) END COLLATE NOCASE DESC,
             CASE WHEN :sortOrder = 'album_release_year' THEN albums.year END DESC,
             CASE WHEN :sortOrder = 'album_release_year_asc' THEN albums.year END ASC,
             CASE WHEN :sortOrder = 'album_date_added' THEN albums.date_added END DESC,
@@ -1108,6 +1115,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1131,6 +1139,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1138,8 +1147,8 @@ interface MusicDao {
         ORDER BY
             CASE WHEN :sortOrder = 'album_title_az' THEN albums.title END COLLATE NOCASE ASC,
             CASE WHEN :sortOrder = 'album_title_za' THEN albums.title END COLLATE NOCASE DESC,
-            CASE WHEN :sortOrder = 'album_artist' THEN albums.artist_name END COLLATE NOCASE ASC,
-            CASE WHEN :sortOrder = 'album_artist_desc' THEN albums.artist_name END COLLATE NOCASE DESC,
+            CASE WHEN :sortOrder = 'album_artist' THEN COALESCE(NULLIF(TRIM(albums.album_artist), ''), albums.artist_name) END COLLATE NOCASE ASC,
+            CASE WHEN :sortOrder = 'album_artist_desc' THEN COALESCE(NULLIF(TRIM(albums.album_artist), ''), albums.artist_name) END COLLATE NOCASE DESC,
             CASE WHEN :sortOrder = 'album_release_year' THEN albums.year END DESC,
             CASE WHEN :sortOrder = 'album_release_year_asc' THEN albums.year END ASC,
             CASE WHEN :sortOrder = 'album_date_added' THEN albums.date_added END DESC,
@@ -1166,6 +1175,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             (
                 SELECT COUNT(*)
@@ -1186,6 +1196,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             (
                 SELECT COUNT(*)
@@ -1211,6 +1222,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1223,6 +1235,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1241,6 +1254,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1253,6 +1267,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1266,6 +1281,7 @@ interface MusicDao {
             albums.title AS title,
             albums.artist_name AS artist_name,
             albums.artist_id AS artist_id,
+            albums.album_artist AS album_artist,
             albums.album_art_uri_string AS album_art_uri_string,
             COUNT(songs.id) AS song_count,
             albums.date_added AS date_added,
@@ -1279,6 +1295,7 @@ interface MusicDao {
             albums.title,
             albums.artist_name,
             albums.artist_id,
+            albums.album_artist,
             albums.album_art_uri_string,
             albums.date_added,
             albums.year
@@ -1326,7 +1343,8 @@ interface MusicDao {
         ORDER BY
             CASE WHEN :sortOrder = 'artist_name_az' THEN artists.name END COLLATE NOCASE ASC,
             CASE WHEN :sortOrder = 'artist_name_za' THEN artists.name END COLLATE NOCASE DESC,
-            CASE WHEN :sortOrder = 'artist_num_songs' THEN track_count END DESC,
+            CASE WHEN :sortOrder = 'artist_num_songs_desc' THEN track_count END DESC,
+            CASE WHEN :sortOrder = 'artist_num_songs_asc' THEN track_count END ASC,
             artists.name COLLATE NOCASE ASC,
             artists.id ASC
     """)
@@ -1359,7 +1377,8 @@ interface MusicDao {
         ORDER BY
             CASE WHEN :sortOrder = 'artist_name_az' THEN artists.name END COLLATE NOCASE ASC,
             CASE WHEN :sortOrder = 'artist_name_za' THEN artists.name END COLLATE NOCASE DESC,
-            CASE WHEN :sortOrder = 'artist_num_songs' THEN track_count END DESC,
+            CASE WHEN :sortOrder = 'artist_num_songs_desc' THEN track_count END DESC,
+            CASE WHEN :sortOrder = 'artist_num_songs_asc' THEN track_count END ASC,
             artists.name COLLATE NOCASE ASC,
             artists.id ASC
         LIMIT :limit OFFSET :offset

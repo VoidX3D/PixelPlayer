@@ -50,7 +50,9 @@
     <string name="song_field_title">Title</string>
     <string name="song_field_artist">Artist</string>
     <string name="song_field_album">Album</string>
+    <string name="song_field_album_artist">Album artist</string>
     <string name="song_field_genre">Genre</string>
+    <string name="song_field_composer">Composer</string>
     <string name="action_try_again">Try again</string>
     <string name="action_apply_changes">Apply changes</string>
 

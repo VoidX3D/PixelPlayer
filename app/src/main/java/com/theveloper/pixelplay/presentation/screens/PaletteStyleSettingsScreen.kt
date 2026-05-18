@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.theveloper.pixelplay.R
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
@@ -92,7 +92,7 @@ fun PaletteStyleSettingsScreen(
 
     val currentSong = stablePlayerState.currentSong
     val isMiniPlayerVisible = currentSong != null
-    val seedKey = currentSong?.albumArtUriString ?: currentSong?.id?.toString() ?: "system"
+    val seedKey = currentSong?.albumArtUriString ?: currentSong?.id ?: "system"
     var seedColor by remember(seedKey) { mutableStateOf<Color?>(null) }
 
     LaunchedEffect(seedKey, albumSchemePair, baseScheme.primary) {
@@ -539,6 +539,7 @@ private fun MiniFullPlayerSkeletonPreview(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PaletteSwatchSquare(
     scheme: ColorScheme,
@@ -549,8 +550,6 @@ private fun PaletteSwatchSquare(
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(1f)
-            .clickable(onClick = onClick)
-            .clip(RoundedCornerShape(12.dp))
     ) {
         val circleRadius = maxWidth / 2
         val innerCorner by animateDpAsState(
@@ -571,10 +570,11 @@ private fun PaletteSwatchSquare(
         )
 
         Surface(
+            onClick = onClick,
             color = scheme.surfaceContainerHighest,
             shape = RoundedCornerShape(outerCorner),
             border = if (borderWidth > 0.dp) BorderStroke(borderWidth, scheme.primary) else null,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize() 
         ) {
             Box(
                 modifier = Modifier

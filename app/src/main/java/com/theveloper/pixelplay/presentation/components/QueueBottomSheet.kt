@@ -175,6 +175,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -191,6 +192,7 @@ import kotlinx.coroutines.flow.map
 import java.util.RandomAccess
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import kotlin.math.abs
 
 private data class QueueUndoBarProjection(
     val isVisible: Boolean = false,
@@ -303,6 +305,7 @@ fun QueueBottomSheet(
     }
 
     val listState = rememberLazyListState()
+    val queueCoroutineScope = rememberCoroutineScope()
     val displaySongCount = displaySongs.size
 
     // Local order used only while previewing a drag reorder.
@@ -708,6 +711,18 @@ fun QueueBottomSheet(
                     onPlayPause = { viewModel.playPause() },
                     onNext = { viewModel.nextSong() },
                     colorScheme = albumColorScheme,
+                    onLocateCurrentSong = {
+                        if (currentSongDisplayIndex in 0..<displaySongCount) {
+                            queueCoroutineScope.launch {
+                                val firstVisible = listState.firstVisibleItemIndex
+                                if (abs(currentSongDisplayIndex - firstVisible) > 20) {
+                                    listState.scrollToItem(currentSongDisplayIndex)
+                                } else {
+                                    listState.animateScrollToItem(currentSongDisplayIndex)
+                                }
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(directSheetDragModifier)
@@ -979,6 +994,25 @@ fun QueueBottomSheet(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            if (currentSongDisplayIndex >= 0 && currentSongDisplayIndex < displaySongCount) {
+                                QueueToolbarMenuButton(
+                                    text = stringResource(R.string.presentation_batch_e_action_locate_current_song),
+                                    icon = Icons.Rounded.MyLocation,
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    onClick = {
+                                        isFabExpanded = false
+                                        queueCoroutineScope.launch {
+                                            val firstVisible = listState.firstVisibleItemIndex
+                                            if (Math.abs(currentSongDisplayIndex - firstVisible) > 20) {
+                                                listState.scrollToItem(currentSongDisplayIndex)
+                                            } else {
+                                                listState.animateScrollToItem(currentSongDisplayIndex)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                             QueueToolbarMenuButton(
                                 text = stringResource(R.string.presentation_batch_e_action_clear_queue),
                                 icon = Icons.Filled.ClearAll,
@@ -1109,14 +1143,14 @@ fun QueueBottomSheet(
                             showClearQueueDialog = false
                         }
                     ) {
-                        Text(stringResource(R.string.presentation_batch_b_clear))
+                        Text(stringResource(R.string.presentation_batch_b_clear), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showClearQueueDialog = false }
                     ) {
-                        Text(stringResource(R.string.cancel))
+                        Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             )
@@ -1183,6 +1217,7 @@ private fun QueueHeaderSection(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     colorScheme: ColorScheme? = null,
+    onLocateCurrentSong: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -1211,7 +1246,8 @@ private fun QueueHeaderSection(
             QueueHeader(
                 queueSourceName = queueSourceName,
                 queueCount = queueCount,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                onLocateCurrentSong = onLocateCurrentSong
             )
         }
     }
@@ -1221,7 +1257,8 @@ private fun QueueHeaderSection(
 private fun QueueHeader(
     queueSourceName: String,
     queueCount: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLocateCurrentSong: () -> Unit = {}
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -1233,6 +1270,12 @@ private fun QueueHeader(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
+                modifier = Modifier.clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    onLocateCurrentSong()
+                },
                 text = stringResource(R.string.presentation_batch_e_next_up),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontFamily = GoogleSansRounded,

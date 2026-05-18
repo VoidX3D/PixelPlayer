@@ -561,6 +561,14 @@ constructor(
                  artistDelimiters = artistDelimiters,
                  wordDelimiters = wordDelimiters
              )
+             val metadataAlbumArtist = songsInAlbum
+                 .mapNotNull { song ->
+                     song.albumArtist?.takeIf { it.isNotBlank() }
+                 }
+                 .groupingBy { it }
+                 .eachCount()
+                 .maxByOrNull { it.value }
+                 ?.key
 
              AlbumEntity(
                  id = catAlbumId,
@@ -570,7 +578,8 @@ constructor(
                  albumArtUriString = representativeAlbumArt,
                  songCount = songsInAlbum.size,
                  dateAdded = firstSong.dateAdded,
-                 year = firstSong.year
+                 year = firstSong.year,
+                 albumArtist = metadataAlbumArtist
              )
         }
 
@@ -1413,7 +1422,7 @@ constructor(
 
             // 1. Pre-load Local Data for Merging
             val existingArtists = musicDao.getAllArtistsListRaw().associate { it.name.trim().lowercase() to it.id }
-            val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0).associate { "${it.title.trim().lowercase()}_${it.artistName?.trim()?.lowercase()}" to it.id }
+            val existingAlbums = musicDao.getAllAlbumsList(emptyList(), false, 0).associate { "${it.title.trim().lowercase()}_${it.artistName.trim().lowercase()}" to it.id }
             val existingArtistImageUrls = musicDao.getAllArtistsListRaw().associate { it.id to it.imageUrl }
             val nextArtistId = AtomicLong((musicDao.getMaxArtistId() ?: 0L) + 1)
             val delimiters = userPreferencesRepository.artistDelimitersFlow.first()

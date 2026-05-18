@@ -67,7 +67,6 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -506,17 +505,7 @@ private fun AboutHeroCard(
         tonalElevation = 2.dp,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                            MaterialTheme.colorScheme.surfaceContainerLow,
-                        ),
-                    ),
-                ),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 modifier = Modifier
@@ -834,11 +823,7 @@ private fun ContributorAvatar(
                     targetSize = Size(96, 96),
                     onState = { state ->
                         if (state is AsyncImagePainter.State.Success) {
-                            val drawable = state.result.drawable
-                            val bitmap = drawable?.toBitmap()?.asImageBitmap()
-                            if (bitmap != null) {
-                                cachedBitmap = bitmap
-                            }
+                            cachedBitmap = state.result.drawable.toBitmap().asImageBitmap()
                         }
                     },
                 )
@@ -866,7 +851,7 @@ private fun ContributorAvatar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = initial.toString(),
+                        text = initial,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = letterTint,
                     )

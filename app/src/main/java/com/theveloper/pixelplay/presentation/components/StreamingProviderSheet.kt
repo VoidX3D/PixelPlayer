@@ -163,7 +163,7 @@ fun StreamingProviderSheet(
                     ProviderRow(
                         iconPainter = painterResource(R.drawable.netease_cloud_music_logo_icon_206716__1_),
                         iconTint = Color(0xFFE85959),
-                        title = "Netease Cloud Music",
+                        title = "Netease Music",
                         subtitle = if (isNeteaseLoggedIn) "Connected" else "Sign in to stream",
                         shape = providerSegmentItemShape,
                         isConnected = isNeteaseLoggedIn,

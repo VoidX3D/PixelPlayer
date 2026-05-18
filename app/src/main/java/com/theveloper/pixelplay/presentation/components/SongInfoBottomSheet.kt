@@ -72,7 +72,7 @@ import com.theveloper.pixelplay.utils.formatDuration
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import androidx.core.net.toUri
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.theveloper.pixelplay.data.ai.SongMetadata
 import com.theveloper.pixelplay.data.media.CoverArtUpdate
 import com.theveloper.pixelplay.ui.theme.MontserratFamily
@@ -100,11 +100,14 @@ fun SongInfoBottomSheet(
     onDeleteFromDevice: (activity: Activity, song: Song, onResult: (Boolean) -> Unit) -> Unit,
     onNavigateToAlbum: () -> Unit,
     onNavigateToArtist: () -> Unit,
+    onNavigateToArtistById: (Long) -> Unit = { onNavigateToArtist() },
     onNavigateToGenre: () -> Unit,
     onEditSong: (
         title: String,
         artist: String,
         album: String,
+        albumArtist: String,
+        composer: String,
         genre: String,
         lyrics: String,
         trackNumber: Int,
@@ -123,7 +126,9 @@ fun SongInfoBottomSheet(
 ) {
     val context = LocalContext.current
     var showEditSheet by remember { mutableStateOf(false) }
+    var showArtistPicker by remember { mutableStateOf(false) }
     val audioMeta by songInfoViewModel.audioMeta.collectAsStateWithLifecycle()
+    val resolvedArtists by songInfoViewModel.resolvedArtists.collectAsStateWithLifecycle()
     val isPixelPlayWatchAvailable by songInfoViewModel.isPixelPlayWatchAvailable.collectAsStateWithLifecycle()
     val isWatchAvailabilityResolved by songInfoViewModel.isWatchAvailabilityResolved.collectAsStateWithLifecycle()
     val isSendingToWatch by songInfoViewModel.isSendingToWatch.collectAsStateWithLifecycle()
@@ -287,6 +292,7 @@ fun SongInfoBottomSheet(
 
     LaunchedEffect(song.id) {
         songInfoViewModel.loadAudioMeta(song)
+        songInfoViewModel.loadArtistsForSong(song)
     }
 
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 2 })
@@ -706,7 +712,13 @@ fun SongInfoBottomSheet(
                                                     icon = Icons.Rounded.Person,
                                                     iconDescription = stringResource(R.string.cd_artist_icon),
                                                     shape = infoSegmentItemShape,
-                                                    onClick = onNavigateToArtist,
+                                                    onClick = {
+                                                        if (song.artists.size > 1) {
+                                                            showArtistPicker = true
+                                                        } else {
+                                                            onNavigateToArtist()
+                                                        }
+                                                    },
                                                 )
 
                                                 if (!audioMetaLabel.isNullOrEmpty()) {
@@ -819,11 +831,13 @@ fun SongInfoBottomSheet(
         visible = showEditSheet,
         song = song,
         onDismiss = { showEditSheet = false },
-        onSave = { title, artist, album, genre, lyrics, trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArt ->
+        onSave = { title, artist, album, albumArtist, composer, genre, lyrics, trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArt ->
             onEditSong(
                 title,
                 artist,
                 album,
+                albumArtist,
+                composer,
                 genre,
                 lyrics,
                 trackNumber,
@@ -835,6 +849,20 @@ fun SongInfoBottomSheet(
             showEditSheet = false
         },
     )
+
+    val artistPickerSheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    if (showArtistPicker && resolvedArtists.isNotEmpty()) {
+        com.theveloper.pixelplay.presentation.components.player.PlayerArtistPickerBottomSheet(
+            song = song,
+            artists = resolvedArtists,
+            sheetState = artistPickerSheetState,
+            onDismiss = { showArtistPicker = false },
+            onArtistClick = { artist ->
+                showArtistPicker = false
+                onNavigateToArtistById(artist.id)
+            }
+        )
+    }
 }
 
 @Composable

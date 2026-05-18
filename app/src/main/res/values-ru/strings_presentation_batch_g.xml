@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="presentation_batch_g_stats_range_today">Сегодня</string>
     <string name="presentation_batch_g_stats_range_week_to_date">Неделя</string>
@@ -116,10 +116,10 @@
     <string name="device_capabilities_review_title">Проверьте настройки</string>
     <string name="device_capabilities_metric_formats">Форматы</string>
     <string name="device_capabilities_metric_hw_decoders">HW декодеры</string>
-    <string name="device_capabilities_metric_local_music">Местные песни</string>
+    <string name="device_capabilities_metric_local_music">Локальные треки</string>
     <string name="device_capabilities_storage_title">Хранилище музыки</string>
     <string name="device_capabilities_storage_music_size">Размер музыки</string>
-    <string name="device_capabilities_storage_music_count">%1$d местных песен</string>
+    <string name="device_capabilities_storage_music_count">%1$d локальных треков</string>
     <string name="device_capabilities_storage_available">Доступно</string>
     <string name="device_capabilities_storage_total">%1$s всего</string>
     <string name="device_capabilities_storage_music_footprint">Занимаемое место</string>
@@ -436,4 +436,63 @@
         <item>Улучшена стабильность виджетов и сервисов.</item>
         <item>Общие исправления и полировка UI.</item>
     </string-array>
+
+    <string name="presentation_batch_g_cast_nearby_title">Устройства поблизости</string>
+    <string name="presentation_batch_g_cast_nearby_desc">Необходимо для обнаружения Bluetooth-аудиоустройств и управления ими.</string>
+
+    <!-- Beta sheet: issue guide -->
+    <string name="presentation_batch_g_beta_sheet_expect_summary">Что может меняться, ломаться или улучшаться в бета-сборках в процессе тестирования.</string>
+    <string name="presentation_batch_g_beta_sheet_github_title">Быстрый переход к GitHub Issues</string>
+    <string name="presentation_batch_g_beta_sheet_github_body">Сначала поищите существующие задачи, затем создайте чёткий отчёт об ошибке, краше, запросе или вопросе.</string>
+    <string name="presentation_batch_g_beta_sheet_report_summary">Краткий чеклист перед созданием нового issue.</string>
+    <string name="presentation_batch_g_beta_sheet_before_title">Перед созданием issue</string>
+    <string name="presentation_batch_g_beta_sheet_before_1">Поищите среди открытых и закрытых задач, чтобы не создавать дубликаты.</string>
+    <string name="presentation_batch_g_beta_sheet_before_2">Обновитесь до последней версии PixelPlayer и убедитесь, что проблема воспроизводится.</string>
+    <string name="presentation_batch_g_beta_sheet_before_3">Перезапустите приложение и убедитесь, что проблема сохраняется.</string>
+    <string name="presentation_batch_g_beta_sheet_before_4">Попробуйте воспроизвести ошибку и запишите точные шаги.</string>
+    <string name="presentation_batch_g_beta_sheet_issue_type_title">Какой тип issue?</string>
+    <string name="presentation_batch_g_beta_sheet_issue_type_bug">Отчёт об ошибке: что-то работает некорректно.</string>
+    <string name="presentation_batch_g_beta_sheet_issue_type_feature">Запрос функции: добавить новую возможность или улучшение.</string>
+    <string name="presentation_batch_g_beta_sheet_issue_type_question">Вопрос: используйте Discussions или создайте issue с меткой «question».</string>
+    <string name="presentation_batch_g_beta_sheet_bug_title">Отчёт об ошибке</string>
+    <string name="presentation_batch_g_beta_sheet_bug_summary_text">Скопируйте эти поля, если что-то работает неверно или приложение падает.</string>
+    <string name="presentation_batch_g_beta_sheet_bug_template_title">Шаблон отчёта об ошибке</string>
+    <string name="presentation_batch_g_beta_sheet_bug_summary">Краткое описание:</string>
+    <string name="presentation_batch_g_beta_sheet_bug_expected">Ожидаемое поведение:</string>
+    <string name="presentation_batch_g_beta_sheet_bug_actual">Фактическое поведение:</string>
+    <string name="presentation_batch_g_beta_sheet_bug_steps">Шаги для воспроизведения: 1. 2. 3.</string>
+    <string name="presentation_batch_g_beta_sheet_bug_frequency">Как часто происходит? Всегда / Иногда / Редко.</string>
+    <string name="presentation_batch_g_beta_sheet_bug_screenshot">Скриншот / видео: если есть.</string>
+    <string name="presentation_batch_g_beta_sheet_bug_logs">Логи / трассировка стека: если есть.</string>
+    <string name="presentation_batch_g_beta_sheet_env_title">Окружение</string>
+    <string name="presentation_batch_g_beta_sheet_env_version">Версия PixelPlayer:</string>
+    <string name="presentation_batch_g_beta_sheet_env_source">Источник установки: GitHub Release, debug-сборка, nightly-сборка и т.д.</string>
+    <string name="presentation_batch_g_beta_sheet_env_android">Версия Android:</string>
+    <string name="presentation_batch_g_beta_sheet_env_device">Модель устройства:</string>
+    <string name="presentation_batch_g_beta_sheet_env_extra">Дополнительный контекст: SD-карта, особые настройки, разрешения и т.д.</string>
+    <string name="presentation_batch_g_beta_sheet_feature_title">Запрос функции</string>
+    <string name="presentation_batch_g_beta_sheet_feature_summary">Скопируйте эти поля, если хотите предложить новую функцию или улучшение.</string>
+    <string name="presentation_batch_g_beta_sheet_feature_problem">Описание проблемы: какую задачу вы пытаетесь решить?</string>
+    <string name="presentation_batch_g_beta_sheet_feature_solution">Предлагаемое решение: как это должно работать?</string>
+    <string name="presentation_batch_g_beta_sheet_feature_alternatives">Рассмотренные альтернативы: другие подходы?</string>
+    <string name="presentation_batch_g_beta_sheet_feature_scope">Область: какие экраны или сценарии затронуты?</string>
+    <string name="presentation_batch_g_beta_sheet_feature_mockup">Макет или референс, если есть.</string>
+    <string name="presentation_batch_g_beta_sheet_quality_title">Заголовки, приватность и объём</string>
+    <string name="presentation_batch_g_beta_sheet_quality_summary">Сделайте отчёт удобным для разбора и безопасным для публичного просмотра.</string>
+    <string name="presentation_batch_g_beta_sheet_title_examples_title">Примеры хороших заголовков</string>
+    <string name="presentation_batch_g_beta_sheet_title_example_1">Эквалайзер: индикатор смещается при переключении вкладок пресетов</string>
+    <string name="presentation_batch_g_beta_sheet_title_example_2">Поиск: история не появляется при пустом запросе</string>
+    <string name="presentation_batch_g_beta_sheet_title_example_3">Функция: добавить сортировку «Недавно добавленные» в плейлисты</string>
+    <string name="presentation_batch_g_beta_sheet_avoid_title">Пожалуйста, избегайте</string>
+    <string name="presentation_batch_g_beta_sheet_avoid_1">Расплывчатых отчётов вроде «Не работает».</string>
+    <string name="presentation_batch_g_beta_sheet_avoid_2">Нескольких несвязанных проблем в одном issue.</string>
+    <string name="presentation_batch_g_beta_sheet_avoid_3">Логов и скриншотов с незамазанными личными данными.</string>
+    <string name="presentation_batch_g_beta_sheet_privacy_title">Примечание о приватности</string>
+    <string name="presentation_batch_g_beta_sheet_privacy_body">Перед публикацией логов, скриншотов или видео удалите личную и конфиденциальную информацию.</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_title">Nightly-сборки</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_summary">Чем nightly отличается от релиза, и что включать в отчёт при проблеме с ней.</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_body">Nightly-сборки создаются из последнего коммита и могут содержать незавершённые изменения, временные баги или регрессии. Они более экспериментальны, чем официальные релизы.</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_access">Доступны через артефакты GitHub Actions в репозитории, если опубликованы.</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_report_title">Отчёт о проблемах в nightly</string>
+    <string name="presentation_batch_g_beta_sheet_nightly_report_body">При отчёте о проблеме из nightly всегда указывайте, что она в nightly, а не в официальном релизе. Укажите дату сборки, имя или номер запуска workflow или commit SHA — если возможно. Также проверьте, есть ли эта проблема в последнем официальном релизе.</string>
 </resources>

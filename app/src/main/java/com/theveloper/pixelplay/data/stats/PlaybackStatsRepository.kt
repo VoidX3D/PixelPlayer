@@ -286,10 +286,10 @@ class PlaybackStatsRepository @Inject constructor(
             .map { (genre, groupedSongs) ->
                 val flattened = groupedSongs.flatMap { it.value }
                 val uniqueArtists = groupedSongs
-                    .mapNotNull { (songId, _) ->
-                        songMap[songId]?.artist?.takeIf { it.isNotBlank() }
+                    .flatMap { (songId, _) ->
+                        statsArtistNames(songMap[songId])
                     }
-                    .toSet()
+                    .distinctBy { it.normalizedArtistKey() }
                     .size
                 GenrePlaybackSummary(
                     genre = genre,
@@ -324,7 +324,7 @@ class PlaybackStatsRepository @Inject constructor(
         var currentStreak = 0
         var lastDay: java.time.LocalDate? = null
         sortedDays.forEach { day ->
-            if (lastDay == null || day == lastDay?.plusDays(1)) {
+            if (lastDay == null || day == lastDay.plusDays(1)) {
                 currentStreak += 1
             } else {
                 currentStreak = 1
@@ -352,12 +352,22 @@ class PlaybackStatsRepository @Inject constructor(
         val timelineEntries = accumulateTimelineEntries(timelineBuckets, overallSpans)
 
         val topArtists = segmentsBySong.entries
-            .groupBy { (songId, _) ->
-                songMap[songId]?.artist?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
+            .flatMap { (songId, segmentsForSong) ->
+                statsArtistNames(songMap[songId]).map { artist ->
+                    ArtistSongPlayback(
+                        artist = artist,
+                        songId = songId,
+                        segments = segmentsForSong
+                    )
+                }
             }
-            .map { (artist, groupedSongs) ->
-                val flattened = groupedSongs.flatMap { it.value }
-                val uniqueSongCount = groupedSongs.size
+            .groupBy { it.artist }
+            .map { (artist, artistSongs) ->
+                val flattened = artistSongs.flatMap { it.segments }
+                val uniqueSongCount = artistSongs
+                    .map { it.songId }
+                    .toSet()
+                    .size
                 ArtistPlaybackSummary(
                     artist = artist,
                     totalDurationMs = flattened.sumOf { it.durationMs },
@@ -605,6 +615,30 @@ class PlaybackStatsRepository @Inject constructor(
         val date: LocalDate,
         val durationMs: Long
     )
+
+    private data class ArtistSongPlayback(
+        val artist: String,
+        val songId: String,
+        val segments: List<PlaybackSegment>
+    )
+
+    private fun statsArtistNames(song: Song?): List<String> {
+        if (song == null) return listOf(UNKNOWN_ARTIST)
+
+        val separatedArtists = song.artists
+            .sortedByDescending { it.isPrimary }
+            .map { it.name.trim() }
+            .filter { it.isNotBlank() }
+            .distinctBy { it.normalizedArtistKey() }
+        if (separatedArtists.isNotEmpty()) {
+            return separatedArtists
+        }
+
+        val fallbackArtist = song.displayArtist.trim()
+        return listOf(fallbackArtist.ifBlank { UNKNOWN_ARTIST })
+    }
+
+    private fun String.normalizedArtistKey(): String = trim().lowercase(Locale.ROOT)
 
     private fun sliceSpanByDay(span: PlaybackSpan, zoneId: ZoneId): List<DaySlice> {
         if (span.durationMs <= 0L) return emptyList()
@@ -1051,6 +1085,7 @@ class PlaybackStatsRepository @Inject constructor(
         private const val DEFAULT_PLAYBACK_HISTORY_LIMIT = 500
         private const val MAX_PLAYBACK_HISTORY_LIMIT = 5_000
         private const val MAX_FILE_UPDATE_RETRIES = 3
+        private const val UNKNOWN_ARTIST = "Unknown Artist"
         private val MAX_HISTORY_AGE_MS = TimeUnit.DAYS.toMillis(730) // Keep roughly two years of history
         private const val SEGMENT_JOIN_TOLERANCE_MS = 0L
     }

@@ -4,9 +4,9 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,15 +16,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -58,6 +59,7 @@ fun WavySliderExpressive(
     interactionSource: MutableInteractionSource? = null,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
     onValueChangeFinished: (() -> Unit)? = null,
+    onValueCommit: ((Float) -> Unit)? = null,
     activeTrackColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
     inactiveTrackColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
     thumbColor: Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
@@ -87,7 +89,6 @@ fun WavySliderExpressive(
     val normalizedValue = if (valueRange.endInclusive == valueRange.start) 0f
         else ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
 
-    val clampedValue = value.coerceIn(valueRange.start, valueRange.endInclusive)
     val safeSemanticsStep = semanticsProgressStep.coerceIn(0.005f, 0.25f)
     val semanticNormalizedValue = remember(normalizedValue, safeSemanticsStep) {
         ((normalizedValue / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
@@ -95,10 +96,11 @@ fun WavySliderExpressive(
     val semanticSliderValue = remember(semanticNormalizedValue, valueRange) {
         valueRange.start + semanticNormalizedValue * (valueRange.endInclusive - valueRange.start)
     }
-    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    val isDragged by resolvedInteractionSource.collectIsDraggedAsState()
-    val isPressed by resolvedInteractionSource.collectIsPressedAsState()
-    val isInteracting = isDragged || isPressed
+    val latestOnValueChange by rememberUpdatedState(onValueChange)
+    val latestOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
+    val latestOnValueCommit by rememberUpdatedState(onValueCommit)
+    var isPointerSeeking by remember { mutableStateOf(false) }
+    val isInteracting = isPointerSeeking
 
     val thumbInteractionFraction by animateFloatAsState(
         targetValue = if (isInteracting) 1f else 0f,
@@ -156,49 +158,28 @@ fun WavySliderExpressive(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(containerHeight),
+            .height(containerHeight)
+            .clearAndSetSemantics {
+                if (!semanticsLabel.isNullOrBlank()) {
+                    contentDescription = semanticsLabel
+                }
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = semanticSliderValue,
+                    range = valueRange.start..valueRange.endInclusive,
+                    steps = 0
+                )
+                if (enabled) {
+                    setProgress { requested ->
+                        val coerced = requested.coerceIn(valueRange.start, valueRange.endInclusive)
+                        latestOnValueChange(coerced)
+                        latestOnValueCommit?.invoke(coerced)
+                            ?: latestOnValueChangeFinished?.invoke()
+                        true
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
-        Slider(
-            value = clampedValue,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(containerHeight)
-                // Keep slider accessible, but quantize semantic progress updates to reduce
-                // high-frequency semantics churn while visuals remain smooth.
-                .clearAndSetSemantics {
-                    if (!semanticsLabel.isNullOrBlank()) {
-                        contentDescription = semanticsLabel
-                    }
-                    progressBarRangeInfo = ProgressBarRangeInfo(
-                        current = semanticSliderValue,
-                        range = valueRange.start..valueRange.endInclusive,
-                        steps = 0
-                    )
-                    if (enabled) {
-                        setProgress { requested ->
-                            val coerced = requested.coerceIn(valueRange.start, valueRange.endInclusive)
-                            onValueChange(coerced)
-                            onValueChangeFinished?.invoke()
-                            true
-                        }
-                    }
-                },
-            enabled = enabled,
-            valueRange = valueRange,
-            onValueChangeFinished = onValueChangeFinished,
-            interactionSource = resolvedInteractionSource,
-            colors = SliderDefaults.colors(
-                thumbColor = Color.Transparent,
-                activeTrackColor = Color.Transparent,
-                inactiveTrackColor = Color.Transparent,
-                disabledThumbColor = Color.Transparent,
-                disabledActiveTrackColor = Color.Transparent,
-                disabledInactiveTrackColor = Color.Transparent
-            )
-        )
-
         LinearWavyProgressIndicator(
             progress = { renderedNormalizedProgress.floatValue },
             modifier = Modifier
@@ -246,5 +227,58 @@ fun WavySliderExpressive(
                 cornerRadius = CornerRadius(currentWidth / 2f)
             )
         }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(enabled, valueRange, trackEdgePaddingPx) {
+                    if (!enabled) return@pointerInput
+
+                    fun valueForX(rawX: Float): Float {
+                        val edgePadding = trackEdgePaddingPx.coerceIn(0f, size.width / 2f)
+                        val trackStart = edgePadding
+                        val trackEnd = size.width - edgePadding
+                        val trackWidth = (trackEnd - trackStart).coerceAtLeast(1f)
+                        val normalized = ((rawX - trackStart) / trackWidth).coerceIn(0f, 1f)
+                        return valueRange.start +
+                            normalized * (valueRange.endInclusive - valueRange.start)
+                    }
+
+                    awaitEachGesture {
+                        try {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            isPointerSeeking = true
+                            down.consume()
+                            var latestGestureValue = valueForX(down.position.x)
+                            latestOnValueChange(latestGestureValue)
+
+                            var pointerId = down.id
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == pointerId }
+                                    ?: event.changes.firstOrNull { it.pressed }
+                                    ?: break
+
+                                pointerId = change.id
+                                if (!change.pressed) {
+                                    change.consume()
+                                    break
+                                }
+
+                                if (change.position != change.previousPosition) {
+                                    change.consume()
+                                    latestGestureValue = valueForX(change.position.x)
+                                    latestOnValueChange(latestGestureValue)
+                                }
+                            }
+
+                            latestOnValueCommit?.invoke(latestGestureValue)
+                                ?: latestOnValueChangeFinished?.invoke()
+                        } finally {
+                            isPointerSeeking = false
+                        }
+                    }
+                }
+        )
     }
 }

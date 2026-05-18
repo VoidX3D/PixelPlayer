@@ -140,6 +140,7 @@ import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.StorageFilter
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
+import com.theveloper.pixelplay.presentation.components.resolveMainScreenBottomGradientHeight
 import com.theveloper.pixelplay.presentation.components.resolveNavBarOccupiedHeight
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
@@ -375,7 +376,7 @@ private fun WatchTransferProgressDialog(
                         contentColor = MaterialTheme.colorScheme.onError
                     )
                 ) {
-                    Text(text = stringResource(R.string.presentation_batch_d_watch_cancel_transfer))
+                    Text(text = stringResource(R.string.presentation_batch_d_watch_cancel_transfer), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -530,6 +531,7 @@ fun LibraryScreen(
     var songsLocateAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var likedLocateAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var foldersLocateAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var pendingFoldersLocatePath by remember { mutableStateOf<String?>(null) }
 
     // Multi-selection callbacks
     val onSongLongPress: (Song) -> Unit = remember(multiSelectionState, haptic) {
@@ -798,6 +800,7 @@ fun LibraryScreen(
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
     val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
+    val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
 
     val dm = LocalPixelPlayDarkTheme.current
 
@@ -1466,24 +1469,26 @@ fun LibraryScreen(
                                             }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = stringResource(R.string.presentation_batch_d_cloud_sources_heading),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                        modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
-                                    )
-                                    com.theveloper.pixelplay.presentation.components.LibrarySheetToggleCard(
-                                        label = stringResource(R.string.presentation_batch_d_cloud_only),
-                                        checked = playerUiState.hideLocalMedia,
-                                        boxBackgroundColor = if (playerUiState.hideLocalMedia)
-                                            MaterialTheme.colorScheme.tertiary
-                                        else
-                                            MaterialTheme.colorScheme.surfaceContainerLow,
-                                        boxCornerRadius = if (playerUiState.hideLocalMedia) 18.dp else 50.dp,
-                                        onCheckedChange = { playerViewModel.setHideLocalMedia(it) }
-                                    )
+                                    if (!isFoldersTab) {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = stringResource(R.string.presentation_batch_d_cloud_sources_heading),
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
+                                        )
+                                        com.theveloper.pixelplay.presentation.components.LibrarySheetToggleCard(
+                                            label = stringResource(R.string.presentation_batch_d_cloud_only),
+                                            checked = playerUiState.hideLocalMedia,
+                                            boxBackgroundColor = if (playerUiState.hideLocalMedia)
+                                                MaterialTheme.colorScheme.tertiary
+                                            else
+                                                MaterialTheme.colorScheme.surfaceContainerLow,
+                                            boxCornerRadius = if (playerUiState.hideLocalMedia) 18.dp else 50.dp,
+                                            onCheckedChange = { playerViewModel.setHideLocalMedia(it) }
+                                        )
+                                    }
                                 }
                             )
                         }
@@ -1664,7 +1669,13 @@ fun LibraryScreen(
                                             onSongSelectionToggle = onSongSelectionToggle,
                                             getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
                                             onLocateCurrentSongVisibilityChanged = { foldersShowLocateButton = it },
-                                            onRegisterLocateCurrentSongAction = { foldersLocateAction = it }
+                                            onRegisterLocateCurrentSongAction = { foldersLocateAction = it },
+                                            pendingLocatePath = pendingFoldersLocatePath,
+                                            onClearPendingLocate = { pendingFoldersLocatePath = null },
+                                            onRequestCrossFolderLocate = { folderPath ->
+                                                pendingFoldersLocatePath = folderPath
+                                                playerViewModel.navigateToFolder(folderPath)
+                                            }
                                         )
                                     }
 
@@ -1724,7 +1735,7 @@ fun LibraryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .height(170.dp)
+                    .height(bottomGradientHeight)
                     .background(
                         brush = Brush.verticalGradient(
                             colorStops = arrayOf(
@@ -1881,6 +1892,13 @@ fun LibraryScreen(
                     )
                     showSongInfoBottomSheet = false
                 },
+                onNavigateToArtistById = { artistId ->
+                    navController.navigateSafelyReplacing(
+                        route = Screen.ArtistDetail.createRoute(artistId),
+                        patternToPop = Screen.ArtistDetail.route
+                    )
+                    showSongInfoBottomSheet = false
+                },
                 onNavigateToGenre = {
                     currentSong.genre?.let {
                         navController.navigateSafelyReplacing(
@@ -1890,12 +1908,14 @@ fun LibraryScreen(
                     }
                     showSongInfoBottomSheet = false
                 },
-                onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                onEditSong = { newTitle, newArtist, newAlbum, newAlbumArtist, newComposer, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
                     playerViewModel.editSongMetadata(
                         currentSong,
                         newTitle,
                         newArtist,
                         newAlbum,
+                        newAlbumArtist,
+                        newComposer,
                         newGenre,
                         newLyrics,
                         newTrackNumber,
@@ -2127,7 +2147,7 @@ fun LibraryScreen(
                     pendingMergePlaylistIds = emptyList()
                     mergePlaylistName = ""
                 }) {
-                    Text(stringResource(R.string.cancel))
+                    Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         )
@@ -2763,7 +2783,7 @@ private fun LibraryTabId.iconRes(): Int = when (this) {
     LibraryTabId.ARTISTS -> R.drawable.rounded_artist_24
     LibraryTabId.PLAYLISTS -> R.drawable.rounded_playlist_play_24
     LibraryTabId.FOLDERS -> R.drawable.rounded_folder_24
-    LibraryTabId.LIKED -> R.drawable.rounded_favorite_24
+    LibraryTabId.LIKED -> R.drawable.round_favorite_24
 }
 
 private fun LibraryTabId.displayTitle(): String =
@@ -2811,7 +2831,10 @@ fun LibraryFoldersTab(
     onSongSelectionToggle: (Song) -> Unit = {},
     getSelectionIndex: (String) -> Int? = { null },
     onLocateCurrentSongVisibilityChanged: (Boolean) -> Unit = {},
-    onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {}
+    onRegisterLocateCurrentSongAction: ((() -> Unit)?) -> Unit = {},
+    pendingLocatePath: String? = null,
+    onClearPendingLocate: () -> Unit = {},
+    onRequestCrossFolderLocate: (String) -> Unit = {}
 ) {
     // List state moved inside AnimatedContent to prevent state sharing issues during transitions
 
@@ -2861,22 +2884,50 @@ fun LibraryFoldersTab(
         val songsToShow = remember(activeFolder, currentSortOption) {
             sortSongsForFolderView(activeFolder?.songs ?: emptyList(), currentSortOption)
         }.toImmutableList()
-        val currentSongId = stablePlayerState.currentSong?.id
+        val currentSong = stablePlayerState.currentSong
+        val currentSongId = currentSong?.id
         val currentSongIndexInSongs = remember(songsToShow, currentSongId) {
             currentSongId?.let { songId -> songsToShow.indexOfFirst { it.id == songId } } ?: -1
         }
         val currentSongListIndex = remember(itemsToShow.size, currentSongIndexInSongs) {
             if (currentSongIndexInSongs < 0) -1 else itemsToShow.size + currentSongIndexInSongs
         }
-        val locateCurrentSongAction: (() -> Unit)? = remember(currentSongListIndex, listState) {
-            if (currentSongListIndex < 0) {
-                null
-            } else {
-                {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(currentSongListIndex)
+        val songInCurrentFolder = currentSongIndexInSongs >= 0
+        val currentSongParentPath: String? = remember(currentSong?.path) {
+            currentSong?.path
+                ?.takeIf { it.startsWith("/") }
+                ?.let { File(it).parentFile?.absolutePath }
+        }
+        val canCrossFolderLocate = remember(
+            playlistMode,
+            songInCurrentFolder,
+            currentSongParentPath,
+            currentFolder?.path
+        ) {
+            !playlistMode &&
+                !songInCurrentFolder &&
+                currentSongParentPath != null &&
+                currentSongParentPath != currentFolder?.path
+        }
+        val locateCurrentSongAction: (() -> Unit)? = remember(
+            songInCurrentFolder,
+            canCrossFolderLocate,
+            currentSongListIndex,
+            listState,
+            currentSongParentPath
+        ) {
+            when {
+                songInCurrentFolder -> {
+                    {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(currentSongListIndex)
+                        }
                     }
                 }
+                canCrossFolderLocate && currentSongParentPath != null -> {
+                    { onRequestCrossFolderLocate(currentSongParentPath) }
+                }
+                else -> null
             }
         }
 
@@ -2898,7 +2949,24 @@ fun LibraryFoldersTab(
             pendingFolderSortScrollReset = false
         }
 
-        LaunchedEffect(currentSongListIndex, itemsToShow, songsToShow, listState) {
+        LaunchedEffect(
+            currentFolder?.path,
+            pendingLocatePath,
+            currentSongListIndex,
+            songsToShow
+        ) {
+            val pending = pendingLocatePath ?: return@LaunchedEffect
+            if (currentFolder?.path != pending) return@LaunchedEffect
+            if (currentSongListIndex < 0) return@LaunchedEffect
+            listState.animateScrollToItem(currentSongListIndex)
+            onClearPendingLocate()
+        }
+
+        LaunchedEffect(currentSongListIndex, itemsToShow, songsToShow, listState, canCrossFolderLocate) {
+            if (canCrossFolderLocate) {
+                visibilityCallback(true)
+                return@LaunchedEffect
+            }
             if (currentSongListIndex < 0 || songsToShow.isEmpty()) {
                 visibilityCallback(false)
                 return@LaunchedEffect

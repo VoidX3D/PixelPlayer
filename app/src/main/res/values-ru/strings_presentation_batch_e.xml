@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- QueueBottomSheet -->
     <string name="presentation_batch_e_queue_empty">Очередь пуста.</string>
@@ -152,4 +152,5 @@
     <string name="presentation_batch_e_daily_mix_cost_hint">Мы используем небольшую выборку для экономии токенов</string>
     <string name="presentation_batch_e_daily_mix_updating">Обновление…</string>
     <string name="presentation_batch_e_daily_mix_update">Обновить Daily Mix</string>
+    <string name="presentation_batch_e_action_locate_current_song">Найти текущий трек</string>
 </resources>

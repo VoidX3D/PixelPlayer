@@ -218,7 +218,7 @@
     <string name="cd_sync_all">모두 동기화</string>
     <string name="cd_add_drive_folder">폴더 추가</string>
     <string name="cd_logout">로그아웃</string>
-    <string name="screen_netease_dashboard_title">NetEase Cloud Music</string>
+    <string name="screen_netease_dashboard_title">NetEase Music</string>
     <string name="screen_qq_music_dashboard_title">QQ Music</string>
     <string name="cd_sync_all_playlists">모든 플레이리스트 동기화</string>
     <string name="error_with_message_format">오류: %1$s</string>

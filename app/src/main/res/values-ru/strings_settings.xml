@@ -3,7 +3,7 @@
     <!-- Main settings screen -->
     <string name="settings_top_bar_title">Настройки</string>
     <string name="settings_accounts_row_title">Аккаунты</string>
-    <string name="settings_accounts_row_subtitle">Управление Telegram, Google Drive, NetEase Cloud Music и другими сервисами</string>
+    <string name="settings_accounts_row_subtitle">Управление Telegram, Google Drive, NetEase Music и другими сервисами</string>
 
     <!-- SettingsCategory enum (grid) -->
     <string name="settings_category_library_title">Управление музыкой</string>
@@ -11,7 +11,7 @@
     <string name="settings_category_appearance_title">Внешний вид</string>
     <string name="settings_category_appearance_subtitle">Темы, макеты и визуальные стили</string>
     <string name="settings_category_playback_title">Воспроизведение</string>
-    <string name="settings_category_playback_subtitle">Поведение звука, перекрестное затухание и фоновое воспроизведение</string>
+    <string name="settings_category_playback_subtitle">Поведение звука, плавное переключение и фоновое воспроизведение</string>
     <string name="settings_category_behavior_title">Поведение</string>
     <string name="settings_category_behavior_subtitle">Жесты, тактильная отдача и навигация</string>
     <string name="settings_category_ai_title">Интеграция ИИ (β)</string>
@@ -150,9 +150,9 @@
     <string name="setcat_headphones_resume_title">Продолжать при подключении</string>
     <string name="setcat_headphones_resume_subtitle">Если музыка встала на паузу при отключении наушников, она продолжится при их подключении.</string>
     <string name="setcat_queue_transitions">Очередь и переходы</string>
-    <string name="setcat_crossfade_label">Перекрестное затухание</string>
+    <string name="setcat_crossfade_label">Плавное переключение</string>
     <string name="setcat_crossfade_desc">Плавный переход между песнями.</string>
-    <string name="setcat_crossfade_duration">Длительность затухания</string>
+    <string name="setcat_crossfade_duration">Длительность перехода</string>
     <string name="setcat_hifi_mode_title">Режим Hi-Fi</string>
     <string name="setcat_hifi_mode_subtitle_supported">Вывод 32-битного аудио (Float). Отключите, если звук заикается.</string>
     <string name="setcat_hifi_mode_subtitle_unsupported">Не поддерживается на этом устройстве (PCM_FLOAT недоступен).</string>
@@ -257,11 +257,11 @@
     <string name="dialog_reset_lyrics_title">Сбросить импортированные тексты?</string>
     <string name="dialog_cannot_undo">Это действие нельзя отменить.</string>
     <string name="confirm">Подтвердить</string>
-    <string name="dialog_rebuild_database_title">Перестроить базу данных?</string>
-    <string name="dialog_rebuild_database_message">Это полностью перестроит вашу фонотеку с нуля. Все импортированные тексты, избранное и метаданные будут потеряны. Это действие нельзя отменить.</string>
-    <string name="rebuild">Перестроить</string>
-    <string name="sync_indicator_rebuilding">Перестройка базы данных</string>
-    <string name="toast_rebuilding_database">Перестройка базы данных…</string>
+    <string name="dialog_rebuild_database_title">Пересобрать базу данных?</string>
+    <string name="dialog_rebuild_database_message">Это полностью пересоберёт вашу фонотеку с нуля. Все импортированные тексты, избранное и метаданные будут потеряны. Это действие нельзя отменить.</string>
+    <string name="rebuild">Пересобрать</string>
+    <string name="sync_indicator_rebuilding">Пересборка базы данных</string>
+    <string name="toast_rebuilding_database">Пересборка базы данных…</string>
     <string name="dialog_regenerate_daily_mix_title">Обновить Daily Mix?</string>
     <string name="dialog_regenerate_daily_mix_body">Это удалит текущий микс и создаст новый на основе недавних прослушиваний.</string>
     <string name="toast_daily_mix_regeneration_started">Обновление Daily Mix запущено</string>

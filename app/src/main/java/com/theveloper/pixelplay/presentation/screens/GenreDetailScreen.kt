@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -512,6 +512,13 @@ fun GenreDetailScreen(
                             )
                             showSongOptionsSheet = null
                         },
+                        onNavigateToArtistById = { artistId ->
+                            navController.navigateSafelyReplacing(
+                                route = com.theveloper.pixelplay.presentation.navigation.Screen.ArtistDetail.createRoute(artistId),
+                                patternToPop = com.theveloper.pixelplay.presentation.navigation.Screen.ArtistDetail.route
+                            )
+                            showSongOptionsSheet = null
+                        },
                         onNavigateToGenre = {
                             song.genre?.let {
                                 navController.navigateSafelyReplacing(
@@ -521,12 +528,14 @@ fun GenreDetailScreen(
                             }
                             showSongOptionsSheet = null
                         },
-                        onEditSong = { newTitle, newArtist, newAlbum, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
+                        onEditSong = { newTitle, newArtist, newAlbum, newAlbumArtist, newComposer, newGenre, newLyrics, newTrackNumber, newDiscNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate ->
                             playerViewModel.editSongMetadata(
                                 song,
                                 newTitle,
                                 newArtist,
                                 newAlbum,
+                                newAlbumArtist,
+                                newComposer,
                                 newGenre,
                                 newLyrics,
                                 newTrackNumber,

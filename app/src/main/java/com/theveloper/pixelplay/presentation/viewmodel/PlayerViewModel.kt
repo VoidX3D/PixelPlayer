@@ -189,6 +189,8 @@ private data class PendingMetadataEdit(
     val title: String,
     val artist: String,
     val album: String,
+    val albumArtist: String,
+    val composer: String,
     val genre: String,
     val lyrics: String,
     val trackNumber: Int,
@@ -312,6 +314,9 @@ class PlayerViewModel @Inject constructor(
 
 
 
+    private val _playlistPickerStorageFilter = MutableStateFlow(com.theveloper.pixelplay.data.model.StorageFilter.OFFLINE)
+    val playlistPickerStorageFilter: StateFlow<com.theveloper.pixelplay.data.model.StorageFilter> = _playlistPickerStorageFilter.asStateFlow()
+
     /**
      * Paginated songs for efficient display in LibraryScreen.
      * Uses Paging 3 for memory-efficient loading of large libraries.
@@ -321,11 +326,31 @@ class PlayerViewModel @Inject constructor(
         .cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val playlistPickerSongs: Flow<PagingData<Song>> = libraryStateHolder.currentSongSortOption
-        .flatMapLatest { sortOption ->
+    val playlistPickerFavoriteSongs: Flow<PagingData<Song>> = combine(
+        libraryStateHolder.currentSongSortOption,
+        _playlistPickerStorageFilter
+    ) { sortOption, storageFilter ->
+        sortOption to storageFilter
+    }
+        .flatMapLatest { (sortOption, storageFilter) ->
+            musicRepository.getPaginatedFavoriteSongs(
+                sortOption = sortOption,
+                storageFilter = storageFilter
+            )
+        }
+        .cachedIn(viewModelScope)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val playlistPickerSongs: Flow<PagingData<Song>> = combine(
+        libraryStateHolder.currentSongSortOption,
+        _playlistPickerStorageFilter
+    ) { sortOption, storageFilter ->
+        sortOption to storageFilter
+    }
+        .flatMapLatest { (sortOption, storageFilter) ->
             musicRepository.getPaginatedSongs(
                 sortOption = sortOption,
-                storageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL
+                storageFilter = storageFilter
             )
         }
         .cachedIn(viewModelScope)
@@ -382,7 +407,7 @@ class PlayerViewModel @Inject constructor(
             
             // 1. Invalidate Coil cache for the BASE uri (without params)
             // This ensures next time we load it without params, it's fresh too.
-            val baseUri = currentUriClean ?: updatedUriClean
+            val baseUri = currentUriClean
             
             // Remove from Memory Cache
             context.imageLoader.memoryCache?.keys?.forEach { key ->
@@ -1136,6 +1161,15 @@ class PlayerViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
+        )
+
+    val hasCloudSongsFlow: StateFlow<Boolean?> = musicRepository.getCloudSongCountFlow()
+        .map<Int, Boolean?> { it > 0 }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
         )
 
     val albumsFlow: StateFlow<ImmutableList<Album>> = libraryStateHolder.albums
@@ -2057,6 +2091,10 @@ class PlayerViewModel @Inject constructor(
         libraryStateHolder.setStorageFilter(filter)
     }
 
+    fun setPlaylistPickerStorageFilter(filter: com.theveloper.pixelplay.data.model.StorageFilter) {
+        _playlistPickerStorageFilter.value = filter
+    }
+
     fun setHideLocalMedia(hide: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setHideLocalMedia(hide)
@@ -2078,7 +2116,8 @@ class PlayerViewModel @Inject constructor(
         contextSongs: List<Song>,
         queueName: String = "Current Context",
         isVoluntaryPlay: Boolean = true,
-        cancelPendingQueueBuild: Boolean = true
+        cancelPendingQueueBuild: Boolean = true,
+        playlistId: String? = null
     ) {
         if (cancelPendingQueueBuild) {
             cancelPendingFullQueuePlayback()
@@ -2146,7 +2185,12 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
-            if (isVoluntaryPlay) incrementSongScore(song)
+            if (isVoluntaryPlay) {
+                incrementSongScore(song)
+                if (playlistId != null && queueName != "None") {
+                    appShortcutManager.updateLastPlaylistShortcut(playlistId, queueName)
+                }
+            }
             return
         }    // Local playback logic
         mediaController?.let { controller ->
@@ -2161,10 +2205,15 @@ class PlayerViewModel @Inject constructor(
                     controller.seekTo(songIndexInQueue, 0L)
                     controller.play()
                 }
-                if (isVoluntaryPlay) incrementSongScore(song)
+                if (isVoluntaryPlay) {
+                    incrementSongScore(song)
+                    if (playlistId != null && queueName != "None") {
+                        appShortcutManager.updateLastPlaylistShortcut(playlistId, queueName)
+                    }
+                }
             } else {
                 if (isVoluntaryPlay) incrementSongScore(song)
-                playSongs(playbackContext, song, queueName, null)
+                playSongs(playbackContext, song, queueName, playlistId)
             }
         }
         resetPredictiveBackState()
@@ -3951,7 +4000,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun hasRemoteQueueItems(remoteMediaClient: RemoteMediaClient): Boolean {
-        val mediaQueueCount = remoteMediaClient.mediaQueue?.itemCount ?: 0
+        val mediaQueueCount = remoteMediaClient.mediaQueue.itemCount
         val statusQueueCount = remoteMediaClient.mediaStatus?.queueItems?.size ?: 0
         val snapshotQueueCount = castTransferStateHolder.lastRemoteQueue.size
         return mediaQueueCount > 0 || statusQueueCount > 0 || snapshotQueueCount > 0
@@ -4483,6 +4532,8 @@ class PlayerViewModel @Inject constructor(
         newTitle: String,
         newArtist: String,
         newAlbum: String,
+        newAlbumArtist: String,
+        newComposer: String,
         newGenre: String,
         newLyrics: String,
         newTrackNumber: Int,
@@ -4506,6 +4557,8 @@ class PlayerViewModel @Inject constructor(
                         title = newTitle,
                         artist = newArtist,
                         album = newAlbum,
+                        albumArtist = newAlbumArtist,
+                        composer = newComposer,
                         genre = newGenre,
                         lyrics = newLyrics,
                         trackNumber = newTrackNumber,
@@ -4519,7 +4572,7 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
-            performMetadataEdit(song, newTitle, newArtist, newAlbum, newGenre, newLyrics,
+            performMetadataEdit(song, newTitle, newArtist, newAlbum, newAlbumArtist, newComposer, newGenre, newLyrics,
                 newTrackNumber, newDiscNumber, newReplayGainTrackGainDb, newReplayGainAlbumGainDb, coverArtUpdate)
         }
     }
@@ -4566,7 +4619,8 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             performMetadataEdit(
                 pending.song, pending.title, pending.artist, pending.album,
-                pending.genre, pending.lyrics, pending.trackNumber, pending.discNumber,
+                pending.albumArtist, pending.composer, pending.genre, pending.lyrics,
+                pending.trackNumber, pending.discNumber,
                 pending.replayGainTrackGainDb, pending.replayGainAlbumGainDb, pending.coverArtUpdate
             )
         }
@@ -4624,6 +4678,8 @@ class PlayerViewModel @Inject constructor(
         newTitle: String,
         newArtist: String,
         newAlbum: String,
+        newAlbumArtist: String,
+        newComposer: String,
         newGenre: String,
         newLyrics: String,
         newTrackNumber: Int,
@@ -4639,6 +4695,8 @@ class PlayerViewModel @Inject constructor(
             newTitle = newTitle,
             newArtist = newArtist,
             newAlbum = newAlbum,
+            newAlbumArtist = newAlbumArtist,
+            newComposer = newComposer,
             newGenre = newGenre,
             newLyrics = newLyrics,
             newTrackNumber = newTrackNumber,
@@ -4926,6 +4984,8 @@ class PlayerViewModel @Inject constructor(
                     newTitle = sourceSong.title,
                     newArtist = sourceSong.artist,
                     newAlbum = sourceSong.album,
+                    newAlbumArtist = sourceSong.albumArtist ?: "",
+                    newComposer = "",
                     newGenre = newGenre,
                     newLyrics = sourceSong.lyrics ?: "",
                     newTrackNumber = sourceSong.trackNumber,

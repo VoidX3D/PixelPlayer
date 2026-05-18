@@ -161,7 +161,7 @@
     <string name="presentation_batch_f_telegram_status_preparing">Preparando sesión segura de Telegram…</string>
     <string name="presentation_batch_f_telegram_status_waiting">Esperando respuesta de Telegram…</string>
     <string name="presentation_batch_f_connect_telegram">Conectar Telegram</string>
-    <string name="presentation_batch_f_connect_telegram_subtitle">Inicio de sesión con manejo de errores, tiempo de espera y pasos editables.</string>
+    <string name="presentation_batch_f_connect_telegram_subtitle">Conectá Telegram para acceder a tu música en canales y chats.</string>
     <string name="presentation_batch_f_phone_number_title">Número de teléfono</string>
     <string name="presentation_batch_f_phone_number_subtitle">Introduce tu número de Telegram. Podrás volver y editarlo después.</string>
     <string name="presentation_batch_f_phone_number_hint">Número de teléfono</string>

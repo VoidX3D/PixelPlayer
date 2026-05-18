@@ -106,8 +106,8 @@ fun PlayerSeekBar(
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
             },
-            onValueChangeFinished = {
-                onSeek((seekFraction * totalDuration).roundToLong())
+            onValueCommit = { finalFraction ->
+                onSeek((finalFraction * totalDuration).roundToLong())
                 onSeekPreview?.invoke(null)
                 isUserSeeking = false
             },

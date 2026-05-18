@@ -26,7 +26,7 @@ import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -127,7 +127,6 @@ fun FetchLyricsDialog(
                             onDismiss = onDismiss
                         )
                     }
-                    else -> Unit
                 }
             }
         }
@@ -256,7 +255,7 @@ private fun IdleContent(
         ) {
             Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.search))
+            Text(stringResource(R.string.search), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Button(
@@ -279,7 +278,7 @@ private fun IdleContent(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(18.dp)
         ) {
-            Text(stringResource(R.string.cancel))
+            Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -290,10 +289,8 @@ private fun LoadingContent() {
         modifier = Modifier.padding(vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(56.dp),
-            strokeWidth = 4.dp,
-            strokeCap = StrokeCap.Round
+        CircularWavyProgressIndicator(
+            modifier = Modifier.size(56.dp)
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
@@ -347,7 +344,7 @@ private fun PickResultContent(
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
     ) {
-        Text(stringResource(R.string.cancel))
+        Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -553,7 +550,7 @@ fun NotFoundContent(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(18.dp)
         ) {
-            Text(stringResource(R.string.cancel))
+            Text(stringResource(R.string.cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -606,7 +603,7 @@ private fun ErrorContent(
         ),
         shape = RoundedCornerShape(18.dp)
     ) {
-        Text(stringResource(R.string.ok))
+        Text(stringResource(R.string.ok), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -666,7 +663,7 @@ private fun ErrorContent(
 //                                ) {
 //                                    Icon(painter = painterResource(R.drawable.rounded_upload_file_24), contentDescription = null, modifier = Modifier.size(18.dp))
 //                                    Spacer(modifier = Modifier.width(8.dp))
-//                                    Text(stringResource(R.string.import_file))
+//                                    Text(stringResource(R.string.import_file), maxLines = 1, overflow = TextOverflow.Ellipsis)
 //                                }
 //                                Button(
 //                                    onClick = onConfirm,
@@ -674,7 +671,7 @@ private fun ErrorContent(
 //                                ) {
 //                                    Icon(painter = painterResource(R.drawable.rounded_manage_search_24), contentDescription = null, modifier = Modifier.size(18.dp))
 //                                    Spacer(modifier = Modifier.width(8.dp))
-//                                    Text(stringResource(R.string.search))
+//                                    Text(stringResource(R.string.search), maxLines = 1, overflow = TextOverflow.Ellipsis)
 //                                }
 //                            }
 //                        }
@@ -797,7 +794,7 @@ private fun ErrorContent(
 //                                horizontalArrangement = Arrangement.End
 //                            ) {
 //                                TextButton(onClick = onDismiss) {
-//                                    Text(stringResource(R.string.ok))
+//                                    Text(stringResource(R.string.ok), maxLines = 1, overflow = TextOverflow.Ellipsis)
 //                                }
 //                            }
 //                        }

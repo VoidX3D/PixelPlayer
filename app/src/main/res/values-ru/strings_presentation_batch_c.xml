@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Library list errors -->
     <string name="library_error_loading_songs">Ошибка загрузки песен</string>
@@ -79,4 +79,5 @@
     <string name="lib_empty_folders_subtitle">Папки внутреннего хранилища с музыкой появятся здесь.</string>
     <string name="lib_empty_playlists_title">Плейлистов пока нет</string>
     <string name="lib_empty_playlists_subtitle">Создайте свой первый плейлист, чтобы организовать фонотеку.</string>
+    <string name="song_picker_filter_favorites">Только избранное</string>
 </resources>

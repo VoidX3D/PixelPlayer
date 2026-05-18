@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- SettingsComponents -->
     <string name="presentation_batch_f_cd_selected">Выбрано</string>
@@ -232,4 +232,8 @@
         <item quantity="many">%d тем</item>
         <item quantity="other">%d темы</item>
     </plurals>
+    <!-- Remove Telegram channel -->
+    <string name="presentation_batch_f_remove_channel_confirm_title">Удалить канал?</string>
+    <string name="presentation_batch_f_remove_channel_confirm_body">%1$s перестанет синхронизироваться, и все кэшированные треки этого канала будут удалены.</string>
+    <string name="presentation_batch_f_remove_channel_confirm_action">Удалить</string>
 </resources>

@@ -53,7 +53,8 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.PixelPlay"
             android:launchMode="singleTop"
-            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize">
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -78,37 +79,43 @@
             android:name=".presentation.telegram.auth.TelegramLoginActivity"
             android:exported="false"
             android:label="Telegram Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".presentation.netease.auth.NeteaseLoginActivity"
             android:exported="false"
             android:label="Netease Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".presentation.gdrive.auth.GDriveLoginActivity"
             android:exported="false"
             android:label="Google Drive Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".presentation.qqmusic.auth.QqMusicLoginActivity"
             android:exported="false"
             android:label="QQ Music Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".presentation.navidrome.auth.NavidromeLoginActivity"
             android:exported="false"
             android:label="Navidrome Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".presentation.jellyfin.auth.JellyfinLoginActivity"
             android:exported="false"
             android:label="Jellyfin Login"
-            android:theme="@style/Theme.PixelPlay" />
+            android:theme="@style/Theme.PixelPlay"
+            android:windowSoftInputMode="adjustResize" />
 
 
         <activity
