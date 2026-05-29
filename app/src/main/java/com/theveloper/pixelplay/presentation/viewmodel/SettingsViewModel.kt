@@ -292,49 +292,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onGeminiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GEMINI, model) }
-    fun onDeepseekModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.DEEPSEEK, model) }
-    fun onGroqModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GROQ, model) }
-    fun onMistralModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.MISTRAL, model) }
-    fun onNvidiaModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.NVIDIA, model) }
-    fun onKimiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.KIMI, model) }
-    fun onGlmModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GLM, model) }
-    fun onOpenAiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENAI, model) }
-    fun onOpenrouterModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.OPENROUTER, model) }
-
-    fun onAiSystemPromptChange(prompt: String) {
-        viewModelScope.launch {
-            val provider = AiProvider.fromString(aiProvider.value)
-            aiPreferencesRepository.setSystemPrompt(provider, prompt)
-        }
-    }
-
-    fun onGeminiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GEMINI, prompt) }
-    fun onDeepseekSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.DEEPSEEK, prompt) }
-    fun onGroqSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GROQ, prompt) }
-    fun onMistralSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.MISTRAL, prompt) }
-    fun onNvidiaSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.NVIDIA, prompt) }
-    fun onKimiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.KIMI, prompt) }
-    fun onGlmSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.GLM, prompt) }
-    fun onOpenAiSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENAI, prompt) }
-    fun onOpenrouterSystemPromptChange(prompt: String) = viewModelScope.launch { aiPreferencesRepository.setSystemPrompt(AiProvider.OPENROUTER, prompt) }
-
-    fun resetAiSystemPrompt() {
-        viewModelScope.launch {
-            val provider = AiProvider.fromString(aiProvider.value)
-            aiPreferencesRepository.resetSystemPrompt(provider)
-        }
-    }
-
-    fun resetGeminiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GEMINI) }
-    fun resetDeepseekSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.DEEPSEEK) }
-    fun resetGroqSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GROQ) }
-    fun resetMistralSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.MISTRAL) }
-    fun resetNvidiaSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.NVIDIA) }
-    fun resetKimiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.KIMI) }
-    fun resetGlmSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.GLM) }
-    fun resetOpenAiSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENAI) }
-    fun resetOpenrouterSystemPrompt() = viewModelScope.launch { aiPreferencesRepository.resetSystemPrompt(AiProvider.OPENROUTER) }
+            fun onGeminiModelChange(model: String) = viewModelScope.launch { aiPreferencesRepository.setModel(AiProvider.GEMINI, model) }
 
     fun clearAiUsageData() {
         viewModelScope.launch {
