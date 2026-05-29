@@ -1,47 +1,32 @@
 package com.theveloper.pixelplay.data.ai
 
-
 import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
-import com.theveloper.pixelplay.data.database.AiCacheDao
-import com.theveloper.pixelplay.data.database.AiCacheEntity
-import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
+import com.theveloper.pixelplay.data.ai.provider.AiProviderSupport
 import com.theveloper.pixelplay.data.database.AiUsageDao
 import com.theveloper.pixelplay.data.database.AiUsageEntity
+import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.di.AppScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import timber.log.Timber
-import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AiOrchestrator @Inject constructor(
+class AiHandler @Inject constructor(
     private val preferencesRepo: AiPreferencesRepository,
     private val clientFactory: AiClientFactory,
-    private val cacheDao: AiCacheDao,
+    private val cacheManager: AiCacheManager,
     private val usageDao: AiUsageDao,
     private val promptEngine: AiSystemPromptEngine,
+    private val logger: AiLogger,
     @AppScope private val appScope: CoroutineScope
 ) {
-    // Cooldown timer: Provider -> Expiry Timestamp
     private val providerCooldowns = mutableMapOf<AiProvider, Long>()
-    private val COOLDOWN_DURATION_MS = 1000L * 60 * 5 // 5 minutes
-
-    // Cache TTL: 30 minutes — prevents stale results from being served indefinitely
-    private val CACHE_TTL_MS = 1000L * 60 * 30
-
-    // Request timeout: 60 seconds max per provider attempt
+    private val COOLDOWN_DURATION_MS = 1000L * 60 * 5
     private val REQUEST_TIMEOUT_MS = 60_000L
-
-    private fun String.sha256(): String {
-        return MessageDigest.getInstance("SHA-256")
-            .digest(this.toByteArray())
-            .joinToString("") { "%02x".format(it) }
-    }
 
     private suspend fun getBasePersona(provider: AiProvider): String {
         return preferencesRepo.getSystemPrompt(provider).first()
@@ -71,17 +56,11 @@ class AiOrchestrator @Inject constructor(
         val requestedModel = getModel(provider).ifBlank { client.getDefaultModel() }
 
         return try {
-            // Wrap in timeout to prevent hanging requests
             withTimeout(REQUEST_TIMEOUT_MS) {
-                client.generateContent(
-                    requestedModel,
-                    systemPrompt,
-                    prompt,
-                    temperature
-                )
+                client.generateContent(requestedModel, systemPrompt, prompt, temperature)
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            throw com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.createException(
+            throw AiProviderSupport.createException(
                 providerName = provider.displayName,
                 statusCode = null,
                 transportMessage = "Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s. The model may be overloaded.",
@@ -89,28 +68,12 @@ class AiOrchestrator @Inject constructor(
                 requestedModel = requestedModel
             )
         } catch (e: Exception) {
-            val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(
-                provider.displayName,
-                e,
-                requestedModel
-            )
+            val failure = AiProviderSupport.wrapThrowable(provider.displayName, e, requestedModel)
+            val recoveredModel = recoverModelIfNeeded(provider, apiKey, requestedModel, client, failure)
+                ?: throw failure
 
-            val recoveredModel = recoverModelIfNeeded(
-                provider = provider,
-                apiKey = apiKey,
-                requestedModel = requestedModel,
-                client = client,
-                failure = failure
-            ) ?: throw failure
-
-            // Retry with recovered model (also with timeout)
             withTimeout(REQUEST_TIMEOUT_MS) {
-                client.generateContent(
-                    recoveredModel,
-                    systemPrompt,
-                    prompt,
-                    temperature
-                )
+                client.generateContent(recoveredModel, systemPrompt, prompt, temperature)
             }
         }
     }
@@ -125,7 +88,7 @@ class AiOrchestrator @Inject constructor(
         if (!failure.isModelUnavailable()) return null
 
         val availableModels = runCatching { client.getAvailableModels(apiKey) }.getOrDefault(emptyList())
-        val recoveredModel = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.selectRecoveryModel(
+        val recoveredModel = AiProviderSupport.selectRecoveryModel(
             currentModel = requestedModel,
             defaultModel = client.getDefaultModel(),
             availableModels = availableModels
@@ -141,48 +104,31 @@ class AiOrchestrator @Inject constructor(
         temperature: Float = 0.7f,
         context: String = ""
     ): String {
-        // Dynamic temperature adjustment if default value is used
         val resolvedTemperature = if (temperature == 0.7f) {
             when (type) {
-                // AI Optimization: Use low temperature for high-precision metadata to prevent hallucinations
                 AiSystemPromptType.METADATA -> 0.1f
                 AiSystemPromptType.MOOD_ANALYSIS -> 0.2f
-                // AI Optimization: Moderate temperature for tags to allow creative yet relevant descriptors
                 AiSystemPromptType.TAGGING -> 0.4f
-                // AI Optimization: Balanced temperature for playlists to ensure variety without losing cohesion
                 AiSystemPromptType.PLAYLIST, AiSystemPromptType.DAILY_MIX -> 0.6f
-                // AI Optimization: High temperature for persona-based responses to increase flair and engagement
                 AiSystemPromptType.PERSONA -> 0.85f
                 AiSystemPromptType.GENERAL -> 0.7f
             }
         } else temperature
 
-        // Determine chain based on user preference
         val userProviderStr = preferencesRepo.aiProvider.first()
         val userProvider = AiProvider.fromString(userProviderStr)
 
-        // Generate combined prompt for hashing and execution
         val basePersona = getBasePersona(userProvider)
         val combinedSystemPrompt = promptEngine.buildPrompt(basePersona, type, context)
-        
-        // Cache entry is valid for a specific prompt + system instruction + provider
-        val hash = (userProvider.name + combinedSystemPrompt + prompt).sha256()
 
-        // Check cache with TTL — don't serve stale results
-        cacheDao.getCache(hash)?.let { cached ->
-            val age = System.currentTimeMillis() - cached.timestamp
-            if (age < CACHE_TTL_MS) {
-                return cached.responseJson
-            }
-            // Cache expired — proceed with fresh generation
-        }
+        val hash = cacheManager.buildHash(userProvider.name, combinedSystemPrompt, prompt)
+        cacheManager.get(hash)?.let { return it }
 
-        val providersToTry = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.buildProviderChain(userProvider)
+        val providersToTry = AiProviderSupport.buildProviderChain(userProvider)
         val failedProviders = mutableListOf<String>()
         val now = System.currentTimeMillis()
-        
+
         for (provider in providersToTry) {
-            // Skip if in cooldown
             val cooldownExpiry = providerCooldowns[provider] ?: 0L
             if (now < cooldownExpiry) {
                 failedProviders.add("${provider.name}: on cooldown (${((cooldownExpiry - now) / 1000)}s remaining)")
@@ -196,7 +142,6 @@ class AiOrchestrator @Inject constructor(
                     continue
                 }
 
-                // Use the shared base persona but specialized type rules for each provider in the chain
                 val providerPersona = getBasePersona(provider)
                 val finalSystemPrompt = promptEngine.buildPrompt(providerPersona, type, context)
 
@@ -208,14 +153,11 @@ class AiOrchestrator @Inject constructor(
                     temperature = resolvedTemperature
                 )
 
-                // Validate response is not empty
                 if (response.isBlank()) {
                     failedProviders.add("${provider.name}: returned empty response")
                     continue
                 }
 
-                // Low-maintenance usage tracking using highly accurate proportional estimation bounds (4 chars ~ 1 token)
-                // Models with "thinking" or "reasoning" generally output 2-3x internal tokens for complex generation
                 val isThinkingModel = finalSystemPrompt.contains("think", true) || provider.name.contains("reasoning", true)
                 val estimatedPromptTokens = (finalSystemPrompt.length + prompt.length) / 4
                 val estimatedOutputTokens = response.length / 4
@@ -235,40 +177,34 @@ class AiOrchestrator @Inject constructor(
                             )
                         )
                     }.onFailure { error ->
-                        Timber.tag("AiOrchestrator").e(error, "Failed to persist AI usage")
+                        logger.error("AiHandler", "Failed to persist AI usage", error)
                     }
                 }
 
-                cacheDao.insert(AiCacheEntity(promptHash = hash, responseJson = response, timestamp = System.currentTimeMillis()))
+                cacheManager.put(hash, response)
                 return response
             } catch (e: Exception) {
-                // AI Optimization: Robust failover logic—if one provider fails, we log and try the next in the chain
-                val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
-                Timber.tag("AiOrchestrator").w(e, "Provider ${provider.name} failed: ${failure.message}")
+                val failure = AiProviderSupport.wrapThrowable(provider.displayName, e)
+                logger.warn("AiHandler", "Provider ${provider.name} failed: ${failure.message}")
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
-                // Trigger cooldown only on provider-level outages and account problems.
                 if (failure.shouldCooldown()) {
                     providerCooldowns[provider] = now + COOLDOWN_DURATION_MS
                 }
             }
         }
-        
-        // AI Integration: Bubble up a detailed, user-friendly error if all providers fail
+
         val errorMessage = when {
             failedProviders.all { it.contains("no API key") } ->
                 "No API key configured. Go to Settings → AI Integration to set up your API key."
-            
             failedProviders.all { it.contains("cooldown") } ->
                 "All AI providers are on cooldown after recent errors. Wait a few minutes and try again."
-            
             failedProviders.size == 1 ->
                 "AI generation failed: ${failedProviders.first()}"
-            
             else ->
                 "AI generation failed after trying ${failedProviders.size} providers:\n${failedProviders.joinToString("\n• ", prefix = "• ")}"
         }
-        
-        Timber.tag("AiOrchestrator").e("All providers failed. Details: %s", failedProviders.joinToString(" | "))
+
+        logger.error("AiHandler", "All providers failed. Details: ${failedProviders.joinToString(" | ")}")
         throw Exception(errorMessage)
     }
 }
