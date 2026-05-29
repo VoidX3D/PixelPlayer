@@ -576,40 +576,17 @@ class PlayerViewModel @Inject constructor(
 
     val hasActiveAiProviderApiKey: StateFlow<Boolean> = combine(
         aiPreferencesRepository.aiProvider,
-        aiPreferencesRepository.geminiApiKey,
-        aiPreferencesRepository.deepseekApiKey,
-        aiPreferencesRepository.groqApiKey,
-        aiPreferencesRepository.mistralApiKey,
-        aiPreferencesRepository.nvidiaApiKey,
-        aiPreferencesRepository.kimiApiKey,
-        aiPreferencesRepository.glmApiKey,
-        aiPreferencesRepository.openaiApiKey
-    ) { values ->
-        val provider = values[0]
-        val gemini = values[1]
-        val deepseek = values[2]
-        val groq = values[3]
-        val mistral = values[4]
-        val nvidia = values[5]
-        val kimi = values[6]
-        val glm = values[7]
-        val openai = values[8]
-        when (provider) {
-            "DEEPSEEK" -> deepseek.isNotBlank()
-            "GROQ" -> groq.isNotBlank()
-            "MISTRAL" -> mistral.isNotBlank()
-            "NVIDIA" -> nvidia.isNotBlank()
-            "KIMI" -> kimi.isNotBlank()
-            "GLM" -> glm.isNotBlank()
-            "OPENAI" -> openai.isNotBlank()
-            else -> gemini.isNotBlank()
+        aiPreferencesRepository.aiProvider.flatMapLatest { provider ->
+            aiPreferencesRepository.getApiKey(AiProvider.fromString(provider))
         }
+    ) { _, apiKey ->
+        apiKey.isNotBlank()
     }.distinctUntilChanged()
         .stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = false
-    )
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     val hasGeminiApiKey: StateFlow<Boolean> = aiPreferencesRepository.geminiApiKey
         .map { it.isNotBlank() }
