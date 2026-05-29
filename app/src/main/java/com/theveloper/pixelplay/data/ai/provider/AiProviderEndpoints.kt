@@ -60,7 +60,7 @@ object AiProviderEndpoints {
         ),
         AiProvider.OPENROUTER to ProviderConfig(
             baseUrl = "https://openrouter.ai/api/v1",
-            defaultModel = "google/gemini-2.0-flash-lite-preview-02-05:free",
+            defaultModel = "google/gemini-3.1-flash-lite",
             displayName = "OpenRouter"
         )
     )
