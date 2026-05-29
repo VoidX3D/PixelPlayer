@@ -41,7 +41,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.EotStateHolder
-import com.theveloper.pixelplay.data.ai.SongMetadata
+
 import com.theveloper.pixelplay.data.database.AlbumArtThemeDao
 import com.theveloper.pixelplay.data.media.CoverArtUpdate
 import com.theveloper.pixelplay.data.model.Album
@@ -527,8 +527,7 @@ class PlayerViewModel @Inject constructor(
     val aiError: StateFlow<String?> = aiStateHolder.aiError
 
     // AI Metadata Generation States
-    val isGeneratingAiMetadata: StateFlow<Boolean> = aiStateHolder.isGeneratingMetadata
-    val aiMetadataSuccess: StateFlow<Boolean> = aiStateHolder.aiMetadataSuccess
+
 
     private val _selectedSongForInfo = MutableStateFlow<Song?>(null)
     val selectedSongForInfo: StateFlow<Song?> = _selectedSongForInfo.asStateFlow()
@@ -1996,7 +1995,7 @@ class PlayerViewModel @Inject constructor(
                 aiStateHolder.isGeneratingAiPlaylist,
                 aiStateHolder.aiStatus,
                 aiStateHolder.aiError,
-                aiStateHolder.isGeneratingMetadata,
+
             ) { show, generating, status, error, generatingMetadata ->
                 AiUiSnapshot(
                     showAiPlaylistSheet = show,
@@ -5390,9 +5389,7 @@ class PlayerViewModel @Inject constructor(
         }.getOrDefault(false)
     }
 
-    suspend fun generateAiMetadata(song: Song, fields: List<String>): Result<SongMetadata> {
-        return aiStateHolder.generateAiMetadata(song, fields)
-    }
+
 
     private fun updateSongInStates(
         updatedSong: Song,

@@ -1,5 +1,10 @@
 package com.theveloper.pixelplay.data.ai.provider
 
+data class AiModelInfo(
+    val name: String,
+    val displayName: String
+)
+
 object AiProviderEndpoints {
     data class ProviderConfig(
         val baseUrl: String,

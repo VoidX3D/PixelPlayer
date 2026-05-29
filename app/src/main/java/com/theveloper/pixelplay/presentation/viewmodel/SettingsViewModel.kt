@@ -43,7 +43,7 @@ import javax.inject.Inject
 
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
-import com.theveloper.pixelplay.data.ai.GeminiModel
+import com.theveloper.pixelplay.data.ai.provider.AiModelInfo
 import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
 import com.theveloper.pixelplay.data.preferences.LaunchTab
@@ -79,7 +79,7 @@ data class SettingsUiState(
     val lyricsSourcePreference: LyricsSourcePreference = LyricsSourcePreference.EMBEDDED_FIRST,
     val autoScanLrcFiles: Boolean = false,
     val blockedDirectories: Set<String> = emptySet(),
-    val availableModels: List<GeminiModel> = emptyList(),
+    val availableModels: List<AiModelInfo> = emptyList(),
     val isLoadingModels: Boolean = false,
     val modelsFetchError: String? = null,
     val appRebrandDialogShown: Boolean = false,
@@ -179,7 +179,8 @@ class SettingsViewModel @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
     private val syncManager: SyncManager,
     private val aiClientFactory: AiClientFactory,
-    private val geminiModelService: com.theveloper.pixelplay.data.ai.GeminiModelService,
+
+
     private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
     private val musicRepository: MusicRepository,
@@ -1126,16 +1127,12 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingModels = true, modelsFetchError = null) }
             try {
                 val provider = AiProvider.fromString(providerName)
-                val models = if (provider == AiProvider.GEMINI) {
-                    geminiModelService.fetchAvailableModels(apiKey).getOrThrow()
-                } else {
-                    val aiClient = aiClientFactory.createClient(provider, apiKey)
-                    aiClient.getAvailableModels(apiKey)
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
-                        .distinct()
-                        .map { com.theveloper.pixelplay.data.ai.GeminiModel(it, formatModelDisplayName(it)) }
-                }
+                val aiClient = aiClientFactory.createClient(provider, apiKey)
+                val models = aiClient.getAvailableModels(apiKey)
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .map { AiModelInfo(it, formatModelDisplayName(it)) }
                 
                 _uiState.update { 
                     it.copy(

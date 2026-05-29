@@ -1,6 +1,5 @@
 package com.theveloper.pixelplay.data.ai
 
-
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,7 +16,6 @@ enum class AiSystemPromptType {
 @Singleton
 class AiSystemPromptEngine @Inject constructor() {
 
-    // Advanced prompt engineering: Enforcing structured output boundaries
     private val UNIVERSAL_CONSTRAINTS = """
         <constraints>
         - You are communicating with a programmatic parser, not a human.
@@ -48,7 +46,7 @@ class AiSystemPromptEngine @Inject constructor() {
                 <role>Precision music metadata specialist.</role>
                 <strategy>
                 - Fix spelling errors and standardizations in song titles and artists.
-                - Replace generic genres ("Music", "Electronic") with highly specific subgenres ("Synthwave", "Nu-Disco").
+                - Replace generic genres with highly specific subgenres.
                 </strategy>
                 <output_schema>
                 Return ONLY a raw JSON object string.
@@ -119,11 +117,31 @@ class AiSystemPromptEngine @Inject constructor() {
             </system>
         """.trimIndent()
 
-        // Persona generation bypasses the strict JSON/raw constraints since it is meant to read as prose to the user
         return if (type == AiSystemPromptType.PERSONA || type == AiSystemPromptType.GENERAL) {
             listOf(systemBlock, contextLayer).filter { it.isNotBlank() }.joinToString("\n\n")
         } else {
             listOf(systemBlock, UNIVERSAL_CONSTRAINTS, contextLayer).filter { it.isNotBlank() }.joinToString("\n\n")
+        }
+    }
+
+    fun jsonArrayOutput(): String = """
+        Return ONLY a raw JSON array of song IDs.
+        Format: ["id_1","id_2","id_3"]
+    """.trimIndent()
+
+    fun buildWithTemplate(template: String, basePersona: String, context: String = ""): String {
+        return buildPrompt(basePersona, parseTypeFromTemplate(template), context)
+    }
+
+    private fun parseTypeFromTemplate(template: String): AiSystemPromptType {
+        return when {
+            template.contains("playlist", ignoreCase = true) -> AiSystemPromptType.PLAYLIST
+            template.contains("metadata", ignoreCase = true) -> AiSystemPromptType.METADATA
+            template.contains("tag", ignoreCase = true) -> AiSystemPromptType.TAGGING
+            template.contains("mood", ignoreCase = true) -> AiSystemPromptType.MOOD_ANALYSIS
+            template.contains("persona", ignoreCase = true) -> AiSystemPromptType.PERSONA
+            template.contains("daily_mix", ignoreCase = true) || template.contains("dailymix", ignoreCase = true) -> AiSystemPromptType.DAILY_MIX
+            else -> AiSystemPromptType.GENERAL
         }
     }
 }
